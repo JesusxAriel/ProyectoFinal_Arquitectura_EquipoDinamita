@@ -18,4 +18,4 @@ main { flex: 1; }
 body.pagina-minima { padding-top: 0; justify-content: center; }
 body.pagina-minima main { flex: 0 1 auto; width: 100%; }
 .login-minimo { max-width: 460px; }
-@media (max-width: 991.98px) { 
+@media (max-width: 991.98px) {

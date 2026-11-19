@@ -13,3 +13,11 @@
 11. Documente cualquier cambio de integración (configuración, claims, rutas, variables).
 
 Se permiten mejoras legítimas y corrección de errores que respeten lo anterior.
+
+## Entornos y verificación de integración
+
+- El Compose raíz corresponde al entorno común. La demo de Proveedores se ejecuta exclusivamente con `docker-compose.demo.yml`; no sustituir Gateway, Frontend o Keycloak comunes por sus variantes demo.
+- Proveedores permanece en Servicio4.Proveedores; conservar namespaces, contratos, validaciones y los cinco proyectos.
+- No compartir bases entre microservicios ni cambiar nombres/destinos de bases o volúmenes sin acuerdo. No borrar volúmenes para actualizar un realm; aplicar los cambios mediante administración de Keycloak.
+- Leer también GUIA_INTEGRACION_GRUPO1.md y GUIA_DOCKER_PUNTOMARKET.md. No publicar .env, claves, datos ni artefactos locales.
+- La solución raíz incluye todos los proyectos comunes y demo; verificar restore/build/test completos y pruebas JavaScript, además de la suite propia de Proveedores.

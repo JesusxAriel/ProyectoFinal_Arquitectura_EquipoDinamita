@@ -1,3 +1,24 @@
+# Estado de la integración local — micro-proveedor
+
+Se integran las fuentes de origin/main (3eefb83) y los cambios propios de Proveedores (51b63b4). `docker-compose.yml` es el entorno común original; `docker-compose.demo.yml` conserva la demo independiente. La solución raíz cubre 25 proyectos. No se han arrancado servicios comunes ni cambiado bases o volúmenes durante esta fase.
+
+## Acuerdos vigentes
+
+- Servicio4.Proveedores es definitivo; conserva los cinco proyectos, contratos, JWT, validaciones, auditoría y concurrencia.
+- Gateway/ y Frontend/ comunes son la referencia; la UI de Proveedores permanece en Frontend/Frontend.Demo y no se ha trasplantado ni sustituye al frontend común.
+- Grupo 2 debe integrar las páginas y cliente HTTP de Proveedores con AddGatewayAdapter y BearerTokenHandler, sesión por usuario, rutas/layout y roles reales, sin reutilizar DemoTokenProvider ni DemoPerfilSession como identidad definitiva.
+- Gateway común exige TokenValido para Proveedores y SoloAdministrador para Usuarios, con excepciones concretas de usuario actual. La API Proveedores conserva autorización propia Administrador/Cajero.
+- Keycloak usa realm puntomarket, cliente puntomarket-web y mappers de audiencia para las cuatro APIs. Proveedores requiere proveedores-api. El issuer interno del Compose debe coincidir con el iss real; no desactivar validación para resolver DNS o un 401. MetadataAddress sigue disponible para discovery separado si se acuerda un issuer público.
+- La demo utiliza DevIdentity y el realm proveedores-dev; los tokens de ambos entornos no son intercambiables. No duplicar autenticación común en el demo.
+- La configuración Mongo común se conserva literalmente: proveedores-db autenticado, base tomada de PROVEEDORES_DB_NAME y volumen proveedores-db-data. La demo mantiene mongodb, proveedores_db y mongodb_data. Mongo Windows en 27017 es un tercer servidor independiente. No migrar, compartir o renombrar bases/volúmenes automáticamente.
+- Puertos demo predeterminados 15100/15000/15200/15300/27028; los comunes conservan sus valores de main. Revisar variables locales que puedan sobrescribirlos.
+- La suite propia usa bases temporales; las pruebas comunes y builds no acreditan un login real o conectividad SMTP/MySQL/Keycloak del conjunto.
+- No hay cambios en contratos públicos durante esta integración. La regla de productos activos y la versión de cliente/ETag continúan pendientes.
+
+## Documentación común conservada
+
+El contenido siguiente procede de main. Sus notas de entregas anteriores describen el contexto de esas entregas; para ubicación definitiva y separación de entornos prevalecen los acuerdos de arriba y el README actual.
+
 # Integración con el Grupo 2 (Keycloak, Gateway y frontend definitivos)
 
 ## 1. Arquitectura
@@ -146,5 +167,23 @@ Contrato **propuesto** (a acordar): `GET api/productos/proveedor/{proveedorId}/a
 - Variables de usuarios-ms: `Keycloak__BaseUrl`, `Keycloak__Realm`, `Keycloak__LoginClientId`, `Keycloak__AdminUserName` y `Keycloak__AdminPassword` (estas dos toman `KEYCLOAK_ADMIN_USER` y `KEYCLOAK_ADMIN_PASSWORD` del `.env`) y `Smtp__*` (desde `SMTP_*`).
 
 ## 27. Orden de arranque y audiencias (19 de noviembre de 2026)
-- El realm agrega los mappers `audiencia-clientes-api` y `audiencia-productos-api`: el token trae `aud` con `clientes-api`, `productos-api`, `proveedores-api` y `usuarios-api`. Quien ya levantó el compose debe recrear el volumen `keycloak-data` para que el import tome el cambio (el import solo corre si el realm no existe).
+- El realm agrega los mappers `audiencia-clientes-api` y `audiencia-productos-api`: el token trae `aud` con `clientes-api`, `productos-api`, `proveedores-api` y `usuarios-api`. El import solo se aplica si el realm no existe. En un realm persistido, revisar y actualizar los mappers mediante administración de Keycloak con respaldo; no recrear ni borrar el volumen para aplicar estos cambios.
 - `docker-compose.yml`: Keycloak expone `/health/ready` en el puerto de gestión (9000, no publicado, `KC_HEALTH_ENABLED=true`) y su healthcheck lo consulta con `bash` y `/dev/tcp`, porque la imagen no trae `curl`. Los microservicios esperan a su base de datos y a Keycloak (`service_healthy`); el Gateway espera a Keycloak y a los cuatro microservicios sanos; el Razor espera al Gateway sano. Los servicios .NET usan el mismo método (`bash` y `/dev/tcp`, sin instalar paquetes en los Dockerfile): `GET /api/salud` en Usuarios, Clientes y Productos, `GET /health` en Proveedores, `GET /Auth/Login` en el Razor y una conexión TCP al puerto 8080 en el Gateway.
+
+## Verificación ejecutada del merge local con 3eefb83
+
+- Restore de los 25 proyectos correcto. El primer intento restringido no pudo consultar NuGet (NU1900); se repitió con acceso a red y terminó sin advertencias.
+- Build completo: 0 errores y 0 advertencias, sin NU1902/NU1903.
+- Suite de integración de solución: Gateway 16, Frontend común 33, Usuarios 64 y Proveedores 215; total 328 aprobadas, 0 fallidas y 0 omitidas. Las pruebas de Proveedores usaron MongoDB local y bases temporales aisladas. La suite propia se ejecutó también por separado: 215 aprobadas.
+- JavaScript: 60 casos de campos, corrección de errores y doble envío, y pruebas del buscador dinámico aprobados.
+- Ambos Compose validados mediante Docker con variables sintéticas (sin credenciales reales ni conexiones). Se comprobó que los puertos predeterminados no se solapan y que los proyectos, bases y volúmenes son diferentes.
+- Construidas las seis imágenes .NET comunes y las cuatro imágenes .NET demo, sin arrancar ni recrear contenedores.
+- Se verificó conservación de 196 archivos de código/configuración del equipo y 111 de los componentes propios, sin cambios funcionales respecto a las ramas de origen. El Compose común permanece idéntico a main.
+- Los contenedores existentes conservan IDs, fechas de arranque y montajes. La lista y metadatos de volúmenes permanecen iguales. Los cinco contenedores demo existentes siguen healthy; no se atribuye su estado al arranque de la nueva integración.
+- Sintaxis del script PowerShell y enlaces de las guías revisados; no se ejecutaron scripts de escritura o ciclo de vida.
+
+Límites: no se inició el entorno común por acuerdo del usuario; no se verificaron login real de Keycloak, envío SMTP, datos/esquemas reales de MySQL/PostgreSQL ni el recorrido completo frontend-Gateway-APIs común. Las pruebas de Usuarios/Gateway usan dobles HTTP y no acreditan conectividad real. Clientes y Productos compilan y construyen sus imágenes, pero no tienen suites de prueba propias en esta solución. El caso de creación de Usuarios y su prueba anterior siguen excluidos en los csproj de main; no se reactivaron ni se implementaron funciones ajenas. El frontend común aún no ofrece el CRUD Proveedores.
+
+La configuración de audiencia del Gateway común sigue como en main (ValidateAudience=false); Proveedores mantiene firma, issuer, audience y lifetime habilitados. Revisar esa decisión con el equipo antes de producción, sin cambiarla unilateralmente durante el merge. No se actualizó ningún realm persistido: sus mappers reales deben comprobarse al arrancar el entorno común.
+
+La comprobación final retiró únicamente un espacio al final de una línea de `Frontend/wwwroot/css/presentacion.css` heredada de main, sin alterar reglas CSS.

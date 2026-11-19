@@ -1,3 +1,13 @@
+# Integración común actual
+
+El entorno principal es `docker-compose.yml`, con Gateway/, Frontend/, Keycloak y los cuatro servicios con bases independientes. La solución raíz incluye los 25 proyectos, incluidas todas las pruebas disponibles. La demo se ejecuta solo con `docker-compose.demo.yml`; no es el frontend definitivo.
+
+Consultar [README](README.md) para comandos actuales, [acuerdos Grupo 2](INTEGRACION_GRUPO2.md) para JWT/sesión y [Grupo 1](GUIA_INTEGRACION_GRUPO1.md) para el contrato de Proveedores. El frontend común aún no contiene /Proveedores; Grupo 2 debe integrar ese módulo con su sesión y adaptadores HTTP. No arrancar pilas sobre los mismos puertos ni compartir volúmenes automáticamente.
+
+## Guía previa conservada como referencia histórica
+
+Los apartados siguientes se conservan para no perder el análisis, contratos y puntos de extensión aportados por main. Las afirmaciones de que Usuarios/Keycloak no existen, Docker está pendiente o el Gateway no valida JWT corresponden a la demo anterior, **no al entorno común actual**. Los resultados de pruebas citados son históricos. No ejecutar comandos Compose de estos apartados sobre el archivo raíz para probar la demo: utilizar siempre `-f docker-compose.demo.yml`.
+
 # Guía de integración de microservicios — PuntoMarket
 
 Los artefactos y evidencias locales citados en esta guía no se versionan ni contienen datos necesarios para clonar o ejecutar el proyecto. Docker queda fuera de esta publicación inicial.

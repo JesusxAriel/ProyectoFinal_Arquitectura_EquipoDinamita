@@ -6,6 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Proveedores.API\Proveedores.API.csproj" />
     <ProjectReference Include="..\..\Frontend\Frontend.Demo\Frontend.Demo.csproj" Aliases="Frontend" />
+    <ProjectReference Include="..\..\DevIdentity\DevIdentity.Demo\DevIdentity.Demo.csproj" Aliases="Identity" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />

@@ -27,6 +27,8 @@ public sealed class AuthSettings
     public const string SectionName = "Authentication:Jwt";
 
     public string Authority { get; set; } = string.Empty;
+    /// <summary>Opcional: URL de descubrimiento accesible por el servidor (DNS interno de Docker).</summary>
+    public string? MetadataAddress { get; set; }
     public string Audience { get; set; } = string.Empty;
     public bool RequireHttpsMetadata { get; set; } = true;
 

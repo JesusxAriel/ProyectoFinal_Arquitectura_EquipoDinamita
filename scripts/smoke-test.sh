@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Prueba de humo end-to-end vía Gateway local. Requiere los cuatro servicios, curl y python3.
+# DEMO TEMPORAL: prueba de humo vía Gateway demo; no usar con el Gateway común. Requiere los cuatro servicios, curl y python3.
 # Realiza escrituras: usar exclusivamente una API conectada a una base temporal de pruebas.
 set -euo pipefail
-GW="${GATEWAY_URL:-http://localhost:5000}"
+GW="${GATEWAY_URL:-http://localhost:15000}"
 tok() { curl -fsS -X POST "$GW/dev-auth/token" -H 'Content-Type: application/json' -d "{\"perfil\":\"$1\"}" | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])'; }
 ADMIN=$(tok Administrador); CAJERO=$(tok Cajero)
 code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }

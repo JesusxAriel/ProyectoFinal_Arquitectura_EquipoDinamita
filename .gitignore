@@ -5,8 +5,7 @@ obj/
 .vscode/
 *.user
 *.suo
-.env
-.env.*
+.env*
 !.env.example
 TestResults/
 *.log
@@ -17,14 +16,6 @@ TestResults/
 *~
 .DS_Store
 Thumbs.db
-
-# Compilación y editores (cualquier nivel)
-**/bin/
-**/obj/
-**/.vs/
-
-# Guías internas del equipo: no se publican
-guias/
 
 # Resultados, instantáneas, backups y datos locales: nunca publicar MongoDB personal.
 /artifacts/
@@ -51,6 +42,8 @@ appsettings.Local.json
 appsettings.*.local.json
 appsettings.Secrets.json
 
+# Dockerfiles y Compose forman parte de la fase de dockerización; los datos siguen excluidos.
+
 # Herramientas e informes de operaciones puntuales sobre la base personal.
 /scripts/aplicar-proveedores.cs
 /scripts/previsualizar-proveedores.cs
@@ -59,4 +52,10 @@ appsettings.Secrets.json
 /VALIDACIONES_Y_SEGURIDAD.md
 /AJUSTES_USABILIDAD.md
 
+.env
+.env.*
+**/bin/
+**/obj/
+**/.vs/
+guias/
 *.zip
