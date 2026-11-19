@@ -10,11 +10,26 @@ services:
       PUNTOMARKET_ADMIN_USERNAME: ${PUNTOMARKET_ADMIN_USERNAME:?Defina PUNTOMARKET_ADMIN_USERNAME en el archivo .env}
       PUNTOMARKET_ADMIN_PASSWORD: ${PUNTOMARKET_ADMIN_PASSWORD:?Defina PUNTOMARKET_ADMIN_PASSWORD en el archivo .env}
       PUNTOMARKET_ADMIN_EMAIL: ${PUNTOMARKET_ADMIN_EMAIL:?Defina PUNTOMARKET_ADMIN_EMAIL en el archivo .env}
+      KC_HEALTH_ENABLED: "true"
     ports:
       - "127.0.0.1:${KEYCLOAK_PUBLISHED_PORT:-8180}:8080"
     volumes:
       - keycloak-data:/opt/keycloak/data
       - ./docker/keycloak/realm-puntomarket.json:/opt/keycloak/data/import/realm-puntomarket.json:ro
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - |
+          exec 3<>/dev/tcp/127.0.0.1/9000
+          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          while read -r linea; do [[ $$linea == *'"status": "UP"'* ]] && exit 0; done <&3
+          exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 40s
 
   gateway:
     build:
@@ -23,11 +38,26 @@ services:
       Authentication__Jwt__Authority: http://keycloak:8080/realms/puntomarket
       Authentication__Jwt__RequireHttpsMetadata: "false"
     depends_on:
-      - keycloak
-      - usuarios-ms
-      - clientes-ms
-      - productos-ms
-      - proveedores-ms
+      keycloak:
+        condition: service_healthy
+      usuarios-ms:
+        condition: service_healthy
+      clientes-ms:
+        condition: service_healthy
+      productos-ms:
+        condition: service_healthy
+      proveedores-ms:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - exec 3<>/dev/tcp/127.0.0.1/8080
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     ports:
       - "127.0.0.1:${GATEWAY_PUBLISHED_PORT:-5000}:8080"
 
@@ -37,7 +67,22 @@ services:
     environment:
       GatewayApi__BaseUrl: http://gateway:8080/
     depends_on:
-      - gateway
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - |
+          exec 3<>/dev/tcp/127.0.0.1/8080
+          printf 'GET /Auth/Login HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          read -r linea <&3
+          [[ $$linea == *' 200 '* ]]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     ports:
       - "127.0.0.1:${FRONTEND_PUBLISHED_PORT:-5100}:8080"
 
@@ -63,9 +108,23 @@ services:
       Keycloak__AdminPassword: ${KEYCLOAK_ADMIN_PASSWORD:?Defina KEYCLOAK_ADMIN_PASSWORD en el archivo .env}
     depends_on:
       keycloak:
-        condition: service_started
+        condition: service_healthy
       usuarios-db:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - |
+          exec 3<>/dev/tcp/127.0.0.1/8080
+          printf 'GET /api/salud HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          read -r linea <&3
+          [[ $$linea == *' 200 '* ]]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     ports:
       - "127.0.0.1:${USUARIOS_PUBLISHED_PORT:-5003}:8080"
 
@@ -75,8 +134,24 @@ services:
     environment:
       ConnectionStrings__PostgresConnection: Host=clientes-db;Port=5432;Database=${CLIENTES_DB_NAME:?Defina CLIENTES_DB_NAME en el archivo .env};Username=${CLIENTES_DB_USER:?Defina CLIENTES_DB_USER en el archivo .env};Password=${CLIENTES_DB_PASSWORD:?Defina CLIENTES_DB_PASSWORD en el archivo .env}
     depends_on:
+      keycloak:
+        condition: service_healthy
       clientes-db:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - |
+          exec 3<>/dev/tcp/127.0.0.1/8080
+          printf 'GET /api/salud HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          read -r linea <&3
+          [[ $$linea == *' 200 '* ]]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     ports:
       - "127.0.0.1:${CLIENTES_PUBLISHED_PORT:-5001}:8080"
 
@@ -86,8 +161,24 @@ services:
     environment:
       ConnectionStrings__MySqlConnection: Server=productos-db;Port=3306;Database=${PRODUCTOS_DB_NAME:?Defina PRODUCTOS_DB_NAME en el archivo .env};User ID=${PRODUCTOS_DB_USER:?Defina PRODUCTOS_DB_USER en el archivo .env};Password=${PRODUCTOS_DB_PASSWORD:?Defina PRODUCTOS_DB_PASSWORD en el archivo .env}
     depends_on:
+      keycloak:
+        condition: service_healthy
       productos-db:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - |
+          exec 3<>/dev/tcp/127.0.0.1/8080
+          printf 'GET /api/salud HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          read -r linea <&3
+          [[ $$linea == *' 200 '* ]]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     ports:
       - "127.0.0.1:${PRODUCTOS_PUBLISHED_PORT:-5004}:8080"
 
@@ -105,9 +196,23 @@ services:
       Authentication__Jwt__RoleMapping__Cajero__0: Cajero
     depends_on:
       keycloak:
-        condition: service_started
+        condition: service_healthy
       proveedores-db:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - |
+          exec 3<>/dev/tcp/127.0.0.1/8080
+          printf 'GET /health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          read -r linea <&3
+          [[ $$linea == *' 200 '* ]]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     ports:
       - "127.0.0.1:${PROVEEDORES_PUBLISHED_PORT:-5005}:8080"
 
