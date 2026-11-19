@@ -42,7 +42,7 @@ services:
       start_period: 15s
 
   proveedores-api:
-    build: ./Servicio1.Proveedores
+    build: ./Servicio4.Proveedores
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Development

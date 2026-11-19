@@ -21,7 +21,7 @@
 //   Proveedores. Conservar sus rutas raíz y catch-all; transformar prefijos solo si lo exige el contrato.
 // EJEMPLO ORIENTATIVO: Usuarios del Grupo 2 se registrará en esa configuración cuando entregue
 //   sus rutas reales. No asumir nombres de endpoints, métodos, permisos ni puerto de Usuarios.
-//   No añadir comentarios a los JSON; ver GUIA_INTEGRACION_MICROSERVICIOS.md para el procedimiento.
+//   No añadir comentarios a los JSON; ver GUIA_INTEGRACION_GRUPO1.md para el procedimiento.
 //
 // QUÉ DEBE MODIFICAR EL GRUPO 2: solo appsettings.json (rutas/destinos) y, si lo desean, mover
 //   la validación de JWT al Gateway (opcional; la API seguiría validando).

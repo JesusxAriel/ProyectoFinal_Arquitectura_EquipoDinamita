@@ -42,13 +42,13 @@ Desde la raíz:
 ```powershell
 node scripts/probar-validaciones-frontend.cjs
 node scripts/probar-busqueda-dinamica.mjs
-dotnet test Servicio1.Proveedores/Proveedores.slnx
+dotnet test Servicio4.Proveedores/Proveedores.slnx
 ```
 
 Las pruebas JavaScript usan el código real con un DOM mínimo o reloj controlado; no sustituyen pruebas visuales de todos los navegadores. Las de Razor usan TestServer.
 
-Para nuevos módulos consultar la [Guía de integración](../../GUIA_INTEGRACION_MICROSERVICIOS.md). Crear páginas y cliente propios; reutilizar layout y recursos sin modificar Proveedores. El contrato de Usuarios todavía es desconocido.
+Para nuevos módulos consultar la [Guía de integración](../../GUIA_INTEGRACION_GRUPO1.md). Crear páginas y cliente propios; reutilizar layout y recursos sin modificar Proveedores. Usuarios no está integrado en esta rama; las implementaciones de otras referencias se distinguen en INTEGRACION_GRUPO2.md de la raíz.
 
 ## Límites
 
-La sesión y la caché están en memoria. El selector de perfiles no es login real, y Logout no revoca tokens compartidos. Keycloak y Docker están pendientes. Los modales requieren JavaScript. Cada búsqueda recibe HTML de Razor y sustituye únicamente los nodos del listado; las búsquedas de subcadenas pueden recorrer documentos en MongoDB.
+La sesión y la caché están en memoria. El selector de perfiles no es login real, y Logout no revoca tokens compartidos. Keycloak real está pendiente en esta rama; Docker está disponible según la guía de la raíz. Los modales requieren JavaScript. Cada búsqueda recibe HTML de Razor y sustituye únicamente los nodos del listado; las búsquedas de subcadenas pueden recorrer documentos en MongoDB.

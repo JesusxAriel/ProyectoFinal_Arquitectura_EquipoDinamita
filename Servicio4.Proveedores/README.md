@@ -37,11 +37,11 @@ Validación definitiva en Domain: nombre obligatorio de hasta 150 caracteres, te
 
 ## Integración y pruebas
 
-[Guía común](../GUIA_INTEGRACION_MICROSERVICIOS.md) y [acuerdos Grupo 2](../INTEGRACION_GRUPO2.md). La API valida JWT configurado en Authentication:Jwt; no gestiona identidades ni consulta la base de Usuarios. Productos continúa pendiente de integración HTTP; no se bloquean todavía las bajas por productos activos.
+[Guía común](../GUIA_INTEGRACION_GRUPO1.md) y [acuerdos Grupo 2](../INTEGRACION_GRUPO2.md). La API valida JWT configurado en Authentication:Jwt; no gestiona identidades ni consulta la base de Usuarios. Productos continúa pendiente de integración HTTP; no se bloquean todavía las bajas por productos activos.
 
 ```powershell
 $env:PROVEEDORES_TEST_MONGO = 'mongodb://localhost:27017'
-dotnet test Servicio1.Proveedores/Proveedores.slnx
+dotnet test Servicio4.Proveedores/Proveedores.slnx
 ```
 
-Ejecutar desde la raíz. Las pruebas de MongoDB utilizan bases temporales aisladas. MongoSeedApiTests verifica API, seed inicial y reinicio sin duplicaciones. Docker y Keycloak real se integrarán posteriormente.
+Ejecutar desde la raíz. Las pruebas de MongoDB utilizan bases temporales aisladas. MongoSeedApiTests verifica API, seed inicial y reinicio sin duplicaciones. Docker está configurado aquí; Keycloak real permanece pendiente de integrar desde las referencias comunes.

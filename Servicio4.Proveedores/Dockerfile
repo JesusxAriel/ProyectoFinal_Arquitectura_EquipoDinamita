@@ -1,4 +1,4 @@
-# Dockerfile del microservicio Proveedores. Contexto de construcción: Servicio1.Proveedores/
+# Dockerfile del microservicio Proveedores. Contexto de construcción: Servicio4.Proveedores/
 FROM mcr.microsoft.com/dotnet/sdk:10.0-noble AS build
 WORKDIR /src
 COPY Directory.Build.props ./
