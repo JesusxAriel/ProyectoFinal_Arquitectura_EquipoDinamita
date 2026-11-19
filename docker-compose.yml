@@ -19,7 +19,11 @@ services:
   gateway:
     build:
       context: ./Gateway
+    environment:
+      Authentication__Jwt__Authority: http://keycloak:8080/realms/puntomarket
+      Authentication__Jwt__RequireHttpsMetadata: "false"
     depends_on:
+      - keycloak
       - usuarios-ms
       - clientes-ms
       - productos-ms
@@ -83,7 +87,15 @@ services:
     environment:
       Mongo__ConnectionString: mongodb://${PROVEEDORES_DB_USER:?Defina PROVEEDORES_DB_USER en el archivo .env}:${PROVEEDORES_DB_PASSWORD:?Defina PROVEEDORES_DB_PASSWORD en el archivo .env}@proveedores-db:27017/?authSource=admin
       Mongo__DatabaseName: ${PROVEEDORES_DB_NAME:?Defina PROVEEDORES_DB_NAME en el archivo .env}
+      Authentication__Jwt__Authority: http://keycloak:8080/realms/puntomarket
+      Authentication__Jwt__Audience: proveedores-api
+      Authentication__Jwt__RequireHttpsMetadata: "false"
+      Authentication__Jwt__RoleClaimPaths__0: realm_access.roles
+      Authentication__Jwt__RoleMapping__Administrador__0: Administrador
+      Authentication__Jwt__RoleMapping__Cajero__0: Cajero
     depends_on:
+      keycloak:
+        condition: service_started
       proveedores-db:
         condition: service_healthy
     ports:
