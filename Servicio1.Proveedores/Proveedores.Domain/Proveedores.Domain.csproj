@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- DOMINIO PURO: sin PackageReference ni ProjectReference (regla de Clean Architecture). -->
+</Project>

@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/Servicio1.Proveedores/">
+    <Project Path="Servicio1.Proveedores/Proveedores.Domain/Proveedores.Domain.csproj" />
+    <Project Path="Servicio1.Proveedores/Proveedores.Application/Proveedores.Application.csproj" />
+    <Project Path="Servicio1.Proveedores/Proveedores.Infrastructure/Proveedores.Infrastructure.csproj" />
+    <Project Path="Servicio1.Proveedores/Proveedores.API/Proveedores.API.csproj" />
+    <Project Path="Servicio1.Proveedores/Proveedores.Tests/Proveedores.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Temporales/">
+    <Project Path="ApiGateway/ApiGateway.Demo/ApiGateway.Demo.csproj" />
+    <Project Path="Frontend/Frontend.Demo/Frontend.Demo.csproj" />
+    <Project Path="DevIdentity/DevIdentity.Demo/DevIdentity.Demo.csproj" />
+  </Folder>
+</Solution>

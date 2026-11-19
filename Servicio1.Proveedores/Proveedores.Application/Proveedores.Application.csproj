@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Proveedores.Domain\Proveedores.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Solo abstracciones, para poder exponer AddApplication(). No referencia Infrastructure. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+</Project>
