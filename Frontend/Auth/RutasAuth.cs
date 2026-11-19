@@ -6,4 +6,5 @@ public static class RutasAuth
     public const string Login = "/Auth/Login";
     public const string CambiarPasswordObligatorio = "/Auth/CambiarPasswordObligatorio";
     public const string Inicio = "/Index";
+    public const string Error = "/Error";
 }

@@ -48,7 +48,7 @@ public static class AuthServiceCollectionExtensions
     public static IApplicationBuilder UseAutenticacionPorSesion(this IApplicationBuilder app)
     {
         app.UseMiddleware<SesionAutenticacionMiddleware>();
-        app.UseMiddleware<CambioPasswordObligatorioMiddleware>();
+        app.UseMiddleware<SesionRequeridaMiddleware>();
         return app;
     }
 }
