@@ -223,6 +223,9 @@ services:
       MYSQL_DATABASE: ${USUARIOS_DB_NAME}
       MYSQL_USER: ${USUARIOS_DB_USER}
       MYSQL_PASSWORD: ${USUARIOS_DB_PASSWORD}
+      PUNTOMARKET_ADMIN_USERNAME: ${PUNTOMARKET_ADMIN_USERNAME:?Defina PUNTOMARKET_ADMIN_USERNAME en el archivo .env}
+      PUNTOMARKET_ADMIN_EMAIL: ${PUNTOMARKET_ADMIN_EMAIL:?Defina PUNTOMARKET_ADMIN_EMAIL en el archivo .env}
+      PUNTOMARKET_ADMIN_NOMBRE: ${PUNTOMARKET_ADMIN_NOMBRE:-}
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -230,6 +233,7 @@ services:
       - "127.0.0.1:${USUARIOS_DB_PUBLISHED_PORT:-3308}:3306"
     volumes:
       - usuarios-db-data:/var/lib/mysql
+      - ./Servicio2.Usuarios/db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping --host=127.0.0.1 --user=root --password=$$MYSQL_ROOT_PASSWORD --silent"]
       interval: 5s
