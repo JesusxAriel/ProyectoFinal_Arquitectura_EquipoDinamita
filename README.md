@@ -2,7 +2,20 @@
 
 **PuntoMarket** es una aplicación académica de gestión de proveedores para un micromercado. Incluye un microservicio independiente con Clean Architecture y MongoDB, un API Gateway YARP y un frontend ASP.NET Core Razor Pages.
 
-Esta entrega funciona **localmente, sin Docker**. Keycloak, el módulo Usuarios y otros microservicios se integrarán progresivamente cuando sus contratos estén disponibles.
+El proyecto admite ejecución local y una pila Docker Compose de desarrollo con cinco servicios. Keycloak, el módulo Usuarios y otros microservicios se integrarán progresivamente cuando sus contratos estén disponibles.
+
+## Inicio rápido con Docker
+
+Con Docker Desktop abierto y motor Linux disponible, desde la raíz:
+
+```powershell
+docker compose up --build -d
+docker compose ps
+```
+
+Abrir **http://localhost:5100**. MongoDB Docker usa un volumen nuevo y el seed de siete proveedores; no copia la base de Windows. Compass conecta a mongodb://localhost:27018. Si los puertos están ocupados por dotnet run, consultar las variables opcionales de `.env.example`.
+
+Ver [GUIA_DOCKER_PUNTOMARKET.md](GUIA_DOCKER_PUNTOMARKET.md) para instalación, JWT público/interno, persistencia, logs, mantenimiento y pruebas. `docker compose down` conserva los volúmenes; no usar `down -v` para reiniciar. Esta fase aún no se ha publicado hasta su revisión.
 
 ## Arquitectura
 
@@ -206,7 +219,7 @@ Documentación adicional: [Arquitectura y patrones](PATRONES_Y_ARQUITECTURA.md),
 
 ## Alcance y pendientes
 
-- Docker no se incluye en esta publicación inicial; se preparará en un commit posterior independiente.
+- La dockerización está preparada en una fase independiente, pendiente de revisión y publicación; ver la guía Docker.
 - Keycloak real, Usuarios y otros CRUD están pendientes de contratos e integración.
 - El adaptador de Productos existe, pero aún no se invoca para impedir la baja de un proveedor con productos activos.
 - `version` protege operaciones solapadas del servidor, no formularios antiguos enviados después de una actualización terminada.
@@ -215,10 +228,16 @@ Documentación adicional: [Arquitectura y patrones](PATRONES_Y_ARQUITECTURA.md),
 
 ## Seguridad de publicación
 
-Se conservan configuraciones locales sin secretos. `.gitignore` excluye bin/obj, artefactos, logs, `.env`, claves/certificados privados, exportaciones BSON y datos locales. Las herramientas e informes de operaciones sobre la base personal se mantienen locales y no se publican. Las claves simétricas explícitamente etiquetadas de pruebas solo pertenecen a TestServer; DevIdentity genera su clave privada en memoria.
+Se conservan configuraciones locales sin secretos. `.gitignore` excluye bin/obj, artefactos, logs, `.env`, claves/certificados privados, exportaciones BSON y datos locales. Las herramientas e informes de operaciones sobre la base personal se mantienen locales y no se publican. `.env.example` se versiona solo como plantilla sin secretos; `.env` permanece excluido. Las claves simétricas explícitamente etiquetadas de pruebas solo pertenecen a TestServer; DevIdentity genera su clave privada en memoria.
 
 ## Verificación previa a la publicación
 
 Restore correcto y build completo con **0 errores y 0 advertencias**. Suite ejecutada con MongoDB local: **211 pruebas aprobadas, 0 fallidas y 0 omitidas**, incluidas 14 pruebas de persistencia/API con MongoDB real. Pasaron también los 60 casos JavaScript de formulario y las pruebas del buscador dinámico.
 
 La prueba de seed/API utiliza una base temporal vacía, consulta los siete proveedores por HTTP y reinicia el host para verificar que los documentos BSON permanecen iguales. No requiere la base personal ni publica sus documentos. Los resultados de ejecución son locales y no se versionan.
+
+## Verificación de la fase Docker (pendiente de revisión, sin commit/push)
+
+Cinco servicios saludables, cuatro imágenes .NET construidas, JWT/roles/CRUD por Gateway y persistencia tras reinicios y down/up sin borrar volúmenes comprobados. Build local: 0 errores/advertencias; 215 pruebas .NET aprobadas con MongoDB Docker, sin fallos ni omisiones; pruebas JavaScript correctas.
+
+En el equipo de revisión ya estaban ocupados los puertos habituales: `.env` local (ignorado) mantiene frontend en http://localhost:15100, Gateway 15000, API 15200 e identidad 15300. Un clon sin ese archivo utiliza 5100/5000/5200/5300. El volumen de revisión conserva los siete seed activos y un registro de prueba inactivo; MongoDB de Windows permanece independiente. Detalles e inventario en la guía Docker.

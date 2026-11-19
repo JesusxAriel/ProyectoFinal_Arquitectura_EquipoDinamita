@@ -24,6 +24,8 @@ public sealed class ConfigureJwtBearerOptions(IOptions<AuthSettings> opciones) :
         var s = opciones.Value;
 
         options.Authority = s.Authority;
+        // El emisor público se conserva; solo el transporte de metadatos puede usar DNS interno.
+        if (!string.IsNullOrWhiteSpace(s.MetadataAddress)) options.MetadataAddress = s.MetadataAddress;
         options.Audience = s.Audience;
         options.RequireHttpsMetadata = s.RequireHttpsMetadata;
         options.MapInboundClaims = false; // conserva "sub", "realm_access", etc. tal como vienen en el token

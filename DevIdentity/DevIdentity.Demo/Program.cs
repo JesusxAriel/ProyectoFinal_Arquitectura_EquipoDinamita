@@ -46,10 +46,13 @@ var identidades = new Dictionary<string, (string Sub, string Usuario)>(StringCom
 
 var rutaRealm = new Uri(issuer).AbsolutePath.TrimEnd('/');
 
-app.MapGet($"{rutaRealm}/.well-known/openid-configuration", () => Results.Json(new
+// DEMO TEMPORAL: issuer es estable y público. JWKS usa el origen de esta solicitud:
+// dentro de Compose será identity-dev:8080 y desde el host localhost:5300.
+// No se usa el Host recibido para decidir quién emite ni para firmar el JWT.
+app.MapGet($"{rutaRealm}/.well-known/openid-configuration", (HttpRequest solicitud) => Results.Json(new
 {
     issuer,
-    jwks_uri = $"{issuer}/protocol/openid-connect/certs",
+    jwks_uri = $"{solicitud.Scheme}://{solicitud.Host}{solicitud.PathBase}{rutaRealm}/protocol/openid-connect/certs",
     id_token_signing_alg_values_supported = new[] { "RS256" },
     subject_types_supported = new[] { "public" },
     response_types_supported = new[] { "token" }
@@ -98,3 +101,6 @@ app.MapGet("/health", () => Results.Ok("ok"));
 app.Run();
 
 internal sealed record TokenRequest(string? Perfil);
+
+// Permite probar descubrimiento y JWT reales con TestServer sin ejecutar otro proceso.
+public partial class Program { }

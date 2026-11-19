@@ -125,3 +125,6 @@ Contrato **propuesto** (a acordar): `GET api/productos/proveedor/{proveedorId}/a
 - Búsqueda: el parámetro `busqueda` mantiene forma y campos; ahora ordena grupos por prefijo de nombre, parcial de nombre y solo teléfono/correo antes de aplicar el criterio solicitado y `_id` estable. Sin búsqueda se conserva el orden habitual. Sin cambios de índices, puertos, rutas, DTOs ni variables.
 - UI: solo Nombre A-Z/Z-A, con los parámetros existentes `ordenarPor=Nombre` y `descendente`. Otros criterios HTTP siguen disponibles para clientes internos. Búsqueda por fetch al GET Razor existente con debounce 300 ms y botón Limpiar; no se expone una ruta nueva.
 - Inventario, evidencia y limitaciones: `AJUSTES_USABILIDAD.md`.
+
+## 24. Docker Compose de desarrollo
+La fase Docker utiliza el Compose único con proyecto puntomarket y servicios frontend, gateway, proveedores-api, identity-dev y mongodb. Los destinos YARP se sobrescriben por DNS interno, conservando rutas. MetadataAddress opcional separa transporte OIDC interno del issuer público; las validaciones JWT permanecen activas. No se integra Keycloak ni Usuarios. Ver `GUIA_DOCKER_PUNTOMARKET.md` para puertos, redes, volúmenes y comandos. Esta sección describe la fase actual pendiente de revisión; las notas anteriores de Docker pendiente corresponden a la publicación inicial.

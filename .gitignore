@@ -6,6 +6,7 @@ obj/
 *.user
 *.suo
 .env*
+!.env.example
 TestResults/
 *.log
 *.tmp
@@ -41,14 +42,7 @@ appsettings.Local.json
 appsettings.*.local.json
 appsettings.Secrets.json
 
-# Docker se publicará en una entrega posterior, independiente.
-Dockerfile
-Dockerfile.*
-.dockerignore
-docker-compose*.yml
-docker-compose*.yaml
-compose.yml
-compose.yaml
+# Dockerfiles y Compose forman parte de la fase de dockerización; los datos siguen excluidos.
 
 # Herramientas e informes de operaciones puntuales sobre la base personal.
 /scripts/aplicar-proveedores.cs
