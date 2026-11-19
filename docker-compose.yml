@@ -41,13 +41,23 @@ services:
       keycloak:
         condition: service_healthy
       usuarios-ms:
-        condition: service_started
+        condition: service_healthy
       clientes-ms:
-        condition: service_started
+        condition: service_healthy
       productos-ms:
-        condition: service_started
+        condition: service_healthy
       proveedores-ms:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - exec 3<>/dev/tcp/127.0.0.1/8080
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     ports:
       - "127.0.0.1:${GATEWAY_PUBLISHED_PORT:-5000}:8080"
 
@@ -58,7 +68,21 @@ services:
       GatewayApi__BaseUrl: http://gateway:8080/
     depends_on:
       gateway:
-        condition: service_started
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - |
+          exec 3<>/dev/tcp/127.0.0.1/8080
+          printf 'GET /Auth/Login HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          read -r linea <&3
+          [[ $$linea == *' 200 '* ]]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     ports:
       - "127.0.0.1:${FRONTEND_PUBLISHED_PORT:-5100}:8080"
 
@@ -87,6 +111,20 @@ services:
         condition: service_healthy
       usuarios-db:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - |
+          exec 3<>/dev/tcp/127.0.0.1/8080
+          printf 'GET /api/salud HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          read -r linea <&3
+          [[ $$linea == *' 200 '* ]]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     ports:
       - "127.0.0.1:${USUARIOS_PUBLISHED_PORT:-5003}:8080"
 
@@ -100,6 +138,20 @@ services:
         condition: service_healthy
       clientes-db:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - |
+          exec 3<>/dev/tcp/127.0.0.1/8080
+          printf 'GET /api/salud HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          read -r linea <&3
+          [[ $$linea == *' 200 '* ]]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     ports:
       - "127.0.0.1:${CLIENTES_PUBLISHED_PORT:-5001}:8080"
 
@@ -113,6 +165,20 @@ services:
         condition: service_healthy
       productos-db:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - |
+          exec 3<>/dev/tcp/127.0.0.1/8080
+          printf 'GET /api/salud HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          read -r linea <&3
+          [[ $$linea == *' 200 '* ]]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     ports:
       - "127.0.0.1:${PRODUCTOS_PUBLISHED_PORT:-5004}:8080"
 
@@ -133,6 +199,20 @@ services:
         condition: service_healthy
       proveedores-db:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - |
+          exec 3<>/dev/tcp/127.0.0.1/8080
+          printf 'GET /health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          read -r linea <&3
+          [[ $$linea == *' 200 '* ]]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     ports:
       - "127.0.0.1:${PROVEEDORES_PUBLISHED_PORT:-5005}:8080"
 
