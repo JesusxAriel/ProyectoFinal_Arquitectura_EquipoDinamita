@@ -15,12 +15,12 @@ El Gateway reenvía `Authorization`; **la API valida** firma, issuer, audience y
 ## 2-3. Definitivo vs temporal
 | Definitivo | Temporal |
 |---|---|
-| `Servicio1.Proveedores/*`, MongoDB | `ApiGateway/ApiGateway.Demo`, `Frontend/Frontend.Demo`, `DevIdentity/DevIdentity.Demo` |
+| `Servicio4.Proveedores/*`, MongoDB | `ApiGateway/ApiGateway.Demo`, `Frontend/Frontend.Demo`, `DevIdentity/DevIdentity.Demo` |
 
 ## 4-5. Archivos
 | Archivo | Estado | Responsable | Qué modificar | Cómo verificar |
 |---|---|---|---|---|
-| `Servicio1.Proveedores/Proveedores.API/appsettings.json` (`Authentication:Jwt`) | Preparado | Grupo 2 | **Obligatorio:** Authority, Audience, RoleClaimPaths, RoleMapping | `GET /api/proveedores` con token real → 200 |
+| `Servicio4.Proveedores/Proveedores.API/appsettings.json` (`Authentication:Jwt`) | Preparado | Grupo 2 | **Obligatorio:** Authority, Audience, RoleClaimPaths, RoleMapping | `GET /api/proveedores` con token real → 200 |
 | `Proveedores.API/Security/KeycloakRolesClaimsMapper.cs` | Preparado | Grupo 2 | Opcional: solo si la estructura de claims difiere | `KeycloakRolesClaimsMapperTests` |
 | `Proveedores.API/Security/ConfigureJwtBearerOptions.cs` | Conservar | Grupo 1 | Nada | 401 sin token / token inválido |
 | `Proveedores.API/Security/HttpContextCurrentUser.cs` | Preparado | Grupo 2 | Opcional: `UserIdClaim` | `idUsuarioAdmin` = `sub` del token |

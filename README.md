@@ -1,224 +1,124 @@
-# ProyectoFinal_Arquitectura_EquipoDinamita
+# PuntoMarket · Microservicios (3EC)
 
-**PuntoMarket** es una aplicación académica de gestión de proveedores para un micromercado. Incluye un microservicio independiente con Clean Architecture y MongoDB, un API Gateway YARP y un frontend ASP.NET Core Razor Pages.
+Entregable 3EC de Arquitectura de Software, Grupo 2 (Equipo Dinamita). Frontend Razor → API Gateway (YARP) con Keycloak → 4 microservicios, cada uno con su propia base de datos. Todo corre en Docker. El módulo de Ventas queda fuera de este entregable.
 
-Esta entrega funciona **localmente, sin Docker**. Keycloak, el módulo Usuarios y otros microservicios se integrarán progresivamente cuando sus contratos estén disponibles.
-
-## Arquitectura
-
-```mermaid
-flowchart LR
-    B[Navegador] --> F[PuntoMarket Razor Pages :5100]
-    F -->|HTTP con Bearer| G[API Gateway YARP :5000]
-    G --> P[Proveedores API :5200]
-    G -->|Token de demostración| D[DevIdentity :5300]
-    P -. Descubrimiento y JWKS .-> D
-    P --> M[(MongoDB proveedores_db)]
+```
+Frontend (Razor) → Gateway (YARP) → usuarios-ms    → MySQL
+                        │         → clientes-ms    → PostgreSQL
+                        │         → productos-ms   → MySQL
+                        │         → proveedores-ms → MongoDB
+                   Keycloak (identidad, JWT)
 ```
 
-El frontend consume las APIs mediante el Gateway. Cada microservicio conserva su propia base de datos y valida sus permisos. El Gateway actual enruta y propaga Authorization; no valida JWT ni contiene reglas de negocio.
+## Estructura y responsables
 
-## Tecnologías
+| Carpeta | Contenido | Responsable |
+|---|---|---|
+| `Gateway/` | API Gateway oficial con YARP | Ari |
+| `Frontend/` | Razor Pages oficial (`PuntoMarket.Frontend`) | Flora (pantallas), Ori (cambio de contraseña y primer inicio de sesión), Ari (`Auth`) |
+| `Servicio1.Clientes/` | Clientes · Hexagonal · PostgreSQL | Felipe (Grupo 1) |
+| `Servicio2.Usuarios/` | Usuarios · Clean · MySQL | Ale (Domain, Application, MySQL) y Ari (Keycloak, correo, Api) |
+| `Servicio3.Productos/` | Productos · Hexagonal · MySQL | Leo (Grupo 1) |
+| `Servicio4.Proveedores/` | Proveedores · Clean · MongoDB (implementado) | Ariel (Grupo 1) |
+| `docker/` | Archivos de apoyo de Docker (el realm de Keycloak irá en `docker/keycloak/`) | Ari |
+| `docker-compose.yml`, `.env.example` | Orquestación y nombres de variables | Ari |
+| `Proyecto_Microservicios.slnx` | Solución de Ariel con Proveedores y los temporales | Ariel |
+| `scripts/` | Pruebas JavaScript y smoke test de Proveedores | Ariel |
 
-- .NET 10 y ASP.NET Core Web API / Razor Pages.
-- MongoDB Community Server y MongoDB.Driver 3.13.0.
-- YARP ReverseProxy 2.3.0.
-- JWT con firma RSA y descubrimiento/JWKS en la identidad de demostración.
-- xUnit, ASP.NET Core TestServer y pruebas con MongoDB real.
-- Bootstrap 5.3.3, Bootstrap Icons e Inter servidos localmente con sus licencias.
+Documentos de integración de Ariel, que se conservan: `GUIA_INTEGRACION_MICROSERVICIOS.md`, `INTEGRACION_GRUPO2.md`, `PATRONES_Y_ARQUITECTURA.md` y `AGENTS.md`. Cada carpeta de servicio tiene su propio `README.md`.
 
-## Estructura
+### Carpetas temporales (de Ariel)
 
-```text
-Proyecto_Microservicios.slnx
-Servicio1.Proveedores/
-  Proveedores.Domain/           Entidad, validaciones, Result y Factory Method
-  Proveedores.Application/      Casos de uso, DTOs y puertos
-  Proveedores.Infrastructure/   MongoDB, índices, seed y adaptadores
-  Proveedores.API/              Endpoints, JWT, roles y composición DI
-  Proveedores.Tests/            Pruebas unitarias y de integración
-ApiGateway/ApiGateway.Demo/     Enrutamiento HTTP hacia los microservicios
-Frontend/Frontend.Demo/         PuntoMarket Razor Pages
-DevIdentity/DevIdentity.Demo/   Emisor de identidad temporal para desarrollo
-scripts/                       Pruebas JavaScript y smoke test opcional
-GUIA_INTEGRACION_MICROSERVICIOS.md
-```
+Sirven para ejecutar Proveedores sin Docker y se retirarán cuando la integración real esté lista. No forman parte del flujo oficial:
 
-Domain no depende de MongoDB ni HTTP; Application depende de Domain; Infrastructure implementa los puertos y API compone las capas. MongoClient tiene ciclo de vida Singleton por DI. Se mantienen los patrones **Result, Adapter, Factory Method y Singleton**.
+- `ApiGateway/ApiGateway.Demo/`: Gateway temporal. El oficial es `Gateway/`.
+- `Frontend/Frontend.Demo/`: Frontend temporal de Proveedores. El oficial es `Frontend/` (su `.csproj` excluye esta carpeta).
+- `DevIdentity/DevIdentity.Demo/`: emisor de JWT de demostración. Se reemplaza por Keycloak.
 
-## Requisitos previos
+## Servicios y puertos
 
-- Windows 10 o un entorno compatible con .NET 10.
-- .NET 10 SDK: comprobar con `dotnet --version`.
-- MongoDB Community Server disponible en `localhost:27017`.
-- Git para clonar el repositorio.
-- Node.js moderno (18 o superior) para ejecutar las pruebas JavaScript, sin instalar paquetes npm.
+Dentro de Docker todos los servicios escuchan en el puerto 8080 y se llaman por su nombre: `gateway`, `keycloak`, `usuarios-ms`, `clientes-ms`, `productos-ms`, `proveedores-ms`.
 
-## Obtener y preparar el proyecto
-
-```powershell
-git clone https://github.com/JesusxAriel/ProyectoFinal_Arquitectura_EquipoDinamita.git
-Set-Location ProyectoFinal_Arquitectura_EquipoDinamita
-dotnet restore Proyecto_Microservicios.slnx
-dotnet build Proyecto_Microservicios.slnx --no-restore
-```
-
-## MongoDB local
-
-Si MongoDB se instaló como servicio de Windows:
-
-```powershell
-Get-Service MongoDB
-# Solo si está detenido; puede requerir una terminal de Administrador:
-Start-Service MongoDB
-```
-
-Si se instaló sin servicio, iniciar `mongod` con una carpeta de datos local propia según la instalación. No guardar sus datos, exportaciones ni credenciales dentro del repositorio.
-
-La configuración local sin autenticación está en `Servicio1.Proveedores/Proveedores.API/appsettings.json`:
-
-| Opción | Valor predeterminado |
+| Servicio | Puerto en el equipo |
 |---|---|
-| Mongo:ConnectionString | mongodb://localhost:27017 |
-| Mongo:DatabaseName | proveedores_db |
-| Mongo:ProveedoresCollection | proveedores |
-| Mongo:InitializeOnStartup | true |
-| Mongo:SeedEnabled | true |
+| Frontend | 5100 |
+| Gateway | 5000 |
+| Usuarios | 5003 |
+| Keycloak | 8180 |
+| MySQL de Usuarios | 3308 |
 
-No hace falta importar SQL ni copiar la base de quien desarrolló el proyecto. La API crea la colección y sus índices al iniciar. Para usar otra base local, establecer antes de iniciar la API:
+Los demás puertos publicados (Clientes, Productos, Proveedores y sus bases de datos) tienen un valor por defecto en `docker-compose.yml` y se pueden cambiar desde `.env`.
 
-```powershell
-$env:Mongo__DatabaseName = 'proveedores_demo_local'
-$env:Mongo__ConnectionString = 'mongodb://localhost:27017'
-```
+## Cómo levantar con Docker
 
-Si el servidor exige autenticación, configurar la conexión únicamente mediante variables de entorno o un almacén local de secretos. No poner contraseñas en appsettings versionados. Los archivos `.env` no se cargan automáticamente por esta aplicación; usar variables de PowerShell o configuración de ASP.NET Core.
+El proyecto de Compose se llama `puntomarket-microservicios`.
 
-## Ejecutar los cuatro servicios
+1. Copiar la plantilla de variables y completarla. Las credenciales no se versionan.
 
-Desde la raíz, abrir cuatro terminales. Los perfiles de launchSettings configuran Development y los puertos locales.
+   ```powershell
+   Copy-Item .env.example .env
+   ```
 
-**Terminal 1 — identidad temporal**
+2. Construir y levantar todo.
 
-```powershell
-dotnet run --project DevIdentity/DevIdentity.Demo
-```
+   ```powershell
+   docker compose up -d --build
+   ```
 
-**Terminal 2 — API de Proveedores**
+3. Ver el estado.
 
-```powershell
-dotnet run --project Servicio1.Proveedores/Proveedores.API
-```
+   ```powershell
+   docker compose ps
+   ```
 
-**Terminal 3 — Gateway**
+4. Comprobar la salud de cada servicio a través del Gateway: `http://localhost:5000/api/clientes/salud`, `/api/productos/salud`, `/api/proveedores/salud` y `/api/usuarios/salud`. El Gateway traduce cada ruta a la de salud real del servicio (`/api/salud`, o `/health` en Proveedores).
 
-```powershell
-dotnet run --project ApiGateway/ApiGateway.Demo
-```
-
-**Terminal 4 — frontend**
+Detener sin borrar los datos:
 
 ```powershell
-dotnet run --project Frontend/Frontend.Demo
+docker compose down
 ```
 
-| Componente | URL |
-|---|---|
-| PuntoMarket / Login | http://localhost:5100/Login |
-| Módulo Proveedores | http://localhost:5100/Proveedores |
-| Gateway / API Proveedores | http://localhost:5000/api/proveedores |
-| Swagger de Proveedores, en Development | http://localhost:5200/swagger |
-| Identidad demo / descubrimiento | http://localhost:5300/realms/proveedores-dev/.well-known/openid-configuration |
-| MongoDB local | localhost:27017 |
+No usar `-v` salvo que se quiera borrar las bases de datos.
 
-Todos los procesos HTTP exponen `/health` en su propio puerto. Estos endpoints comprueban la respuesta del proceso; no garantizan disponibilidad de toda la cadena ni de MongoDB.
-
-## Login temporal y permisos
-
-En `/Login`, seleccionar **Administrador** o **Cajero**. No hay registro, contraseña ni autenticación personal real: el selector obtiene un JWT de una de dos identidades fijas de DevIdentity.
-
-- Administrador: consulta, crea, edita, desactiva y reactiva proveedores.
-- Cajero: únicamente consulta, busca y ordena proveedores.
-- La API valida firma, emisor, audiencia, vigencia y roles; sin token responde 401 y sin permisos 403.
-- El frontend guarda el perfil en sesión y el token en caché del servidor por perfil. No utiliza localStorage para el JWT.
-- Ante 401 renueva el token demo y reintenta una vez. Logout elimina el perfil de la sesión; no es revocación real por usuario.
-- Reiniciar DevIdentity cambia su clave RSA y puede invalidar tokens anteriores hasta renovar y refrescar JWKS.
-
-**DevIdentity es exclusivamente para desarrollo.** No publicar este selector como login real. Keycloak y el manejo real de sesión/tokens se integrarán después, sin desactivar las validaciones de la API.
-
-## Funcionalidades de Proveedores
-
-CRUD con eliminación lógica y reactivación, auditoría y concurrencia optimista mediante `version`. No se editan inactivos y los nombres normalizados son únicos entre activos gracias a un índice único parcial.
-
-Nombre obligatorio de hasta 150 caracteres; teléfono string nacional de 8 dígitos comenzando por 4/6/7, sin +591; correo opcional de hasta 150. Domain es la autoridad de validación. Razor codifica salida y el repositorio utiliza filtros tipados y búsqueda literal escapada.
-
-El buscador funciona con debounce de 300 ms, botón Limpiar, prioridad de coincidencias y paginación remota. El desplegable ofrece Nombre A-Z / Nombre Z-A. Los formularios conservan valores y muestran errores por campo.
-
-## Seed de los siete proveedores
-
-En una base vacía, el primer arranque de la API inserta:
-
-1. PIL Andina S.A.
-2. EMBOL S.A. (Coca-Cola).
-3. Sofía SHE S.A.
-4. CBN (Cervecería Boliviana Nacional).
-5. Unilever Bolivia.
-6. Industrias Venado S.A. (Kris).
-7. Arcor Bolivia.
-
-Código: [ProveedorSeeder.cs](Servicio1.Proveedores/Proveedores.Infrastructure/Mongo/ProveedorSeeder.cs). Utiliza marcas `seed-proveedor-N`, upsert y `$setOnInsert`: reiniciar no duplica los siete registros ni sobrescribe cambios realizados por el usuario. Los ObjectId los genera MongoDB en la base de cada compañero.
-
-Para desactivar el seed en una instalación propia, usar `Mongo__SeedEnabled=false`. `Mongo__InitializeOnStartup=false` desactiva el inicializador completo. La colección personal y los proveedores añadidos manualmente **no forman parte del repositorio**.
-
-## Pruebas
-
-Pruebas sin exigir MongoDB (las de persistencia se omiten si no se configura su variable):
+## Compilar y probar sin Docker
 
 ```powershell
-dotnet test Servicio1.Proveedores/Proveedores.slnx
+dotnet build Gateway/PuntoMarket.Gateway.csproj
+dotnet build Frontend/PuntoMarket.Frontend.csproj
+dotnet build Servicio1.Clientes/PuntoMarket.Clientes.slnx
+dotnet build Servicio2.Usuarios/PuntoMarket.Usuarios.slnx
+dotnet build Servicio3.Productos/PuntoMarket.Productos.slnx
+dotnet build Servicio4.Proveedores/Proveedores.slnx
+dotnet test Servicio2.Usuarios/PuntoMarket.Usuarios.slnx
+dotnet test Servicio4.Proveedores/Proveedores.slnx
 ```
 
-Suite completa con MongoDB real local:
+Las pruebas de persistencia de Proveedores necesitan MongoDB real: se omiten si no existe la variable `PROVEEDORES_TEST_MONGO`. Para ejecutarlas:
 
 ```powershell
 $env:PROVEEDORES_TEST_MONGO = 'mongodb://localhost:27017'
-dotnet test Servicio1.Proveedores/Proveedores.slnx
+dotnet test Servicio4.Proveedores/Proveedores.slnx
 ```
 
-Las pruebas generan bases temporales con nombre único y eliminan exclusivamente esas bases. No utilizan `proveedores_db` como base de pruebas. `MongoSeedApiTests` comprueba desde una base vacía la consulta de los siete proveedores mediante la API real de pruebas y la igualdad BSON completa después de reiniciar el host.
+Para ejecutar Proveedores con los temporales de Ariel (identidad de demostración, Gateway y Frontend de demo, MongoDB local), seguir `Servicio4.Proveedores/README.md` y `Frontend/Frontend.Demo/README.md`.
 
-Pruebas JavaScript:
+## Estado actual y pendientes
 
-```powershell
-node scripts/probar-validaciones-frontend.cjs
-node scripts/probar-busqueda-dinamica.mjs
-```
+- **Keycloak** levanta en modo desarrollo sin realm. El realm `puntomarket` (roles, cliente, política de contraseña, administrador inicial) lo configura Ari.
+- **Gateway** reenvía las rutas de los 4 servicios sin autenticación. Falta el login (`/api/auth/login`, `/api/auth/logout`) y la validación del token. No incluye la ruta temporal `/dev-auth` de Ariel.
+- **Proveedores** está implementado (CRUD, Clean, MongoDB, JWT con roles). Por defecto valida tokens contra la identidad de demostración (`http://localhost:5300/realms/proveedores-dev`), que no existe en Docker: las rutas protegidas no funcionarán hasta apuntar `Authentication__Jwt__Authority` a Keycloak. `/health` es anónimo.
+- **Clientes y Productos** son esqueletos de arquitectura sin lógica. Solo exponen `GET /api/salud`.
+- **Usuarios** compila y pasa sus pruebas, pero falta adaptarlo a los contratos (`Result`, Keycloak, `EnviarCredenciales`), el caso de uso de crear usuario (fuera de la compilación), el script de base de datos y la validación de tokens.
+- **Frontend**: las páginas `Pages/Account` y `Pages/Users` están fuera de la compilación hasta rehacerlas con los adaptadores del Gateway. Falta integrar el módulo de Proveedores de `Frontend.Demo` en el Frontend oficial.
+- Las bases de datos de Clientes, Productos y Usuarios arrancan vacías. Proveedores crea su colección, sus índices y 7 proveedores de ejemplo al iniciar.
+- Los nombres de las variables de conexión de Clientes y Productos (`ConnectionStrings__PostgresConnection`, `ConnectionStrings__MySqlConnection`) son una propuesta del `docker-compose.yml`. Los de Proveedores (`Mongo__ConnectionString`, `Mongo__DatabaseName`) son los que lee su código.
+- La contraseña de MongoDB va dentro de una URI: si contiene caracteres especiales (`@`, `:`, `/`) hay que codificarla.
+- Los documentos de Ariel todavía mencionan `Servicio1.Proveedores`; la carpeta ahora es `Servicio4.Proveedores`.
 
-El smoke test Bash es opcional y realiza escrituras: ejecutarlo únicamente contra una instancia destinada a pruebas con una base temporal, nunca contra datos personales. Las evidencias de ejecución, logs y resultados locales quedan fuera de Git.
+## Reglas del repositorio
 
-## Integrar otros microservicios
-
-Consultar la [Guía de integración de microservicios](GUIA_INTEGRACION_MICROSERVICIOS.md) y los [acuerdos de integración](INTEGRACION_GRUPO2.md).
-
-Cada nuevo servicio conserva su base. Añadir su cluster/rutas reales en YARP, un cliente HTTP independiente en el frontend, sus páginas Razor y el enlace de navegación. No es necesario modificar Domain, los casos de uso o MongoDB de Proveedores. El contrato de Usuarios aún debe entregarlo el Grupo 2; no se inventan endpoints ni permisos.
-
-Documentación adicional: [Arquitectura y patrones](PATRONES_Y_ARQUITECTURA.md), [API de Proveedores](Servicio1.Proveedores/README.md) y [Frontend PuntoMarket](Frontend/Frontend.Demo/README.md).
-
-## Alcance y pendientes
-
-- Docker no se incluye en esta publicación inicial; se preparará en un commit posterior independiente.
-- Keycloak real, Usuarios y otros CRUD están pendientes de contratos e integración.
-- El adaptador de Productos existe, pero aún no se invoca para impedir la baja de un proveedor con productos activos.
-- `version` protege operaciones solapadas del servidor, no formularios antiguos enviados después de una actualización terminada.
-- La búsqueda de subcadenas puede recorrer documentos; no representa un buscador de costo constante.
-- La identidad y sesión demo en memoria no son una solución de producción.
-
-## Seguridad de publicación
-
-Se conservan configuraciones locales sin secretos. `.gitignore` excluye bin/obj, artefactos, logs, `.env`, claves/certificados privados, exportaciones BSON y datos locales. Las herramientas e informes de operaciones sobre la base personal se mantienen locales y no se publican. Las claves simétricas explícitamente etiquetadas de pruebas solo pertenecen a TestServer; DevIdentity genera su clave privada en memoria.
-
-## Verificación previa a la publicación
-
-Restore correcto y build completo con **0 errores y 0 advertencias**. Suite ejecutada con MongoDB local: **211 pruebas aprobadas, 0 fallidas y 0 omitidas**, incluidas 14 pruebas de persistencia/API con MongoDB real. Pasaron también los 60 casos JavaScript de formulario y las pruebas del buscador dinámico.
-
-La prueba de seed/API utiliza una base temporal vacía, consulta los siete proveedores por HTTP y reinicia el host para verificar que los documentos BSON permanecen iguales. No requiere la base personal ni publica sus documentos. Los resultados de ejecución son locales y no se versionan.
+- Nadie sube directo a `main`: cada tarea va en una rama `feat/<tema>` o `fix/<tema>` y se integra con pull request.
+- Commits pequeños, en español, con prefijo (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`).
+- Nunca `push --force` ni `git add .`: se agregan los archivos por nombre.
+- Nada de secretos en el repositorio: solo se sube `.env.example`.

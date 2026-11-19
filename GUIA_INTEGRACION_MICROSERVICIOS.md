@@ -42,11 +42,11 @@ Se pueden integrar servicios de otras tecnologías y repositorios. No necesitan 
 
 | Proyecto o carpeta | Responsabilidad | Estado |
 |---|---|---|
-| Servicio1.Proveedores/Proveedores.Domain | Entidad, reglas, normalización, Factory Method y Result; sin MongoDB/HTTP | Definitivo |
-| Servicio1.Proveedores/Proveedores.Application | Casos de uso, DTOs y puertos de repositorio/usuario actual | Definitivo |
-| Servicio1.Proveedores/Proveedores.Infrastructure | MongoDB, documentos BSON, índices, seed y adaptadores | Definitivo |
-| Servicio1.Proveedores/Proveedores.API | Endpoints, JWT, roles, traducción HTTP y composición DI | Definitivo |
-| Servicio1.Proveedores/Proveedores.Tests | Pruebas de dominio, aplicación, API, frontend y MongoDB temporal | Verificación |
+| Servicio4.Proveedores/Proveedores.Domain | Entidad, reglas, normalización, Factory Method y Result; sin MongoDB/HTTP | Definitivo |
+| Servicio4.Proveedores/Proveedores.Application | Casos de uso, DTOs y puertos de repositorio/usuario actual | Definitivo |
+| Servicio4.Proveedores/Proveedores.Infrastructure | MongoDB, documentos BSON, índices, seed y adaptadores | Definitivo |
+| Servicio4.Proveedores/Proveedores.API | Endpoints, JWT, roles, traducción HTTP y composición DI | Definitivo |
+| Servicio4.Proveedores/Proveedores.Tests | Pruebas de dominio, aplicación, API, frontend y MongoDB temporal | Verificación |
 | ApiGateway/ApiGateway.Demo | Proxy YARP con rutas/destinos por configuración | Gateway temporal reutilizable |
 | Frontend/Frontend.Demo | UI Razor PuntoMarket, sesión demo y clientes del Gateway | Frontend de demostración reutilizable |
 | DevIdentity/DevIdentity.Demo | Emisor JWT local, dos identidades fijas y claves RSA en memoria | Solo demostración/Development |
@@ -208,11 +208,11 @@ Rutas relativas a la raíz `Proyecto_Microservicios`:
 | Frontend/Frontend.Demo/Pages/Login.cshtml.cs y Logout.cshtml.cs | Acceso temporal que se sustituirá en la fase de identidad |
 | Frontend/Frontend.Demo/Pages/Proveedores/Index.cshtml y .cshtml.cs | Referencia de UI modular y autorización defensiva del frontend |
 | Frontend/Frontend.Demo/Pages/Index.cshtml y .cshtml.cs | Panel de estadísticas específico de Proveedores; ampliación opcional |
-| Servicio1.Proveedores/Proveedores.API/appsettings.json | Mongo de Proveedores y opciones Authentication:Jwt |
-| Servicio1.Proveedores/Proveedores.API/Security/AuthSettings.cs | Significado de opciones configurables de identidad |
-| Servicio1.Proveedores/Proveedores.API/Security/ConfigureJwtBearerOptions.cs | Validación JWT; conservarla |
-| Servicio1.Proveedores/Proveedores.API/Security/AuthenticationExtensions.cs | Políticas y puerto de usuario actual |
-| Servicio1.Proveedores/Proveedores.Infrastructure/DependencyInjection.cs | Base propia, Singleton y adapters; no conectar Usuarios aquí |
+| Servicio4.Proveedores/Proveedores.API/appsettings.json | Mongo de Proveedores y opciones Authentication:Jwt |
+| Servicio4.Proveedores/Proveedores.API/Security/AuthSettings.cs | Significado de opciones configurables de identidad |
+| Servicio4.Proveedores/Proveedores.API/Security/ConfigureJwtBearerOptions.cs | Validación JWT; conservarla |
+| Servicio4.Proveedores/Proveedores.API/Security/AuthenticationExtensions.cs | Políticas y puerto de usuario actual |
+| Servicio4.Proveedores/Proveedores.Infrastructure/DependencyInjection.cs | Base propia, Singleton y adapters; no conectar Usuarios aquí |
 | DevIdentity/DevIdentity.Demo/Program.cs y appsettings.json | Limitaciones del emisor demo, audiencia y claves |
 | INTEGRACION_GRUPO2.md | Acuerdos y variables actuales; actualizar cuando se autoricen cambios funcionales |
 
@@ -226,7 +226,7 @@ Desde la raíz, cada comando de arranque en una terminal distinta:
 
 ```powershell
 dotnet run --project DevIdentity/DevIdentity.Demo
-dotnet run --project Servicio1.Proveedores/Proveedores.API
+dotnet run --project Servicio4.Proveedores/Proveedores.API
 dotnet run --project ApiGateway/ApiGateway.Demo
 dotnet run --project Frontend/Frontend.Demo
 ```
@@ -256,7 +256,7 @@ Para verificar la solución:
 dotnet restore Proyecto_Microservicios.slnx
 dotnet build Proyecto_Microservicios.slnx --no-restore
 $env:PROVEEDORES_TEST_MONGO = 'mongodb://localhost:27017'
-dotnet test Servicio1.Proveedores/Proveedores.slnx --no-restore
+dotnet test Servicio4.Proveedores/Proveedores.slnx --no-restore
 node scripts/probar-validaciones-frontend.cjs
 node scripts/probar-busqueda-dinamica.mjs
 ```
@@ -328,14 +328,14 @@ En estos 16 archivos se modificaron únicamente comentarios C# o Razor; no se a�
 - [Frontend/Frontend.Demo/Pages/Proveedores/Index.cshtml](Frontend/Frontend.Demo/Pages/Proveedores/Index.cshtml)
 - [Frontend/Frontend.Demo/Pages/Proveedores/Index.cshtml.cs](Frontend/Frontend.Demo/Pages/Proveedores/Index.cshtml.cs)
 - [Frontend/Frontend.Demo/Pages/Shared/_Layout.cshtml](Frontend/Frontend.Demo/Pages/Shared/_Layout.cshtml)
-- [Servicio1.Proveedores/Proveedores.API/Program.cs](Servicio1.Proveedores/Proveedores.API/Program.cs)
-- [Servicio1.Proveedores/Proveedores.Infrastructure/DependencyInjection.cs](Servicio1.Proveedores/Proveedores.Infrastructure/DependencyInjection.cs)
-- [Servicio1.Proveedores/Proveedores.Infrastructure/Mongo/MongoProveedorRepository.cs](Servicio1.Proveedores/Proveedores.Infrastructure/Mongo/MongoProveedorRepository.cs)
-- [Servicio1.Proveedores/Proveedores.Infrastructure/Mongo/ProveedorDocumentMapper.cs](Servicio1.Proveedores/Proveedores.Infrastructure/Mongo/ProveedorDocumentMapper.cs)
-- [Servicio1.Proveedores/Proveedores.Domain/Entities/Proveedor.cs](Servicio1.Proveedores/Proveedores.Domain/Entities/Proveedor.cs)
-- [Servicio1.Proveedores/Proveedores.Domain/Entities/ProveedorValidador.cs](Servicio1.Proveedores/Proveedores.Domain/Entities/ProveedorValidador.cs)
-- [Servicio1.Proveedores/Proveedores.Application/UseCases/CrearProveedor.cs](Servicio1.Proveedores/Proveedores.Application/UseCases/CrearProveedor.cs)
-- [Servicio1.Proveedores/Proveedores.API/Controllers/ProveedoresController.cs](Servicio1.Proveedores/Proveedores.API/Controllers/ProveedoresController.cs)
+- [Servicio4.Proveedores/Proveedores.API/Program.cs](Servicio4.Proveedores/Proveedores.API/Program.cs)
+- [Servicio4.Proveedores/Proveedores.Infrastructure/DependencyInjection.cs](Servicio4.Proveedores/Proveedores.Infrastructure/DependencyInjection.cs)
+- [Servicio4.Proveedores/Proveedores.Infrastructure/Mongo/MongoProveedorRepository.cs](Servicio4.Proveedores/Proveedores.Infrastructure/Mongo/MongoProveedorRepository.cs)
+- [Servicio4.Proveedores/Proveedores.Infrastructure/Mongo/ProveedorDocumentMapper.cs](Servicio4.Proveedores/Proveedores.Infrastructure/Mongo/ProveedorDocumentMapper.cs)
+- [Servicio4.Proveedores/Proveedores.Domain/Entities/Proveedor.cs](Servicio4.Proveedores/Proveedores.Domain/Entities/Proveedor.cs)
+- [Servicio4.Proveedores/Proveedores.Domain/Entities/ProveedorValidador.cs](Servicio4.Proveedores/Proveedores.Domain/Entities/ProveedorValidador.cs)
+- [Servicio4.Proveedores/Proveedores.Application/UseCases/CrearProveedor.cs](Servicio4.Proveedores/Proveedores.Application/UseCases/CrearProveedor.cs)
+- [Servicio4.Proveedores/Proveedores.API/Controllers/ProveedoresController.cs](Servicio4.Proveedores/Proveedores.API/Controllers/ProveedoresController.cs)
 
 #### Resultados ejecutados
 

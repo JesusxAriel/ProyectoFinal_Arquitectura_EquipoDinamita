@@ -5,7 +5,9 @@ obj/
 .vscode/
 *.user
 *.suo
-.env*
+.env
+.env.*
+!.env.example
 TestResults/
 *.log
 *.tmp
@@ -15,6 +17,14 @@ TestResults/
 *~
 .DS_Store
 Thumbs.db
+
+# Compilación y editores (cualquier nivel)
+**/bin/
+**/obj/
+**/.vs/
+
+# Guías internas del equipo: no se publican
+guias/
 
 # Resultados, instantáneas, backups y datos locales: nunca publicar MongoDB personal.
 /artifacts/
@@ -41,15 +51,6 @@ appsettings.Local.json
 appsettings.*.local.json
 appsettings.Secrets.json
 
-# Docker se publicará en una entrega posterior, independiente.
-Dockerfile
-Dockerfile.*
-.dockerignore
-docker-compose*.yml
-docker-compose*.yaml
-compose.yml
-compose.yaml
-
 # Herramientas e informes de operaciones puntuales sobre la base personal.
 /scripts/aplicar-proveedores.cs
 /scripts/previsualizar-proveedores.cs
@@ -57,3 +58,5 @@ compose.yaml
 /ADAPTACION_PROVEEDORES_SQL.md
 /VALIDACIONES_Y_SEGURIDAD.md
 /AJUSTES_USABILIDAD.md
+
+*.zip

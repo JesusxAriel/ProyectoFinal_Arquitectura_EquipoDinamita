@@ -1,0 +1,169 @@
+name: puntomarket-microservicios
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: start-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:?Defina KEYCLOAK_ADMIN_USER en el archivo .env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Defina KEYCLOAK_ADMIN_PASSWORD en el archivo .env}
+    ports:
+      - "127.0.0.1:${KEYCLOAK_PUBLISHED_PORT:-8180}:8080"
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+
+  gateway:
+    build:
+      context: ./Gateway
+    depends_on:
+      - usuarios-ms
+      - clientes-ms
+      - productos-ms
+      - proveedores-ms
+    ports:
+      - "127.0.0.1:${GATEWAY_PUBLISHED_PORT:-5000}:8080"
+
+  frontend:
+    build:
+      context: ./Frontend
+    environment:
+      GatewayApi__BaseUrl: http://gateway:8080/
+    depends_on:
+      - gateway
+    ports:
+      - "127.0.0.1:${FRONTEND_PUBLISHED_PORT:-5100}:8080"
+
+  usuarios-ms:
+    build:
+      context: ./Servicio2.Usuarios
+    environment:
+      ConnectionStrings__MySqlConnection: Server=usuarios-db;Port=3306;Database=${USUARIOS_DB_NAME:?Defina USUARIOS_DB_NAME en el archivo .env};User ID=${USUARIOS_DB_USER:?Defina USUARIOS_DB_USER en el archivo .env};Password=${USUARIOS_DB_PASSWORD:?Defina USUARIOS_DB_PASSWORD en el archivo .env}
+      Smtp__Host: ${SMTP_HOST:-}
+      Smtp__Port: ${SMTP_PORT:-}
+      Smtp__EnableSsl: ${SMTP_ENABLE_SSL:-}
+      Smtp__FromAddress: ${SMTP_FROM_ADDRESS:-}
+      Smtp__FromName: ${SMTP_FROM_NAME:-}
+      Smtp__UserName: ${SMTP_USER_NAME:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+    depends_on:
+      usuarios-db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${USUARIOS_PUBLISHED_PORT:-5003}:8080"
+
+  clientes-ms:
+    build:
+      context: ./Servicio1.Clientes
+    environment:
+      ConnectionStrings__PostgresConnection: Host=clientes-db;Port=5432;Database=${CLIENTES_DB_NAME:?Defina CLIENTES_DB_NAME en el archivo .env};Username=${CLIENTES_DB_USER:?Defina CLIENTES_DB_USER en el archivo .env};Password=${CLIENTES_DB_PASSWORD:?Defina CLIENTES_DB_PASSWORD en el archivo .env}
+    depends_on:
+      clientes-db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${CLIENTES_PUBLISHED_PORT:-5001}:8080"
+
+  productos-ms:
+    build:
+      context: ./Servicio3.Productos
+    environment:
+      ConnectionStrings__MySqlConnection: Server=productos-db;Port=3306;Database=${PRODUCTOS_DB_NAME:?Defina PRODUCTOS_DB_NAME en el archivo .env};User ID=${PRODUCTOS_DB_USER:?Defina PRODUCTOS_DB_USER en el archivo .env};Password=${PRODUCTOS_DB_PASSWORD:?Defina PRODUCTOS_DB_PASSWORD en el archivo .env}
+    depends_on:
+      productos-db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${PRODUCTOS_PUBLISHED_PORT:-5004}:8080"
+
+  proveedores-ms:
+    build:
+      context: ./Servicio4.Proveedores
+    environment:
+      Mongo__ConnectionString: mongodb://${PROVEEDORES_DB_USER:?Defina PROVEEDORES_DB_USER en el archivo .env}:${PROVEEDORES_DB_PASSWORD:?Defina PROVEEDORES_DB_PASSWORD en el archivo .env}@proveedores-db:27017/?authSource=admin
+      Mongo__DatabaseName: ${PROVEEDORES_DB_NAME:?Defina PROVEEDORES_DB_NAME en el archivo .env}
+    depends_on:
+      proveedores-db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${PROVEEDORES_PUBLISHED_PORT:-5005}:8080"
+
+  usuarios-db:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${USUARIOS_DB_ROOT_PASSWORD:?Defina USUARIOS_DB_ROOT_PASSWORD en el archivo .env}
+      MYSQL_DATABASE: ${USUARIOS_DB_NAME}
+      MYSQL_USER: ${USUARIOS_DB_USER}
+      MYSQL_PASSWORD: ${USUARIOS_DB_PASSWORD}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "127.0.0.1:${USUARIOS_DB_PUBLISHED_PORT:-3308}:3306"
+    volumes:
+      - usuarios-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping --host=127.0.0.1 --user=root --password=$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 30s
+
+  productos-db:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${PRODUCTOS_DB_ROOT_PASSWORD:?Defina PRODUCTOS_DB_ROOT_PASSWORD en el archivo .env}
+      MYSQL_DATABASE: ${PRODUCTOS_DB_NAME}
+      MYSQL_USER: ${PRODUCTOS_DB_USER}
+      MYSQL_PASSWORD: ${PRODUCTOS_DB_PASSWORD}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "127.0.0.1:${PRODUCTOS_DB_PUBLISHED_PORT:-3309}:3306"
+    volumes:
+      - productos-db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping --host=127.0.0.1 --user=root --password=$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 30s
+
+  clientes-db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${CLIENTES_DB_NAME}
+      POSTGRES_USER: ${CLIENTES_DB_USER}
+      POSTGRES_PASSWORD: ${CLIENTES_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:${CLIENTES_DB_PUBLISHED_PORT:-5433}:5432"
+    volumes:
+      - clientes-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --username=$$POSTGRES_USER --dbname=$$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  proveedores-db:
+    image: mongo:8
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${PROVEEDORES_DB_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${PROVEEDORES_DB_PASSWORD}
+      MONGO_INITDB_DATABASE: ${PROVEEDORES_DB_NAME}
+    ports:
+      - "127.0.0.1:${PROVEEDORES_DB_PUBLISHED_PORT:-27018}:27017"
+    volumes:
+      - proveedores-db-data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand('ping').ok\" | grep -q 1"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+      start_period: 15s
+
+volumes:
+  keycloak-data: {}
+  usuarios-db-data: {}
+  productos-db-data: {}
+  clientes-db-data: {}
+  proveedores-db-data: {}

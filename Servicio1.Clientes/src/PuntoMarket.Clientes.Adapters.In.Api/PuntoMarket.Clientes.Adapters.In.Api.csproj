@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\PuntoMarket.Clientes.Application\PuntoMarket.Clientes.Application.csproj" />
+    <ProjectReference Include="..\PuntoMarket.Clientes.Adapters.Out.Persistence\PuntoMarket.Clientes.Adapters.Out.Persistence.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

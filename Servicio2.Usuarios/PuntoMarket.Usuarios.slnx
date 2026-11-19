@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PuntoMarket.Usuarios.Api/PuntoMarket.Usuarios.Api.csproj" />
+    <Project Path="src/PuntoMarket.Usuarios.Application/PuntoMarket.Usuarios.Application.csproj" />
+    <Project Path="src/PuntoMarket.Usuarios.Domain/PuntoMarket.Usuarios.Domain.csproj" />
+    <Project Path="src/PuntoMarket.Usuarios.Infrastructure/PuntoMarket.Usuarios.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PuntoMarket.Usuarios.Tests/PuntoMarket.Usuarios.Tests.csproj" />
+  </Folder>
+</Solution>
