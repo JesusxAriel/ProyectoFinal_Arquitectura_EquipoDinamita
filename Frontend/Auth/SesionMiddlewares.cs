@@ -29,12 +29,24 @@ public sealed class SesionAutenticacionMiddleware(RequestDelegate next)
     }
 }
 
-public sealed class CambioPasswordObligatorioMiddleware(RequestDelegate next)
+public sealed class SesionRequeridaMiddleware(RequestDelegate next)
 {
     public Task InvokeAsync(HttpContext context, ISesionUsuario sesion)
     {
-        var debeCambiar = sesion.Actual?.DebeCambiarPassword == true;
-        if (debeCambiar && !context.Request.Path.StartsWithSegments(RutasAuth.Prefijo))
+        var path = context.Request.Path;
+        if (EsRutaPublica(path))
+        {
+            return next(context);
+        }
+
+        var datos = sesion.Actual;
+        if (datos is null)
+        {
+            context.Response.Redirect(RutasAuth.Login);
+            return Task.CompletedTask;
+        }
+
+        if (datos.DebeCambiarPassword)
         {
             context.Response.Redirect(RutasAuth.CambiarPasswordObligatorio);
             return Task.CompletedTask;
@@ -42,4 +54,7 @@ public sealed class CambioPasswordObligatorioMiddleware(RequestDelegate next)
 
         return next(context);
     }
+
+    private static bool EsRutaPublica(PathString path) =>
+        path.StartsWithSegments(RutasAuth.Prefijo) || path.StartsWithSegments(RutasAuth.Error);
 }

@@ -1,5 +1,6 @@
 using PuntoMarket.Usuarios.Application.DependencyInjection;
 using PuntoMarket.Usuarios.Api.Documentation;
+using PuntoMarket.Usuarios.Api.Security;
 using PuntoMarket.Usuarios.Infrastructure.DependencyInjection;
 namespace PuntoMarket.Usuarios.Api;
 public static class UsuariosBootstrap
@@ -14,6 +15,7 @@ public static class UsuariosBootstrap
         builder.Services.AddControllers();
         builder.Services.AgregarGestionDeUsuarios();
         builder.Services.AgregarInfraestructuraGestion(builder.Configuration);
+        builder.Services.AgregarAutenticacionKeycloak(builder.Configuration);
         builder.Services.AddAuthorization();
         if (documentar) builder.Services.AgregarDocumentacionUsuarios();
         var app = builder.Build();

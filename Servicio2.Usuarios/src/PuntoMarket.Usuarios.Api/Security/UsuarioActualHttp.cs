@@ -5,8 +5,15 @@ using PuntoMarket.Usuarios.Application.Ports.Comunes;
 
 namespace PuntoMarket.Usuarios.Api.Security;
 
-public sealed class UsuarioActualHttp : IUsuarioActual
+public interface IUsernameActual
 {
+    string Username { get; }
+}
+
+public sealed class UsuarioActualHttp : IUsuarioActual, IUsernameActual
+{
+    private const string UsernameClaim = "preferred_username";
+
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public UsuarioActualHttp(IHttpContextAccessor httpContextAccessor)
@@ -36,11 +43,26 @@ public sealed class UsuarioActualHttp : IUsuarioActual
     {
         get
         {
-            var claim = ObtenerIdentidadAutenticada().FindFirst("role");
+            var claim = ObtenerIdentidadAutenticada().FindFirst(ClaimTypes.Role);
             if (string.IsNullOrWhiteSpace(claim?.Value))
             {
                 throw new InvalidOperationException(
-                    "El usuario autenticado no tiene un claim 'role' válido.");
+                    "El usuario autenticado no tiene un rol válido.");
+            }
+
+            return claim.Value;
+        }
+    }
+
+    public string Username
+    {
+        get
+        {
+            var claim = ObtenerIdentidadAutenticada().FindFirst(UsernameClaim);
+            if (string.IsNullOrWhiteSpace(claim?.Value))
+            {
+                throw new InvalidOperationException(
+                    "El usuario autenticado no tiene el claim 'preferred_username'.");
             }
 
             return claim.Value;

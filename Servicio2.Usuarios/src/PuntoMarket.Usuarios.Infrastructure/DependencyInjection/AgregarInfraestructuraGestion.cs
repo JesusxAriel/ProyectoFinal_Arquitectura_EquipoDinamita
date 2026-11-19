@@ -40,6 +40,8 @@ public static class RegistroInfraestructuraGestion
             return opciones;
         });
         servicios.AddTransient<IEnviadorCorreo, SmtpEnviadorCorreo>();
+        servicios.AddTransient<IEnviadorCredenciales, SmtpEnviadorCorreo>();
+        servicios.AgregarIdentidadKeycloak(configuracion);
 
         return servicios;
     }
