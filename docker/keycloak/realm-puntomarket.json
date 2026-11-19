@@ -1,0 +1,53 @@
+{
+  "realm": "puntomarket",
+  "enabled": true,
+  "accessTokenLifespan": 1800,
+  "passwordPolicy": "length(8) and digits(1) and upperCase(1) and lowerCase(1) and specialChars(1)",
+  "roles": {
+    "realm": [
+      { "name": "Administrador", "description": "Gestiona usuarios y todos los módulos" },
+      { "name": "Cajero", "description": "Opera ventas y consulta información" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "puntomarket-web",
+      "name": "PuntoMarket Web",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "audiencia-proveedores-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "proveedores-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "${PUNTOMARKET_ADMIN_USERNAME}",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "${PUNTOMARKET_ADMIN_EMAIL}",
+      "firstName": "Administrador",
+      "lastName": "PuntoMarket",
+      "credentials": [
+        { "type": "password", "value": "${PUNTOMARKET_ADMIN_PASSWORD}", "temporary": false }
+      ],
+      "realmRoles": [ "Administrador" ]
+    }
+  ]
+}

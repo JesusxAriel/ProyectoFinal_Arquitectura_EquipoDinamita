@@ -3,14 +3,18 @@ name: puntomarket-microservicios
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.0
-    command: start-dev
+    command: ["start-dev", "--import-realm"]
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:?Defina KEYCLOAK_ADMIN_USER en el archivo .env}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Defina KEYCLOAK_ADMIN_PASSWORD en el archivo .env}
+      PUNTOMARKET_ADMIN_USERNAME: ${PUNTOMARKET_ADMIN_USERNAME:?Defina PUNTOMARKET_ADMIN_USERNAME en el archivo .env}
+      PUNTOMARKET_ADMIN_PASSWORD: ${PUNTOMARKET_ADMIN_PASSWORD:?Defina PUNTOMARKET_ADMIN_PASSWORD en el archivo .env}
+      PUNTOMARKET_ADMIN_EMAIL: ${PUNTOMARKET_ADMIN_EMAIL:?Defina PUNTOMARKET_ADMIN_EMAIL en el archivo .env}
     ports:
       - "127.0.0.1:${KEYCLOAK_PUBLISHED_PORT:-8180}:8080"
     volumes:
       - keycloak-data:/opt/keycloak/data
+      - ./docker/keycloak/realm-puntomarket.json:/opt/keycloak/data/import/realm-puntomarket.json:ro
 
   gateway:
     build:
