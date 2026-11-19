@@ -1,6 +1,8 @@
+> Integración actual: el entorno común utiliza el Compose raíz, Gateway/, Frontend/ y Keycloak. Los comandos y componentes demo descritos aquí pertenecen exclusivamente a `docker-compose.demo.yml`. Los resultados de auditorías anteriores son históricos; véase el README y los acuerdos Grupo 2 para el estado integrado.
+
 # Guía de integración — Grupo 1: Proveedores
 
-Grupo 1 es responsable de Proveedores. Esta guía describe **micro-proveedor**, que utiliza Servicio4.Proveedores, Gateway demo y DevIdentity. El estado de otras ramas se distingue en [INTEGRACION_GRUPO2.md](INTEGRACION_GRUPO2.md); no está activado por esta documentación.
+Grupo 1 es responsable de Proveedores en Servicio4.Proveedores. Esta guía detalla su contrato y el entorno demo; el entorno común integrado utiliza Gateway/, Frontend/ y Keycloak. Consultar [acuerdos Grupo 2](INTEGRACION_GRUPO2.md) para la separación actual.
 
 ## 1. Diagnóstico de Servicio1 y Servicio4
 
@@ -8,7 +10,7 @@ La ubicación definitiva en `micro-proveedor` es **Servicio4.Proveedores/**. Con
 
 Antes de esta reorganización, `Servicio1.Proveedores` contenía la implementación funcional y Servicio4 solo tenía 25 archivos generados de NuGet en obj. Se verificó el destino antes de retirar esa caché, se trasladaron todos los archivos del origen y se comprobaron sus huellas SHA-256 antes de eliminar la carpeta vacía. Esta mención de Servicio1 es histórica, no una ruta ejecutable.
 
-El traslado conserva la implementación de esta rama y los cambios documentales previos; no copia código de origin/main ni integra automáticamente sus variantes de Gateway, Frontend o JWT. La comparación anterior con esa referencia local detectó diferencias en .dockerignore, Dockerfile, AuthSettings.cs, ConfigureJwtBearerOptions.cs y el proyecto de pruebas; DockerIdentityTests.cs pertenecía solo a esta rama. Esas diferencias siguen pendientes de conciliación cuando se integre con el equipo.
+El traslado conservó la implementación propia y los cambios documentales. El merge posterior incorpora Gateway, Frontend, Keycloak y los demás servicios comunes. Se conciliaron Docker y documentación; se conserva MetadataAddress opcional, la referencia de pruebas a DevIdentity y DockerIdentityTests.cs. El frontend común todavía no incorpora las pantallas de Proveedores.
 
 Domain no tiene referencias externas; Application referencia Domain y abstracciones DI; Infrastructure referencia Application y MongoDB.Driver; API compone Application/Infrastructure, JWT y Swagger; Tests referencia API, Frontend.Demo y DevIdentity.Demo con los alias existentes.
 
@@ -38,7 +40,7 @@ SOLID: responsabilidades separadas, puertos pequeños, dependencia de abstraccio
 
 ## 3. Endpoints reales
 
-Gateway local: http://localhost:5000. API directa: http://localhost:5200. Ajustar los puertos si se configuraron otros. Estos paths pertenecen exclusivamente a Proveedores.
+Demo local sin Docker: Gateway http://localhost:5000 y API http://localhost:5200. Demo Docker: Gateway 15000 y API 15200 por defecto. Entorno común: Gateway 5000 y API 5005 por defecto. Ajustar según variables de entorno. Estos paths pertenecen exclusivamente a Proveedores.
 
 | Método | Path | Permiso | Éxito |
 |---|---|---|---|
@@ -137,7 +139,7 @@ ProblemDetails de negocio contiene status, title, detail y code. Validación com
 
 ## 6. Persistencia, seed, auditoría y concurrencia
 
-Local: Mongo:ConnectionString, DatabaseName=proveedores_db, ProveedoresCollection=proveedores. En Docker se usa mongodb://mongodb:27017 y volumen propio; Compass del host usa 27018. No compartir base ni credenciales con otros servicios.
+Local: Mongo:ConnectionString, DatabaseName=proveedores_db, ProveedoresCollection=proveedores. En Docker se usa mongodb://mongodb:27017 y volumen propio; Compass del host usa 27028 por defecto en la demo (o MONGO_PORT). No compartir base ni credenciales con otros servicios.
 
 Campos persistidos: _id, nombreEmpresa, nombreNormalizado, numeroEmpresa, correoReferencia, esAutogestionado, estaActivo, idUsuarioAdmin, idUsuarioActualizacion, fechaCreacion, fechaActualizacion y version. origenSeed es metadato opcional de infraestructura. DTOs no exponen version, origenSeed ni nombreNormalizado.
 
@@ -191,7 +193,7 @@ Sin PROVEEDORES_TEST_MONGO se omiten pruebas Mongo. Para integración usar un se
 ## 10. Pendientes y límites conservados
 
 - No desactivar con productos activos: pendiente de usar IProductoApiClient por HTTP en DesactivarProveedor. El adaptador exige cantidad entera presente/no negativa; no asumir cero si falla. La ruta de Productos todavía debe acordarse.
-- Login real y Keycloak de otras ramas no están integrados. Retirar DevIdentity solo después de migrar sus consumidores.
+- Login real y Keycloak existen en el entorno común. La demo continúa usando DevIdentity; Grupo 2 debe integrar sus pantallas de Proveedores con la sesión común antes de retirar consumidores temporales.
 - Unificar Servicio1/Servicio4 y elegir Gateway/Frontend comunes exige otra tarea y regresión.
 - Búsqueda de subcadenas/prioridad puede recorrer documentos; Count y listado no son una instantánea transaccional.
 - Sesión demo en memoria; Logout no revoca tokens compartidos; DevIdentity cambia RSA al reiniciar.

@@ -1,3 +1,5 @@
+> Integración actual: el entorno común utiliza el Compose raíz, Gateway/, Frontend/ y Keycloak. Los comandos y componentes demo descritos aquí pertenecen exclusivamente a `docker-compose.demo.yml`. Los resultados de auditorías anteriores son históricos; véase el README y los acuerdos Grupo 2 para el estado integrado.
+
 # Frontend PuntoMarket
 
 ASP.NET Core Razor Pages .NET 10. Instrucciones completas en el [README principal](../../README.md).

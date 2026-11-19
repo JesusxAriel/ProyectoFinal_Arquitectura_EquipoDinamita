@@ -1,14 +1,47 @@
 <Solution>
-  <Folder Name="/Servicio4.Proveedores/">
-    <Project Path="Servicio4.Proveedores/Proveedores.Domain/Proveedores.Domain.csproj" />
-    <Project Path="Servicio4.Proveedores/Proveedores.Application/Proveedores.Application.csproj" />
-    <Project Path="Servicio4.Proveedores/Proveedores.Infrastructure/Proveedores.Infrastructure.csproj" />
-    <Project Path="Servicio4.Proveedores/Proveedores.API/Proveedores.API.csproj" />
-    <Project Path="Servicio4.Proveedores/Proveedores.Tests/Proveedores.Tests.csproj" />
-  </Folder>
-  <Folder Name="/Temporales/">
+  <Folder Name="/ApiGateway/">
     <Project Path="ApiGateway/ApiGateway.Demo/ApiGateway.Demo.csproj" />
-    <Project Path="Frontend/Frontend.Demo/Frontend.Demo.csproj" />
+  </Folder>
+  <Folder Name="/DevIdentity/">
     <Project Path="DevIdentity/DevIdentity.Demo/DevIdentity.Demo.csproj" />
+  </Folder>
+  <Folder Name="/Frontend/">
+    <Project Path="Frontend/Frontend.Demo/Frontend.Demo.csproj" />
+    <Project Path="Frontend/PuntoMarket.Frontend.csproj" />
+  </Folder>
+  <Folder Name="/Frontend.Tests/">
+    <Project Path="Frontend.Tests/PuntoMarket.Frontend.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Gateway/">
+    <Project Path="Gateway/PuntoMarket.Gateway.csproj" />
+  </Folder>
+  <Folder Name="/Gateway.Tests/">
+    <Project Path="Gateway.Tests/PuntoMarket.Gateway.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Servicio1.Clientes/">
+    <Project Path="Servicio1.Clientes/src/PuntoMarket.Clientes.Adapters.In.Api/PuntoMarket.Clientes.Adapters.In.Api.csproj" />
+    <Project Path="Servicio1.Clientes/src/PuntoMarket.Clientes.Adapters.Out.Persistence/PuntoMarket.Clientes.Adapters.Out.Persistence.csproj" />
+    <Project Path="Servicio1.Clientes/src/PuntoMarket.Clientes.Application/PuntoMarket.Clientes.Application.csproj" />
+    <Project Path="Servicio1.Clientes/src/PuntoMarket.Clientes.Domain/PuntoMarket.Clientes.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Servicio2.Usuarios/">
+    <Project Path="Servicio2.Usuarios/src/PuntoMarket.Usuarios.Api/PuntoMarket.Usuarios.Api.csproj" />
+    <Project Path="Servicio2.Usuarios/src/PuntoMarket.Usuarios.Application/PuntoMarket.Usuarios.Application.csproj" />
+    <Project Path="Servicio2.Usuarios/src/PuntoMarket.Usuarios.Domain/PuntoMarket.Usuarios.Domain.csproj" />
+    <Project Path="Servicio2.Usuarios/src/PuntoMarket.Usuarios.Infrastructure/PuntoMarket.Usuarios.Infrastructure.csproj" />
+    <Project Path="Servicio2.Usuarios/tests/PuntoMarket.Usuarios.Tests/PuntoMarket.Usuarios.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Servicio3.Productos/">
+    <Project Path="Servicio3.Productos/src/PuntoMarket.Productos.Adapters.In.Api/PuntoMarket.Productos.Adapters.In.Api.csproj" />
+    <Project Path="Servicio3.Productos/src/PuntoMarket.Productos.Adapters.Out.Persistence/PuntoMarket.Productos.Adapters.Out.Persistence.csproj" />
+    <Project Path="Servicio3.Productos/src/PuntoMarket.Productos.Application/PuntoMarket.Productos.Application.csproj" />
+    <Project Path="Servicio3.Productos/src/PuntoMarket.Productos.Domain/PuntoMarket.Productos.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Servicio4.Proveedores/">
+    <Project Path="Servicio4.Proveedores/Proveedores.API/Proveedores.API.csproj" />
+    <Project Path="Servicio4.Proveedores/Proveedores.Application/Proveedores.Application.csproj" />
+    <Project Path="Servicio4.Proveedores/Proveedores.Domain/Proveedores.Domain.csproj" />
+    <Project Path="Servicio4.Proveedores/Proveedores.Infrastructure/Proveedores.Infrastructure.csproj" />
+    <Project Path="Servicio4.Proveedores/Proveedores.Tests/Proveedores.Tests.csproj" />
   </Folder>
 </Solution>

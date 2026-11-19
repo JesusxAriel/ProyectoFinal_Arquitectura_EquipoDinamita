@@ -1,63 +1,67 @@
-# PuntoMarket — Grupo 1: Proveedores
+# PuntoMarket — integración de microservicios
 
-Microservicio de proveedores para un micromercado con .NET 10, Clean Architecture y MongoDB, acompañado de frontend Razor Pages, Gateway YARP e identidad de desarrollo.
+La rama `micro-proveedor` integra localmente `origin/main` (3eefb83) conservando Proveedores en **Servicio4.Proveedores**. El entorno común es la referencia del grupo; la demostración sigue separada y no lo sustituye.
 
-**Alcance: micro-proveedor.** Grupo 1 mantiene Proveedores. Grupo 2 desarrolla Usuarios, identidad/Keycloak, Gateway y sesión comunes en otras referencias; no se activan automáticamente aquí. [Estado y hashes revisados](INTEGRACION_GRUPO2.md).
-
-## Estructura activa
+## Estructura
 
 ```text
-Proyecto_Microservicios.slnx
-Servicio4.Proveedores/        Domain, Application, Infrastructure, API y Tests
-ApiGateway/ApiGateway.Demo/   Gateway de esta rama
-Frontend/Frontend.Demo/       PuntoMarket y login demo
-DevIdentity/DevIdentity.Demo/  Emisor temporal RS256
-scripts/                     Pruebas y verificación Docker
+Gateway/ y Gateway.Tests/           YARP común, Keycloak y login
+Frontend/ y Frontend.Tests/         Razor común con sesión
+Servicio1.Clientes/                 Servicio y base propios
+Servicio2.Usuarios/                 API, MySQL, Keycloak, SMTP y pruebas
+Servicio3.Productos/                Servicio y base propios
+Servicio4.Proveedores/              Domain, Application, Infrastructure, API, Tests
+ApiGateway/ApiGateway.Demo/         Gateway temporal
+Frontend/Frontend.Demo/             Interfaz temporal completa de Proveedores
+DevIdentity/DevIdentity.Demo/        Emisor temporal, solo demo
+Proyecto_Microservicios.slnx         Los 25 proyectos comunes y demo
 ```
 
-Servicio4.Proveedores es la única ubicación activa del microservicio en esta rama. El traslado conserva sus proyectos, pruebas y namespaces; ver [diagnóstico y alcance](GUIA_INTEGRACION_GRUPO1.md#1-diagnóstico-de-servicio1-y-servicio4).
+## Entorno común (principal)
 
-## Docker
-
-Requiere Docker Desktop abierto con motor Linux y Compose. Desde la raíz:
+`docker-compose.yml` conserva los servicios, nombres y volúmenes de main. Revisar `.env.example` y completar un `.env` privado con las variables comunes; **no sobrescribir un .env existente**. El .env anterior de la demo no contiene necesariamente estas variables.
 
 ```powershell
-# Opcional: copiar solo si todavía no existe .env y se desean cambiar los puertos.
-if (-not (Test-Path -LiteralPath .env)) { Copy-Item .env.example .env }
+docker compose config --quiet
+# Arranque futuro, tras revisar credenciales, puertos y bases:
 docker compose up --build -d
-docker compose ps
 ```
 
-Predeterminados: frontend http://localhost:5100, Gateway :5000, API :5200, DevIdentity :5300 y MongoDB Docker :27018. Las variables de terminal/.env pueden cambiar puertos efectivos. Son cinco servicios y un seed de siete proveedores; no se utiliza ni copia MongoDB de Windows. down conserva volúmenes; no usar down -v para reiniciar.
+Puertos predeterminados: frontend 5100, Gateway 5000, Keycloak 8180, Usuarios 5003, Clientes 5001, Productos 5004 y Proveedores 5005. MongoDB común se publica en 27018. Keycloak proporciona la audiencia `proveedores-api`; cada API conserva su validación.
 
-Seguir [GUIA_DOCKER_PUNTOMARKET.md](GUIA_DOCKER_PUNTOMARKET.md) para requisitos, variables, Compass y persistencia.
+El frontend común tiene login/sesión, pero todavía no incorpora las pantallas de Proveedores del demo. No confundir la integración de fuentes con la implementación de ese módulo en la interfaz común.
 
-## Local sin Docker
-
-Con .NET 10 SDK y MongoDB local en 27017, en terminales distintas:
+## Demostración independiente
 
 ```powershell
-dotnet run --project DevIdentity/DevIdentity.Demo
-dotnet run --project Servicio4.Proveedores/Proveedores.API
-dotnet run --project ApiGateway/ApiGateway.Demo
-dotnet run --project Frontend/Frontend.Demo
+docker compose -f docker-compose.demo.yml config --quiet
+docker compose -f docker-compose.demo.yml up --build -d
 ```
 
-No usar los mismos puertos a la vez con Docker. En /Login elegir Administrador (CRUD) o Cajero (consulta). Es demo sin credenciales personales: la API sí valida JWT/roles, pero no es identidad de producción.
+Proyecto `puntomarket`: frontend 15100, Gateway 15000, API 15200, identidad 15300 y MongoDB 27028 por defecto. Las variables `*_PORT` de un .env existente prevalecen: comprobarlas antes de ejecutar ambos entornos. No confundirlas con las variables `*_PUBLISHED_PORT` del entorno común. El selector Administrador/Cajero y DevIdentity son temporales.
 
-## Guías y pruebas
+La demo conserva sus volúmenes `puntomarket_mongodb_data` y `puntomarket_frontend_keys`. El común utiliza `puntomarket-microservicios_proveedores-db-data`: **son bases distintas**, sin migración ni copia automática. Cambiar un puerto publicado no cambia el volumen ni la base. No borrar volúmenes, especialmente para actualizar un realm persistido.
 
-- [Grupo 1: contrato, arquitectura, reglas, patrones y consumo](GUIA_INTEGRACION_GRUPO1.md).
-- [Grupo 2: integrado aquí, presente en otras ramas y pendiente](INTEGRACION_GRUPO2.md).
-- [Docker paso a paso](GUIA_DOCKER_PUNTOMARKET.md).
-- [API breve](Servicio4.Proveedores/README.md) y [frontend](Frontend/Frontend.Demo/README.md).
+## Verificación
 
 ```powershell
-dotnet test Servicio4.Proveedores/Proveedores.slnx
+dotnet restore Proyecto_Microservicios.slnx
+dotnet build Proyecto_Microservicios.slnx --no-restore
+$env:PROVEEDORES_TEST_MONGO='mongodb://localhost:27017'
+dotnet test Proyecto_Microservicios.slnx --no-restore
+dotnet test Servicio4.Proveedores/Proveedores.slnx --no-restore
 node scripts/probar-validaciones-frontend.cjs
 node scripts/probar-busqueda-dinamica.mjs
 ```
 
-Sin PROVEEDORES_TEST_MONGO se omiten pruebas Mongo; con servidor de pruebas se usan bases temporales aisladas. No versionar datos personales, tokens, claves privadas ni .env local.
+Las pruebas Mongo crean bases temporales aisladas y no utilizan la colección real de proveedores. Sin la variable se omiten esas pruebas. Las pruebas de otros servicios no sustituyen una prueba funcional del conjunto con Keycloak, SMTP y bases reales.
 
-Pendientes: integración acordada de las variantes Grupo 2 y HTTP de Productos antes de impedir bajas con productos activos. Proveedores permanece independiente; no se declara ejecutado aquí lo presente solo en otras referencias.
+## Documentación
+
+- [Integración común](GUIA_INTEGRACION_MICROSERVICIOS.md).
+- [Contrato, reglas y arquitectura del Grupo 1](GUIA_INTEGRACION_GRUPO1.md).
+- [Acuerdos y estado Grupo 2](INTEGRACION_GRUPO2.md).
+- [Docker y separación de entornos](GUIA_DOCKER_PUNTOMARKET.md).
+- [Gateway](Gateway/README.md), [frontend común](Frontend/README.md), [Usuarios](Servicio2.Usuarios/README.md) y [API Proveedores](Servicio4.Proveedores/README.md).
+
+Pendientes: incorporar la UI de Proveedores al frontend común coordinadamente con Grupo 2 y conectar Productos por HTTP antes de impedir bajas con productos activos. No publicar secretos, tokens, BSON ni artefactos locales.

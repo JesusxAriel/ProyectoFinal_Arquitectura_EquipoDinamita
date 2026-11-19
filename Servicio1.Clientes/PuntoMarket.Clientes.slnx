@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PuntoMarket.Clientes.Adapters.In.Api/PuntoMarket.Clientes.Adapters.In.Api.csproj" />
+    <Project Path="src/PuntoMarket.Clientes.Adapters.Out.Persistence/PuntoMarket.Clientes.Adapters.Out.Persistence.csproj" />
+    <Project Path="src/PuntoMarket.Clientes.Application/PuntoMarket.Clientes.Application.csproj" />
+    <Project Path="src/PuntoMarket.Clientes.Domain/PuntoMarket.Clientes.Domain.csproj" />
+  </Folder>
+</Solution>

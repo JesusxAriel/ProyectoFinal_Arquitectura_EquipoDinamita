@@ -1,8 +1,8 @@
 param(
-    [int]$FrontendPort = 5100,
-    [int]$GatewayPort = 5000,
-    [int]$ApiPort = 5200,
-    [int]$IdentityPort = 5300,
+    [int]$FrontendPort = 15100,
+    [int]$GatewayPort = 15000,
+    [int]$ApiPort = 15200,
+    [int]$IdentityPort = 15300,
     [switch]$PermitirEscrituras,
     [switch]$ExigirSoloSeed,
     [switch]$ProbarCicloDeVida
@@ -14,6 +14,9 @@ $ErrorActionPreference = 'Stop'
 if (-not $PermitirEscrituras) { throw 'Esta prueba escribe en la demo Docker. Indique -PermitirEscrituras explícitamente.' }
 function Exigir($Condicion, [string]$Mensaje) { if (-not $Condicion) { throw $Mensaje } }
 function EjecutarDocker([Parameter(ValueFromRemainingArguments=$true)][string[]]$Argumentos) {
+    if ($Argumentos.Count -gt 0 -and $Argumentos[0] -eq 'compose') {
+        $Argumentos = @('compose', '-f', (Join-Path $PSScriptRoot '../docker-compose.demo.yml')) + $Argumentos[1..($Argumentos.Count - 1)]
+    }
     $resultado = & docker @Argumentos
     if ($LASTEXITCODE -ne 0) { throw "Falló docker $($Argumentos -join ' ')" }
     return $resultado

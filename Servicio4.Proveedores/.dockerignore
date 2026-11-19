@@ -26,3 +26,7 @@
 **/backups
 **/dump
 Proveedores.Tests
+
+**/bin/
+**/obj/
+Proveedores.Tests/
