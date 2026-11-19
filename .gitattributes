@@ -1,0 +1,2 @@
+*.sh text eol=lf
+Servicio2.Usuarios/db/init/* text eol=lf
