@@ -53,7 +53,17 @@ services:
       Smtp__FromName: ${SMTP_FROM_NAME:-}
       Smtp__UserName: ${SMTP_USER_NAME:-}
       Smtp__Password: ${SMTP_PASSWORD:-}
+      Authentication__Jwt__Authority: http://keycloak:8080/realms/puntomarket
+      Authentication__Jwt__Audience: usuarios-api
+      Authentication__Jwt__RequireHttpsMetadata: "false"
+      Keycloak__BaseUrl: http://keycloak:8080
+      Keycloak__Realm: puntomarket
+      Keycloak__LoginClientId: puntomarket-web
+      Keycloak__AdminUserName: ${KEYCLOAK_ADMIN_USER:?Defina KEYCLOAK_ADMIN_USER en el archivo .env}
+      Keycloak__AdminPassword: ${KEYCLOAK_ADMIN_PASSWORD:?Defina KEYCLOAK_ADMIN_PASSWORD en el archivo .env}
     depends_on:
+      keycloak:
+        condition: service_started
       usuarios-db:
         condition: service_healthy
     ports:
