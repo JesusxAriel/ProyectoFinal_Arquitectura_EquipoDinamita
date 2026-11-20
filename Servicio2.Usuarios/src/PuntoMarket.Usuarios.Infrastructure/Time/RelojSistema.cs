@@ -4,5 +4,5 @@ namespace PuntoMarket.Usuarios.Infrastructure.Time;
 
 public sealed class RelojSistema : IReloj
 {
-    public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
+    public DateTime Ahora => DateTime.UtcNow;
 }
