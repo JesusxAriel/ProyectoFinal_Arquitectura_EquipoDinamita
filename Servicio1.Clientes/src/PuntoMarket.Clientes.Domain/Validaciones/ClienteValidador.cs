@@ -1,4 +1,3 @@
-using System.Net.Mail;
 using System.Text.RegularExpressions;
 using PuntoMarket.Clientes.Domain.Common;
 using PuntoMarket.Clientes.Domain.Entities;
@@ -6,53 +5,81 @@ using PuntoMarket.Clientes.Domain.Errors;
 
 namespace PuntoMarket.Clientes.Domain.Validaciones;
 
+/// <summary>
+/// Autoridad de las reglas de validación de un cliente. Devuelve un Result (patrón RESULT):
+/// éxito con los datos ya limpios, o fallo con todos los errores por campo. Nunca lanza excepciones.
+/// </summary>
 public static partial class ClienteValidador
 {
-    [GeneratedRegex(@"^[0-9]{5,15}$", RegexOptions.CultureInvariant)]
-    private static partial Regex NitCiRegex();
-    [GeneratedRegex(@"^[467][0-9]{7}$", RegexOptions.CultureInvariant)]
-    private static partial Regex TelefonoRegex();
+    public const int NitCiMinimo = 5;
+    public const int NitCiMaximo = 15;
+    public const int RazonSocialMaximo = 150;
+    public const int CorreoMaximo = 150;
 
-    public static Result<DatosCliente> Validar(DatosCliente entrada)
+    [GeneratedRegex("^[0-9]+$")] private static partial Regex SoloDigitos();
+    [GeneratedRegex("^[467][0-9]{7}$")] private static partial Regex TelefonoBoliviano();
+    [GeneratedRegex(@"\s+")] private static partial Regex EspaciosRepetidos();
+    [GeneratedRegex(@"^[A-Za-z0-9._%+\-]{1,64}@([A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}$")]
+    private static partial Regex CorreoBasico();
+
+    /// <param name="permitirGenerico">Solo el creador del cliente genérico acepta el NIT reservado "0".</param>
+    public static Result<DatosCliente> Validar(DatosCliente datos, bool permitirGenerico = false)
     {
-        var campos = new Dictionary<string, List<string>>(StringComparer.Ordinal);
-        void ErrorCampo(string campo, string mensaje) {
-            if (!campos.TryGetValue(campo, out var mensajes)) campos[campo] = mensajes = [];
-            mensajes.Add(mensaje);
-        }
+        var errores = new Dictionary<string, List<string>>();
 
-        var nit = entrada.NitCi?.Trim() ?? string.Empty;
-        if (nit.Length == 0) ErrorCampo(nameof(entrada.NitCi), "El NIT/CI es obligatorio.");
-        else if (nit == "0") ErrorCampo(nameof(entrada.NitCi), "El NIT/CI 0 está reservado al cliente genérico.");
-        else if (!NitCiRegex().IsMatch(nit)) ErrorCampo(nameof(entrada.NitCi), "El NIT/CI debe tener entre 5 y 15 dígitos.");
+        var nitCi = (datos.NitCi ?? string.Empty).Trim();
+        var razon = EspaciosRepetidos().Replace((datos.RazonSocial ?? string.Empty).Trim(), " ");
+        var correo = string.IsNullOrWhiteSpace(datos.Correo) ? null : datos.Correo.Trim();
+        var telefono = string.IsNullOrWhiteSpace(datos.Telefono) ? null : datos.Telefono.Trim();
 
-        var razon = ColapsarEspacios(entrada.RazonSocial);
-        if (razon.Length == 0) ErrorCampo(nameof(entrada.RazonSocial), "La razón social es obligatoria.");
-        else if (razon.Length > 150 || razon.IndexOfAny(['<', '>', '\r', '\n', '\t']) >= 0)
-            ErrorCampo(nameof(entrada.RazonSocial), "La razón social no supera los 150 caracteres ni puede contener caracteres de control o < >.");
+        ValidarNitCi(nitCi, permitirGenerico, errores);
+        ValidarRazonSocial(razon, errores);
 
-        var correo = string.IsNullOrWhiteSpace(entrada.Correo) ? null : entrada.Correo.Trim();
-        if (correo is not null) {
-            if (correo.Length > 150 || !CorreoValido(correo))
-                ErrorCampo(nameof(entrada.Correo), "El correo electrónico no tiene un formato válido.");
-        }
+        if (correo is not null && (correo.Length > CorreoMaximo || !CorreoBasico().IsMatch(correo)))
+            Agregar(errores, "correo", "El correo electrónico no es válido.");
 
-        var telefono = string.IsNullOrWhiteSpace(entrada.Telefono) ? null : entrada.Telefono.Trim();
-        if (telefono is not null && !TelefonoRegex().IsMatch(telefono))
-            ErrorCampo(nameof(entrada.Telefono), "El teléfono debe tener 8 dígitos y comenzar con 4, 6 o 7.");
+        if (telefono is not null && !TelefonoBoliviano().IsMatch(telefono))
+            Agregar(errores, "telefono", "El teléfono debe tener 8 dígitos y comenzar con 4, 6 o 7.");
 
-        if (campos.Count > 0)
-            return Result.Failure<DatosCliente>(ClienteErrors.Validacion(
-                campos.ToDictionary(x => x.Key, x => (string[])x.Value.ToArray())));
-        return Result.Success(new DatosCliente(nit, razon, correo, telefono));
+        if (errores.Count > 0)
+            return Result.Failure<DatosCliente>(ClienteErrors.DatosInvalidos(
+                errores.ToDictionary(e => e.Key, e => e.Value.ToArray())));
+
+        return Result.Success(new DatosCliente(nitCi, razon, correo, telefono));
     }
 
-    public static string ColapsarEspacios(string? texto) =>
-        string.Join(' ', (texto ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-
-    private static bool CorreoValido(string correo)
+    private static void ValidarNitCi(string nitCi, bool permitirGenerico, Dictionary<string, List<string>> errores)
     {
-        try { var a = new MailAddress(correo); return string.Equals(a.Address, correo, StringComparison.OrdinalIgnoreCase); }
-        catch { return false; }
+        if (nitCi.Length == 0)
+        {
+            Agregar(errores, "nitCi", "El NIT o CI es obligatorio.");
+            return;
+        }
+
+        if (nitCi == Cliente.NitCiGenerico)
+        {
+            if (!permitirGenerico)
+                Agregar(errores, "nitCi", "El NIT o CI 0 está reservado para el cliente genérico.");
+            return;
+        }
+
+        if (!SoloDigitos().IsMatch(nitCi) || nitCi.Length < NitCiMinimo || nitCi.Length > NitCiMaximo)
+            Agregar(errores, "nitCi", $"El NIT o CI debe tener entre {NitCiMinimo} y {NitCiMaximo} dígitos numéricos.");
+    }
+
+    private static void ValidarRazonSocial(string razon, Dictionary<string, List<string>> errores)
+    {
+        if (razon.Length == 0)
+            Agregar(errores, "razonSocial", "La razón social es obligatoria.");
+        else if (razon.Length > RazonSocialMaximo)
+            Agregar(errores, "razonSocial", $"La razón social no puede superar los {RazonSocialMaximo} caracteres.");
+        else if (razon.Any(c => char.IsControl(c) || c is '<' or '>'))
+            Agregar(errores, "razonSocial", "La razón social no puede contener caracteres de control ni los símbolos < y >.");
+    }
+
+    private static void Agregar(Dictionary<string, List<string>> errores, string campo, string mensaje)
+    {
+        if (!errores.TryGetValue(campo, out var lista)) errores[campo] = lista = [];
+        lista.Add(mensaje);
     }
 }

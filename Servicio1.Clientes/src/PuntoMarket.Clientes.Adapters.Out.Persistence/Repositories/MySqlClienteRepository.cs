@@ -1,4 +1,5 @@
 using MySqlConnector;
+using PuntoMarket.Clientes.Application.Dtos;
 using PuntoMarket.Clientes.Application.Ports.Out;
 using PuntoMarket.Clientes.Domain.Common;
 using PuntoMarket.Clientes.Domain.Entities;
@@ -6,123 +7,166 @@ using PuntoMarket.Clientes.Domain.Errors;
 
 namespace PuntoMarket.Clientes.Adapters.Out.Persistence.Repositories;
 
-// PATRÓN DE DISEÑO 3/4: Adapter
-// Traduce el puerto IClienteRepository a SQL MySQL parametrizado.
+// =====================================================
+// PATRÓN DE DISEÑO 3/4: ADAPTER
+// IClienteRepository es el PUERTO que define Application (lenguaje del negocio).
+// MySqlClienteRepository lo ADAPTA a MySQL: traduce Cliente <-> filas SQL, filtros, orden y paginación
+// a SQL parametrizado, y el error 1062 de MySQL a un Result.Failure(Conflict). El dominio no conoce MySQL.
+// =====================================================
 public sealed class MySqlClienteRepository(MySqlDataSource dataSource) : IClienteRepository
 {
-    public async Task<Cliente?> ObtenerAsync(int id, CancellationToken ct)
+    private const int ErrorEntradaDuplicada = 1062;
+
+    private const string Columnas =
+        "id, nitCi, razonSocial, correo, telefono, estaActivo, idUsuarioCreacion, idUsuarioActualizacion, fechaCreacion, fechaActualizacion";
+
+    public async Task<Cliente?> ObtenerPorIdAsync(int id, CancellationToken cancellationToken)
     {
-        await using var conexion = await dataSource.OpenConnectionAsync(ct);
-        await using var cmd = conexion.CreateCommand();
-        cmd.CommandText = "SELECT id,nitCi,razonSocial,correo,telefono,estaActivo,nitCi='0' AS esGenerico,idUsuarioCreacion,idUsuarioActualizacion,fechaCreacion,fechaActualizacion FROM CLIENTE WHERE id=@id";
-        cmd.Parameters.AddWithValue("@id", id);
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        return await reader.ReadAsync(ct) ? Leer(reader) : null;
+        await using var conexion = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var comando = new MySqlCommand($"SELECT {Columnas} FROM CLIENTE WHERE id = @id", conexion);
+        comando.Parameters.AddWithValue("@id", id);
+
+        await using var lector = await comando.ExecuteReaderAsync(cancellationToken);
+        return await lector.ReadAsync(cancellationToken) ? Mapear(lector) : null;
     }
 
-    public async Task<(IReadOnlyList<Cliente> Items, long Total)> ListarAsync(ConsultaClientes consulta, CancellationToken ct)
+    public async Task<PaginaClientes> ListarAsync(ListarClientesQuery consulta, CancellationToken cancellationToken)
     {
-        var estado = consulta.Estado.Equals("Activos", StringComparison.OrdinalIgnoreCase) ? " AND estaActivo=1"
-            : consulta.Estado.Equals("Inactivos", StringComparison.OrdinalIgnoreCase) ? " AND estaActivo=0" : "";
-        var busqueda = string.IsNullOrWhiteSpace(consulta.Busqueda) ? "" : " AND (razonSocial LIKE @busqueda ESCAPE '\\\\' OR nitCi LIKE @busqueda ESCAPE '\\\\')";
-        var columna = consulta.OrdenarPor switch { "NitCi" => "nitCi", "FechaCreacion" => "fechaCreacion", "FechaActualizacion" => "fechaActualizacion", _ => "razonSocial" };
-        var direccion = consulta.Descendente ? "DESC" : "ASC";
-        await using var conexion = await dataSource.OpenConnectionAsync(ct);
-        await using var count = conexion.CreateCommand();
-        count.CommandText = $"SELECT COUNT(*) FROM CLIENTE WHERE 1=1{estado}{busqueda}";
-        if (!string.IsNullOrWhiteSpace(consulta.Busqueda))
-            count.Parameters.AddWithValue("@busqueda", $"%{Escapar(consulta.Busqueda)}%");
-        var total = Convert.ToInt64(await count.ExecuteScalarAsync(ct));
-        await using var cmd = conexion.CreateCommand();
-        cmd.CommandText = $"SELECT id,nitCi,razonSocial,correo,telefono,estaActivo,nitCi='0' AS esGenerico,idUsuarioCreacion,idUsuarioActualizacion,fechaCreacion,fechaActualizacion FROM CLIENTE WHERE 1=1{estado}{busqueda} ORDER BY {columna} {direccion}, id ASC LIMIT @tamano OFFSET @offset";
-        if (!string.IsNullOrWhiteSpace(consulta.Busqueda))
-            cmd.Parameters.AddWithValue("@busqueda", $"%{Escapar(consulta.Busqueda)}%");
-        cmd.Parameters.AddWithValue("@tamano", consulta.TamanoPagina);
-        cmd.Parameters.AddWithValue("@offset", (consulta.Pagina - 1) * consulta.TamanoPagina);
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        var where = ConstruirWhere(consulta);
+        await using var conexion = await dataSource.OpenConnectionAsync(cancellationToken);
+
+        long total;
+        await using (var conteo = new MySqlCommand($"SELECT COUNT(*) FROM CLIENTE{where}", conexion))
+        {
+            AgregarParametrosDeFiltro(conteo, consulta);
+            total = Convert.ToInt64(await conteo.ExecuteScalarAsync(cancellationToken));
+        }
+
+        // Ordena ANTES de paginar y desempata por id para que la paginación sea estable.
+        var sql = $"SELECT {Columnas} FROM CLIENTE{where} ORDER BY {ColumnaDeOrden(consulta.OrdenarPor)} {(consulta.Descendente ? "DESC" : "ASC")}, id ASC LIMIT @limite OFFSET @desplazamiento";
+        await using var listado = new MySqlCommand(sql, conexion);
+        AgregarParametrosDeFiltro(listado, consulta);
+        listado.Parameters.AddWithValue("@limite", consulta.TamanoPagina);
+        listado.Parameters.AddWithValue("@desplazamiento", consulta.Desplazamiento);
+
         var items = new List<Cliente>();
-        while (await reader.ReadAsync(ct)) items.Add(Leer(reader));
-        return (items, total);
+        await using var lector = await listado.ExecuteReaderAsync(cancellationToken);
+        while (await lector.ReadAsync(cancellationToken)) items.Add(Mapear(lector));
+
+        return new PaginaClientes(items, total);
     }
 
-    public async Task<Result<Cliente>> CrearAsync(Cliente cliente, CancellationToken ct)
+    public async Task<bool> ExisteActivoConNitCiAsync(string nitCi, int? excluirId, CancellationToken cancellationToken)
     {
-        await using var conexion = await dataSource.OpenConnectionAsync(ct);
-        await using var cmd = conexion.CreateCommand();
-        cmd.CommandText = "INSERT INTO CLIENTE(nitCi,razonSocial,correo,telefono,estaActivo,idUsuarioCreacion,fechaCreacion) VALUES(@nit,@razon,@correo,@telefono,1,@usuario,@fecha); SELECT LAST_INSERT_ID();";
-        cmd.Parameters.AddWithValue("@nit", cliente.Datos.NitCi);
-        cmd.Parameters.AddWithValue("@razon", cliente.Datos.RazonSocial);
-        cmd.Parameters.AddWithValue("@correo", (object?)cliente.Datos.Correo ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@telefono", (object?)cliente.Datos.Telefono ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@usuario", cliente.IdUsuarioCreacion);
-        cmd.Parameters.AddWithValue("@fecha", cliente.FechaCreacion);
+        var sql = "SELECT 1 FROM CLIENTE WHERE estaActivo = 1 AND nitCi = @nitCi"
+                  + (excluirId.HasValue ? " AND id <> @excluirId" : string.Empty) + " LIMIT 1";
+
+        await using var conexion = await dataSource.OpenConnectionAsync(cancellationToken);
+        await using var comando = new MySqlCommand(sql, conexion);
+        comando.Parameters.AddWithValue("@nitCi", nitCi);
+        if (excluirId.HasValue) comando.Parameters.AddWithValue("@excluirId", excluirId.Value);
+
+        return await comando.ExecuteScalarAsync(cancellationToken) is not null;
+    }
+
+    public async Task<Result<Cliente>> AgregarAsync(Cliente cliente, CancellationToken cancellationToken)
+    {
+        const string sql = @"INSERT INTO CLIENTE (nitCi, razonSocial, correo, telefono, estaActivo, idUsuarioCreacion, fechaCreacion)
+                             VALUES (@nitCi, @razonSocial, @correo, @telefono, @estaActivo, @idUsuarioCreacion, @fechaCreacion)";
         try
         {
-            var id = Convert.ToInt32(await cmd.ExecuteScalarAsync(ct));
-            return Result.Success(Cliente.Crear(id, cliente.Datos, true, cliente.EsGenerico, cliente.IdUsuarioCreacion,
-                null, cliente.FechaCreacion, null));
+            await using var conexion = await dataSource.OpenConnectionAsync(cancellationToken);
+            await using var comando = new MySqlCommand(sql, conexion);
+            comando.Parameters.AddWithValue("@nitCi", cliente.NitCi);
+            comando.Parameters.AddWithValue("@razonSocial", cliente.RazonSocial);
+            comando.Parameters.AddWithValue("@correo", (object?)cliente.Correo ?? DBNull.Value);
+            comando.Parameters.AddWithValue("@telefono", (object?)cliente.Telefono ?? DBNull.Value);
+            comando.Parameters.AddWithValue("@estaActivo", cliente.EstaActivo);
+            comando.Parameters.AddWithValue("@idUsuarioCreacion", cliente.IdUsuarioCreacion);
+            comando.Parameters.AddWithValue("@fechaCreacion", cliente.FechaCreacion);
+
+            await comando.ExecuteNonQueryAsync(cancellationToken);
+            cliente.AsignarId(checked((int)comando.LastInsertedId));
+            return Result.Success(cliente);
         }
-        catch (MySqlException e) when (e.Number == 1062)
+        catch (MySqlException ex) when (ex.Number == ErrorEntradaDuplicada)
         {
             return Result.Failure<Cliente>(ClienteErrors.NitCiDuplicado);
         }
     }
 
-    public async Task<Result<Cliente>> ActualizarAsync(Cliente cliente, CancellationToken ct)
+    public async Task<Result> ActualizarAsync(Cliente cliente, CancellationToken cancellationToken)
     {
-        await using var conexion = await dataSource.OpenConnectionAsync(ct);
-        await using var cmd = conexion.CreateCommand();
-        cmd.CommandText = "UPDATE CLIENTE SET nitCi=@nit,razonSocial=@razon,correo=@correo,telefono=@telefono,idUsuarioActualizacion=@usuario,fechaActualizacion=@fecha WHERE id=@id";
-        cmd.Parameters.AddWithValue("@id", cliente.Id);
-        cmd.Parameters.AddWithValue("@nit", cliente.Datos.NitCi);
-        cmd.Parameters.AddWithValue("@razon", cliente.Datos.RazonSocial);
-        cmd.Parameters.AddWithValue("@correo", (object?)cliente.Datos.Correo ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@telefono", (object?)cliente.Datos.Telefono ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("@usuario", cliente.IdUsuarioActualizacion);
-        cmd.Parameters.AddWithValue("@fecha", cliente.FechaActualizacion);
-        try { await cmd.ExecuteNonQueryAsync(ct); return Result.Success(cliente); }
-        catch (MySqlException e) when (e.Number == 1062) { return Result.Failure<Cliente>(ClienteErrors.NitCiDuplicado); }
+        const string sql = @"UPDATE CLIENTE
+                             SET nitCi = @nitCi, razonSocial = @razonSocial, correo = @correo, telefono = @telefono,
+                                 estaActivo = @estaActivo, idUsuarioActualizacion = @idUsuarioActualizacion,
+                                 fechaActualizacion = @fechaActualizacion
+                             WHERE id = @id";
+        try
+        {
+            await using var conexion = await dataSource.OpenConnectionAsync(cancellationToken);
+            await using var comando = new MySqlCommand(sql, conexion);
+            comando.Parameters.AddWithValue("@id", cliente.Id);
+            comando.Parameters.AddWithValue("@nitCi", cliente.NitCi);
+            comando.Parameters.AddWithValue("@razonSocial", cliente.RazonSocial);
+            comando.Parameters.AddWithValue("@correo", (object?)cliente.Correo ?? DBNull.Value);
+            comando.Parameters.AddWithValue("@telefono", (object?)cliente.Telefono ?? DBNull.Value);
+            comando.Parameters.AddWithValue("@estaActivo", cliente.EstaActivo);
+            comando.Parameters.AddWithValue("@idUsuarioActualizacion", (object?)cliente.IdUsuarioActualizacion ?? DBNull.Value);
+            comando.Parameters.AddWithValue("@fechaActualizacion", (object?)cliente.FechaActualizacion ?? DBNull.Value);
+
+            // MySqlConnector devuelve las filas ENCONTRADAS (no solo las cambiadas): 0 significa que el id ya no existe.
+            var filas = await comando.ExecuteNonQueryAsync(cancellationToken);
+            return filas == 0 ? Result.Failure(ClienteErrors.NoEncontrado(cliente.Id)) : Result.Success();
+        }
+        catch (MySqlException ex) when (ex.Number == ErrorEntradaDuplicada)
+        {
+            return Result.Failure(ClienteErrors.NitCiDuplicado);
+        }
     }
 
-    public async Task<Result> DesactivarAsync(Cliente cliente, string usuario, DateTime fecha, CancellationToken ct)
+    // ---------- Construcción de SQL (siempre parametrizado; las columnas de orden salen de una lista blanca) ----------
+
+    private static string ConstruirWhere(ListarClientesQuery consulta)
     {
-        await using var conexion = await dataSource.OpenConnectionAsync(ct);
-        await using var cmd = conexion.CreateCommand();
-        cmd.CommandText = "UPDATE CLIENTE SET estaActivo=0,idUsuarioActualizacion=@usuario,fechaActualizacion=@fecha WHERE id=@id";
-        cmd.Parameters.AddWithValue("@id", cliente.Id);
-        cmd.Parameters.AddWithValue("@usuario", usuario);
-        cmd.Parameters.AddWithValue("@fecha", fecha);
-        await cmd.ExecuteNonQueryAsync(ct);
-        return Result.Success();
+        var condiciones = new List<string>();
+
+        if (consulta.Estado == EstadoFiltro.Activos) condiciones.Add("estaActivo = 1");
+        else if (consulta.Estado == EstadoFiltro.Inactivos) condiciones.Add("estaActivo = 0");
+
+        if (!string.IsNullOrWhiteSpace(consulta.Busqueda))
+            condiciones.Add("(razonSocial LIKE @busqueda OR nitCi LIKE @busqueda OR correo LIKE @busqueda OR telefono LIKE @busqueda)");
+
+        return condiciones.Count == 0 ? string.Empty : " WHERE " + string.Join(" AND ", condiciones);
     }
 
-    public async Task<Result<Cliente>> ReactivarAsync(Cliente cliente, string usuario, DateTime fecha, CancellationToken ct)
+    private static void AgregarParametrosDeFiltro(MySqlCommand comando, ListarClientesQuery consulta)
     {
-        await using var conexion = await dataSource.OpenConnectionAsync(ct);
-        await using var cmd = conexion.CreateCommand();
-        cmd.CommandText = "UPDATE CLIENTE SET estaActivo=1,idUsuarioActualizacion=@usuario,fechaActualizacion=@fecha WHERE id=@id";
-        cmd.Parameters.AddWithValue("@id", cliente.Id);
-        cmd.Parameters.AddWithValue("@usuario", usuario);
-        cmd.Parameters.AddWithValue("@fecha", fecha);
-        try { await cmd.ExecuteNonQueryAsync(ct); return Result.Success(cliente); }
-        catch (MySqlException e) when (e.Number == 1062) { return Result.Failure<Cliente>(ClienteErrors.NoReactivar); }
+        if (!string.IsNullOrWhiteSpace(consulta.Busqueda))
+            comando.Parameters.AddWithValue("@busqueda", "%" + EscaparLike(consulta.Busqueda) + "%");
     }
 
-    public async Task<bool> ExisteNitCiActivoAsync(string nitCi, int? excluirId, CancellationToken ct)
-    {
-        await using var conexion = await dataSource.OpenConnectionAsync(ct);
-        await using var cmd = conexion.CreateCommand();
-        cmd.CommandText = excluirId is null
-            ? "SELECT EXISTS(SELECT 1 FROM CLIENTE WHERE nitCi=@nit AND estaActivo=1)"
-            : "SELECT EXISTS(SELECT 1 FROM CLIENTE WHERE nitCi=@nit AND estaActivo=1 AND id<>@id)";
-        cmd.Parameters.AddWithValue("@nit", nitCi);
-        if (excluirId is not null) cmd.Parameters.AddWithValue("@id", excluirId.Value);
-        return Convert.ToBoolean(await cmd.ExecuteScalarAsync(ct));
-    }
+    /// <summary>Los comodines de LIKE (% _ \) escritos por el usuario se tratan como texto literal.</summary>
+    private static string EscaparLike(string texto) =>
+        texto.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 
-    private static string Escapar(string texto) => texto.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
-    private static Cliente Leer(MySqlDataReader r) => Cliente.Crear(r.GetInt32(0),
-        new DatosCliente(r.GetString(1), r.GetString(2), r.IsDBNull(3) ? null : r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4)),
-        r.GetBoolean(5), r.GetBoolean(6), r.GetString(7), r.IsDBNull(8) ? null : r.GetString(8),
-        r.GetDateTime(9), r.IsDBNull(10) ? null : r.GetDateTime(10));
+    private static string ColumnaDeOrden(CampoOrden campo) => campo switch
+    {
+        CampoOrden.NitCi => "nitCi",
+        CampoOrden.FechaCreacion => "fechaCreacion",
+        CampoOrden.FechaActualizacion => "fechaActualizacion",
+        _ => "razonSocial"
+    };
+
+    private static Cliente Mapear(MySqlDataReader l) => Cliente.Rehidratar(
+        id: l.GetInt32(0),
+        nitCi: l.GetString(1),
+        razonSocial: l.GetString(2),
+        correo: l.IsDBNull(3) ? null : l.GetString(3),
+        telefono: l.IsDBNull(4) ? null : l.GetString(4),
+        estaActivo: l.GetBoolean(5),
+        idUsuarioCreacion: l.GetString(6),
+        idUsuarioActualizacion: l.IsDBNull(7) ? null : l.GetString(7),
+        fechaCreacion: DateTime.SpecifyKind(l.GetDateTime(8), DateTimeKind.Utc),
+        fechaActualizacion: l.IsDBNull(9) ? null : DateTime.SpecifyKind(l.GetDateTime(9), DateTimeKind.Utc));
 }

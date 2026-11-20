@@ -1,41 +1,28 @@
 using PuntoMarket.Clientes.Domain.Common;
 using PuntoMarket.Clientes.Domain.Entities;
-using PuntoMarket.Clientes.Domain.Errors;
 using PuntoMarket.Clientes.Domain.Validaciones;
 
 namespace PuntoMarket.Clientes.Domain.Creators;
 
-// PATRÓN DE DISEÑO 2/4: Factory Method
+// =====================================================
+// PATRÓN DE DISEÑO 2/4: FACTORY METHOD
+// ClienteCreator define el algoritmo común (validar y luego instanciar) y delega la
+// instanciación concreta en InstanciarCliente, que cada creador derivado implementa.
+// El código cliente (casos de uso) depende de la abstracción, no de la clase concreta.
+// =====================================================
 public abstract class ClienteCreator
 {
-    public Result<DatosCliente> Crear(DatosCliente datos)
+    /// <summary>Indica si este creador acepta el NIT reservado del cliente genérico.</summary>
+    protected abstract bool PermiteNitGenerico { get; }
+
+    public Result<Cliente> Crear(DatosCliente datos, string idUsuario, DateTime ahoraUtc)
     {
-        var validacion = ClienteValidador.Validar(datos);
-        if (validacion.IsFailure) return validacion;
-        return InstanciarCliente(validacion.Value);
+        var validado = ClienteValidador.Validar(datos, PermiteNitGenerico);
+        if (validado.IsFailure) return Result.Failure<Cliente>(validado.Error);
+
+        return Result.Success(InstanciarCliente(validado.Value, idUsuario, ahoraUtc));
     }
-    protected abstract Result<DatosCliente> InstanciarCliente(DatosCliente datos);
-}
 
-public sealed class ClienteEstandarCreator : ClienteCreator
-{
-    protected override Result<DatosCliente> InstanciarCliente(DatosCliente datos) =>
-        datos.NitCi == "0" ? Result.Failure<DatosCliente>(ClienteErrors.NitCiReservado) : Result.Success(datos);
-}
-
-public sealed class ClienteGenericoCreator : ClienteCreator
-{
-    protected override Result<DatosCliente> InstanciarCliente(DatosCliente datos) =>
-        Result.Success(new DatosCliente("0", "Sin Nombre", null, null));
-}
-
-public enum TipoCliente { Estandar, Generico }
-
-public static class ClienteCreatorSelector
-{
-    public static ClienteCreator Para(TipoCliente tipo) => tipo switch
-    {
-        TipoCliente.Generico => new ClienteGenericoCreator(),
-        _ => new ClienteEstandarCreator()
-    };
+    /// <summary>Factory Method: cada creador concreto decide cómo construir el cliente.</summary>
+    protected abstract Cliente InstanciarCliente(DatosCliente datosValidados, string idUsuario, DateTime ahoraUtc);
 }

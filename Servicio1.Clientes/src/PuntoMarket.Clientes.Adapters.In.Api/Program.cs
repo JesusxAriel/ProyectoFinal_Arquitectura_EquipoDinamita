@@ -1,53 +1,76 @@
-using System.Text.Json;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using System.Text.Json.Serialization;
+using Microsoft.OpenApi.Models;
+using PuntoMarket.Clientes.Adapters.In.Api.Http;
 using PuntoMarket.Clientes.Adapters.In.Api.Security;
 using PuntoMarket.Clientes.Adapters.Out.Persistence;
 using PuntoMarket.Clientes.Application;
-using PuntoMarket.Clientes.Application.Ports.Out;
 
+// =====================================================
+// RAÍZ DE COMPOSICIÓN DEL MICROSERVICIO CLIENTES (arquitectura hexagonal)
+//   Adaptador de entrada (esta API)  ->  puertos de entrada (casos de uso, Application)
+//   casos de uso -> Domain + puertos de salida  <-  adaptador de salida (MySQL, Persistence)
+// Domain y Application no conocen este proyecto ni MySQL.
+// =====================================================
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ICurrentUser, CurrentUser>();
-builder.Services.AddApplication();
-builder.Services.AddPersistence(builder.Configuration);
-builder.Services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddApplication();                                   // casos de uso
+builder.Services.AddPersistence(builder.Configuration);              // MySqlDataSource (Singleton) + repositorio MySQL (Adapter)
+builder.Services.AddClientesAuthentication(builder.Configuration);   // JWT de Keycloak + roles
 
-var jwt = builder.Configuration.GetSection("Authentication:Jwt");
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = _ =>
+        new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(new Microsoft.AspNetCore.Mvc.ProblemDetails
+        {
+            Status = 400,
+            Title = "Datos inválidos",
+            Detail = "Revise los tipos y formatos de los campos y parámetros de la solicitud.",
+            Extensions = { ["code"] = "Solicitud.Invalida" }
+        }))
+    .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(o =>
 {
-    options.Authority = jwt["Authority"];
-    options.Audience = jwt["Audience"];
-    options.RequireHttpsMetadata = bool.TryParse(jwt["RequireHttpsMetadata"], out var https) && https;
-    options.MapInboundClaims = false;
-    options.TokenValidationParameters = new TokenValidationParameters
+    o.SwaggerDoc("v1", new OpenApiInfo { Title = "Clientes API", Version = "v1" });
+    o.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true
-    };
-});
-builder.Services.AddAuthorization(options =>
-{
-    var administrador = "Administrador";
-    var cajero = "Cajero";
-    options.AddPolicy(Policies.Lectura, p => p.RequireAuthenticatedUser().RequireAssertion(c =>
-        c.User.Claims.Any(x => x.Type is "realm_access.roles" or "roles" && (x.Value.Contains(administrador) || x.Value.Contains(cajero)))));
-    options.AddPolicy(Policies.Gestion, p => p.RequireAuthenticatedUser().RequireAssertion(c =>
-        c.User.Claims.Any(x => x.Type is "realm_access.roles" or "roles" && (x.Value.Contains(administrador) || x.Value.Contains(cajero)))));
-    options.AddPolicy(Policies.Baja, p => p.RequireAuthenticatedUser().RequireAssertion(c =>
-        c.User.Claims.Any(x => x.Type is "realm_access.roles" or "roles" && x.Value.Contains(administrador))));
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "Pegue el JWT (sin la palabra Bearer)."
+    });
+    o.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
+            Array.Empty<string>()
+        }
+    });
 });
 
 var app = builder.Build();
-app.UseSwagger();
-app.UseSwaggerUI();
+
+app.UseExceptionHandler();
+
+// Swagger solo en Development o con Swagger__Enabled=true.
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
-app.MapGet("/api/salud", () => Results.Ok(new { estado = "ok", servicio = "clientes" }));
+
+// Salud anónima: la usan el healthcheck de Docker y la ruta /api/clientes/salud del Gateway.
+app.MapGet("/api/salud", () => Results.Ok(new { estado = "activo", servicio = "clientes" })).AllowAnonymous();
+
 app.Run();
+
+// Necesario para WebApplicationFactory<Program> en pruebas de integración.
+public partial class Program { }

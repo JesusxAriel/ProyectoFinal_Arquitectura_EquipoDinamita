@@ -3,22 +3,28 @@ using PuntoMarket.Clientes.Domain.Common;
 
 namespace PuntoMarket.Clientes.Adapters.In.Api.Http;
 
+/// <summary>
+/// Traduce el Error de un Result a una respuesta HTTP (ProblemDetails con "code" y, si hay, "errors" por campo).
+/// Validation=400, NotFound=404, Conflict=409, Unauthorized=401, Unavailable=503.
+/// El 200/201/204 de éxito lo decide cada acción del controlador.
+/// </summary>
 public static class ResultHttpMapper
 {
-    public static IActionResult ToProblem(this ControllerBase _, Error error)
+    public static IActionResult ToProblem(this ControllerBase controlador, Error error)
     {
-        var (status, title) = error.Type switch
+        var (estado, titulo) = error.Type switch
         {
-            ErrorType.Validation => (400, "Datos inválidos"),
-            ErrorType.NotFound => (404, "Recurso no encontrado"),
-            ErrorType.Conflict => (409, "Conflicto de negocio"),
-            ErrorType.Unauthorized => (401, "No autenticado"),
-            ErrorType.Unavailable => (503, "Servicio no disponible"),
-            _ => (500, "Error interno")
+            ErrorType.Validation => (StatusCodes.Status400BadRequest, "Datos inválidos"),
+            ErrorType.NotFound => (StatusCodes.Status404NotFound, "Recurso no encontrado"),
+            ErrorType.Conflict => (StatusCodes.Status409Conflict, "Conflicto de negocio"),
+            ErrorType.Unauthorized => (StatusCodes.Status401Unauthorized, "No autenticado"),
+            ErrorType.Unavailable => (StatusCodes.Status503ServiceUnavailable, "Servicio no disponible"),
+            _ => (StatusCodes.Status500InternalServerError, "Error interno")
         };
-        var problem = new ProblemDetails { Status = status, Title = title, Detail = error.Message };
-        problem.Extensions["code"] = error.Code;
-        if (error.Fields is not null) problem.Extensions["errors"] = error.Fields;
-        return new ObjectResult(problem) { StatusCode = status };
+
+        var problema = new ProblemDetails { Status = estado, Title = titulo, Detail = error.Message };
+        problema.Extensions["code"] = error.Code;
+        if (error.Fields is not null) problema.Extensions["errors"] = error.Fields;
+        return new ObjectResult(problema) { StatusCode = estado };
     }
 }
