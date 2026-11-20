@@ -75,3 +75,7 @@ El Gateway demo enruta /api/clientes y /api/proveedores. DevIdentity firma JWT p
 Puertos nuevos: Clientes 15400 y MySQL demo 13310 (CLIENTES_DEMO_PORT/CLIENTES_DEMO_DB_PORT). Entrada futura: http://localhost:15100/Login, según variables locales. Usar exclusivamente docker-compose.demo.yml. Docker y WSL no se iniciaron durante este desarrollo.
 
 Matriz de roles, validaciones, comandos, pruebas sin bases y puntos de sustitución por Grupo 2: [sección Demo ampliado](INTEGRACION_GRUPO2.md#demo-ampliado-clientes-y-proveedores). Nueva suite Tests/Demo.Tests y script `node scripts/probar-clientes-demo.mjs`. El funcionamiento con bases reales queda pendiente de verificación posterior.
+
+## Clientes y Proveedores en el frontend común
+
+Se incorporan `/Clientes` y `/Proveedores` con adaptadores registrados mediante `AddGatewayAdapter<I,T>()`, sesión/BearerTokenHandler existentes y permisos por operación en servidor. Los IDs de edición/detalle viajan por POST con antiforgery, no en la navegación visible. El Demo permanece independiente. No se modifican contratos, JWT, bases ni volúmenes. Implementación, verificación y pendientes del Grupo 2: [integración del frontend común](INTEGRACION_FRONTEND_COMUN.md). El login y las consultas reales con Keycloak y Administrador ya se comprobaron; el usuario confirmó también creación manual desde el frontend. Cajero, el 403 real y el resto del ciclo CRUD real siguen pendientes; distinguir estos resultados de las pruebas automatizadas. El seed genérico deshabilitado continúa siendo exclusivo de Demo.

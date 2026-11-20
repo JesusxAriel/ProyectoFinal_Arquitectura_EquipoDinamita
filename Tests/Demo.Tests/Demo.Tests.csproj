@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><IsTestProject>true</IsTestProject><IsPackable>false</IsPackable></PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../Frontend/PuntoMarket.Frontend.csproj" Aliases="Comun" />
     <ProjectReference Include="../../Frontend/Frontend.Demo/Frontend.Demo.csproj" Aliases="Frontend" />
     <ProjectReference Include="../../DevIdentity/DevIdentity.Demo/DevIdentity.Demo.csproj" Aliases="Identity" />
     <ProjectReference Include="../../ApiGateway/ApiGateway.Demo/ApiGateway.Demo.csproj" Aliases="Gateway" />

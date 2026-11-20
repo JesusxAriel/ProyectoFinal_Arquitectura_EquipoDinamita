@@ -249,3 +249,7 @@ Restore completo correcto y build de los 27 proyectos sin errores ni advertencia
 ### Semilla de Clientes en Demo
 
 Solo el despliegue `docker-compose.demo.yml` fija `Clientes__SeedGenericoEnabled=false` y conserva `Clientes__SeedEnabled=true`. La nueva opción vale `true` por defecto en Clientes para no cambiar otros entornos. No cambia rutas, DTOs, claims ni permisos. La tabla solo recibe semillas si está vacía; no se modifican registros existentes. La retirada del genérico de la base Demo requiere una revisión de referencias y una operación manual autorizada independiente. El frontend conserva sus protecciones históricas y no filtra filas después de paginar.
+
+## Clientes y Proveedores en el frontend común
+
+Se incorporan `/Clientes` y `/Proveedores` con adaptadores registrados mediante `AddGatewayAdapter<I,T>()`, sesión/BearerTokenHandler existentes y permisos por operación en servidor. Los IDs de edición/detalle viajan por POST con antiforgery, no en la navegación visible. El Demo permanece independiente. No se modifican contratos, JWT, bases ni volúmenes. Implementación, verificación y pendientes del Grupo 2: [integración del frontend común](INTEGRACION_FRONTEND_COMUN.md). El login y las consultas reales con Keycloak y Administrador ya se comprobaron; el usuario confirmó también creación manual desde el frontend. Cajero, el 403 real y el resto del ciclo CRUD real siguen pendientes; distinguir estos resultados de las pruebas automatizadas. El seed genérico deshabilitado continúa siendo exclusivo de Demo.
