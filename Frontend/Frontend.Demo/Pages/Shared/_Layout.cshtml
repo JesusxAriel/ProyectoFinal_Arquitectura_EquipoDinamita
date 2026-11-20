@@ -1,6 +1,7 @@
 @inject Frontend.Demo.Services.DemoPerfilSession Perfil
 @{
     var login = ViewContext.RouteData.Values["page"]?.ToString() == "/Login";
+    var clientes = ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Clientes") == true;
     var proveedores = ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Proveedores") == true;
 }
 <!DOCTYPE html>
@@ -14,6 +15,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body class="@(login ? "login-page" : "app-page")">
     <a class="skip-link" href="#contenido">Saltar al contenido</a>
@@ -27,8 +29,9 @@
                     <div class="collapse navbar-collapse" id="navegacion">
                         @* INTEGRACIÓN: Agregar aquí el enlace Razor al módulo de otro grupo cuando exista su página. Conservar Proveedores y adaptar la condición de módulo activo: actualmente Inicio equivale a «no Proveedores». *@
                         <div class="navbar-nav main-nav mx-md-auto">
-                            <a class="nav-link @(!proveedores ? "active" : "")" aria-current="@(!proveedores ? "page" : null)" asp-page="/Index"><i class="bi bi-grid-1x2" aria-hidden="true"></i> Inicio</a>
-                            <a class="nav-link @(proveedores ? "active" : "")" aria-current="@(proveedores ? "page" : null)" asp-page="/Proveedores/Index"><i class="bi bi-truck" aria-hidden="true"></i> Proveedores</a>
+                            <a class="nav-link @(!proveedores && !clientes ? "active" : "")" aria-current="@(!proveedores && !clientes ? "page" : null)" asp-page="/Index"><i class="bi bi-grid-1x2" aria-hidden="true"></i> Inicio</a>
+                            <a class="nav-link @(clientes ? "active" : "")" aria-current="@(clientes ? "page" : null)" asp-page="/Clientes/Index"><i class="bi bi-people" aria-hidden="true"></i> Clientes</a>
+                    <a class="nav-link @(proveedores ? "active" : "")" aria-current="@(proveedores ? "page" : null)" asp-page="/Proveedores/Index"><i class="bi bi-truck" aria-hidden="true"></i> Proveedores</a>
                         </div>
                         @* DEMO TEMPORAL: El perfil solo orienta la UI; cada API valida JWT y permisos. Sustituir este menú al integrar identidad real. *@
                         <div class="dropdown profile-menu">
@@ -48,7 +51,7 @@
         @RenderBody()
     </main>
     <footer class="app-footer @(login ? "login-footer" : "container app-container")">
-        <span><span class="footer-dot"></span> PuntoMarket <span class="footer-divider">/</span> Gestión de proveedores</span>
+        <span><span class="footer-dot"></span> PuntoMarket <span class="footer-divider">/</span> Clientes y Proveedores</span>
         <span class="demo-label">DEMO TEMPORAL · Identidad de desarrollo</span>
     </footer>
     <div class="page-loading" id="page-loading" hidden role="status" aria-live="polite"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Procesando solicitud…</div>

@@ -9,8 +9,8 @@
     <p class="login-subtitle">Seleccione un perfil para continuar</p>
     @if (Model.ErrorActual is not null) { <div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> @Model.ErrorActual</div> }
     <form method="post" class="login-options" data-loading>
-        <button type="submit" name="perfilElegido" value="Administrador" class="login-option admin-option"><span class="option-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></span><span><strong>Ingresar como Administrador</strong><small>Gestiona y organiza tus proveedores</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></button>
-        <button type="submit" name="perfilElegido" value="Cajero" class="login-option"><span class="option-icon"><i class="bi bi-person" aria-hidden="true"></i></span><span><strong>Ingresar como Cajero</strong><small>Consulta los datos que necesitas</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+        <button type="submit" name="perfilElegido" value="Administrador" class="login-option admin-option"><span class="option-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></span><span><strong>Ingresar como Administrador</strong><small>Gestiona Clientes y Proveedores</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+        <button type="submit" name="perfilElegido" value="Cajero" class="login-option"><span class="option-icon"><i class="bi bi-person" aria-hidden="true"></i></span><span><strong>Ingresar como Cajero</strong><small>Gestiona Clientes y consulta Proveedores</small></span><i class="bi bi-arrow-right" aria-hidden="true"></i></button>
     </form>
     <div class="login-note"><i class="bi bi-info-circle" aria-hidden="true"></i><p><strong>Acceso de demostración</strong><br />No necesitas usuario ni contraseña.</p></div>
 </section>

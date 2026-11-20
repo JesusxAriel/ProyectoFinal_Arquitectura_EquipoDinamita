@@ -45,4 +45,7 @@
     <Project Path="Servicio4.Proveedores/Proveedores.Infrastructure/Proveedores.Infrastructure.csproj" />
     <Project Path="Servicio4.Proveedores/Proveedores.Tests/Proveedores.Tests.csproj" />
   </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Demo.Tests/Demo.Tests.csproj" />
+  </Folder>
 </Solution>

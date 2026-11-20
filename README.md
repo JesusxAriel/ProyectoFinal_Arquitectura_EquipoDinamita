@@ -65,3 +65,13 @@ Las pruebas Mongo crean bases temporales aisladas y no utilizan la colección re
 - [Gateway](Gateway/README.md), [frontend común](Frontend/README.md), [Usuarios](Servicio2.Usuarios/README.md) y [API Proveedores](Servicio4.Proveedores/README.md).
 
 Pendientes: incorporar la UI de Proveedores al frontend común coordinadamente con Grupo 2 y conectar Productos por HTTP antes de impedir bajas con productos activos. No publicar secretos, tokens, BSON ni artefactos locales.
+
+## Demo ampliado: Clientes y Proveedores
+
+El entorno temporal ofrece ambos módulos en Frontend/Frontend.Demo: seleccionar perfil en /Login y navegar con el menú Clientes/Proveedores. Conserva las pantallas originales de Proveedores y no depende del login común de Usuarios/Keycloak.
+
+El Gateway demo enruta /api/clientes y /api/proveedores. DevIdentity firma JWT para clientes-api y proveedores-api; cada API conserva su autorización. El demo añade MySQL 8.4 con base clientes_demo_db y volumen nuevo clientes_demo_data, sin reutilizar el volumen común ni modificar MongoDB existente. Utiliza CLIENTES_DB_USER/PASSWORD/ROOT_PASSWORD locales; no publica credenciales.
+
+Puertos nuevos: Clientes 15400 y MySQL demo 13310 (CLIENTES_DEMO_PORT/CLIENTES_DEMO_DB_PORT). Entrada futura: http://localhost:15100/Login, según variables locales. Usar exclusivamente docker-compose.demo.yml. Docker y WSL no se iniciaron durante este desarrollo.
+
+Matriz de roles, validaciones, comandos, pruebas sin bases y puntos de sustitución por Grupo 2: [sección Demo ampliado](INTEGRACION_GRUPO2.md#demo-ampliado-clientes-y-proveedores). Nueva suite Tests/Demo.Tests y script `node scripts/probar-clientes-demo.mjs`. El funcionamiento con bases reales queda pendiente de verificación posterior.

@@ -31,7 +31,7 @@ El frontend común usa `GatewayApi__BaseUrl`, el Gateway resuelve los servicios 
 
 ## Demostración separada de Proveedores
 
-El archivo `docker-compose.demo.yml` conserva cinco servicios: frontend, gateway, proveedores-api, identity-dev y mongodb. Conserva el nombre de proyecto `puntomarket`, los nombres de servicios, redes y volúmenes originales para no cambiar la persistencia existente.
+El archivo `docker-compose.demo.yml` incluye siete servicios: frontend, gateway, proveedores-api, clientes-api, identity-dev, mongodb y clientes-db. Conserva el nombre de proyecto `puntomarket`, los nombres de servicios, redes y volúmenes originales para no cambiar la persistencia existente.
 
 ```powershell
 docker compose -f docker-compose.demo.yml config --quiet
@@ -99,3 +99,7 @@ dotnet run --project Frontend/Frontend.Demo
 Los puertos locales habituales son 5300/5200/5000/5100. No ejecutarlos sobre puertos ocupados por Docker. El entorno común depende de Keycloak y sus bases/configuración propios; no basta ejecutar este conjunto demo para probarlo.
 
 Ver [README](README.md), [acuerdos Grupo 2](INTEGRACION_GRUPO2.md) y [contrato Grupo 1](GUIA_INTEGRACION_GRUPO1.md). La UI de Proveedores todavía debe incorporarse al frontend común mediante su sesión y adaptadores. Los resultados del merge figuran en el informe de verificación y no acreditan un arranque completo que no se haya ejecutado.
+
+## Ampliación demo Clientes (sin ejecutar Docker durante esta tarea)
+
+Clientes definitivo se añade al demo con MySQL 8.4, base clientes_demo_db y volumen nuevo clientes_demo_data. Reutiliza CLIENTES_DB_USER/PASSWORD/ROOT_PASSWORD locales; no usa ni migra clientes-mysql-data del común. Puertos CLIENTES_DEMO_PORT=15400 y CLIENTES_DEMO_DB_PORT=13310 por defecto; no se altera el volumen MongoDB original. Gateway añade /api/clientes y DevIdentity añade audiencia clientes-api al mismo JWT del perfil. Autoridad pública y metadata interna siguen configuradas, sin desactivar validaciones. La matriz, verificaciones y puntos de sustitución están en INTEGRACION_GRUPO2.md, sección Demo ampliado.

@@ -74,6 +74,55 @@ services:
       retries: 12
       start_period: 25s
 
+  # CRUD definitivo de Clientes: solo cambia configuración del despliegue demo.
+  clientes-db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${CLIENTES_DEMO_DB_NAME:-clientes_demo_db}
+      MYSQL_USER: ${CLIENTES_DB_USER:?Defina CLIENTES_DB_USER en .env}
+      MYSQL_PASSWORD: ${CLIENTES_DB_PASSWORD:?Defina CLIENTES_DB_PASSWORD en .env}
+      MYSQL_ROOT_PASSWORD: ${CLIENTES_DB_ROOT_PASSWORD:?Defina CLIENTES_DB_ROOT_PASSWORD en .env}
+    volumes:
+      - clientes_demo_data:/var/lib/mysql
+    ports:
+      - "127.0.0.1:${CLIENTES_DEMO_DB_PORT:-13310}:3306"
+    networks: [datos-clientes, compass-local]
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping --host=127.0.0.1 --user=root --password=$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  clientes-api:
+    build: ./Servicio1.Clientes
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: "8080"
+      Clientes__SeedEnabled: "true"
+      Clientes__SeedGenericoEnabled: "false"
+      ConnectionStrings__MySqlConnection: Server=clientes-db;Port=3306;Database=${CLIENTES_DEMO_DB_NAME:-clientes_demo_db};User ID=${CLIENTES_DB_USER:?Defina CLIENTES_DB_USER en .env};Password=${CLIENTES_DB_PASSWORD:?Defina CLIENTES_DB_PASSWORD en .env}
+      Authentication__Jwt__Authority: "http://localhost:${DEV_IDENTITY_PORT:-15300}/realms/proveedores-dev"
+      Authentication__Jwt__MetadataAddress: http://identity-dev:8080/realms/proveedores-dev/.well-known/openid-configuration
+      Authentication__Jwt__Audience: clientes-api
+      Authentication__Jwt__RequireHttpsMetadata: "false"
+    depends_on:
+      clientes-db:
+        condition: service_healthy
+      identity-dev:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${CLIENTES_DEMO_PORT:-15400}:8080"
+    networks: [aplicaciones, datos-clientes]
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 25s
+
   gateway:
     build: ./ApiGateway/ApiGateway.Demo
     restart: unless-stopped
@@ -81,9 +130,12 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_HTTP_PORTS: "8080"
       # INTEGRACIÓN: Mantener las rutas de appsettings; cambiar solo destinos por DNS de Compose.
+      ReverseProxy__Clusters__clientes-cluster__Destinations__clientes-api__Address: http://clientes-api:8080/
       ReverseProxy__Clusters__proveedores-cluster__Destinations__proveedores-api__Address: http://proveedores-api:8080/
       ReverseProxy__Clusters__dev-identity-cluster__Destinations__dev-identity__Address: http://identity-dev:8080/
     depends_on:
+      clientes-api:
+        condition: service_healthy
       proveedores-api:
         condition: service_healthy
       identity-dev:
@@ -125,8 +177,11 @@ networks:
   aplicaciones:
   datos-proveedores:
     internal: true
+  datos-clientes:
+    internal: true
   compass-local:
 
 volumes:
   mongodb_data:
   frontend_keys:
+  clientes_demo_data:
