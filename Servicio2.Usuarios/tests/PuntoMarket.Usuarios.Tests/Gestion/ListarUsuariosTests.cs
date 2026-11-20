@@ -9,20 +9,6 @@ namespace PuntoMarket.Usuarios.Tests.Gestion;
 public class ListarUsuariosTests
 {
     [Theory]
-    [InlineData(7, "Cajero")]
-    [InlineData(7, "")]
-    [InlineData(0, "Administrador")]
-    public async Task Solo_administrador_identificado_puede_listar(int id, string rol)
-    {
-        var repositorio = new UsuarioGestionRepositorioStub();
-        var caso = new ListarUsuariosCasoDeUso(repositorio, new UsuarioActualStub(id, rol), new RelojFijo());
-
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => caso.EjecutarAsync(new()));
-
-        Assert.Empty(repositorio.Llamadas);
-    }
-
-    [Theory]
     [InlineData("PENDIENTE", -1, true)]
     [InlineData("PENDIENTE", 0, true)]
     [InlineData("PENDIENTE", 1, false)]
@@ -35,11 +21,11 @@ public class ListarUsuariosTests
     {
         var reloj = new RelojFijo();
         DateTime? expira = segundosHastaExpirar is int segundos
-            ? ZonaHorariaDeLaPaz.ALocal(reloj.UtcNow.AddSeconds(segundos).UtcDateTime) : null;
+            ? ZonaHorariaDeLaPaz.ALocal(reloj.Ahora.AddSeconds(segundos)) : null;
         var usuario = new UsuarioListadoDto(42, "Ana", "Perez", "ana@example.com", "aperez",
-            "Cajero", estado, reloj.UtcNow.AddDays(-1).UtcDateTime, expira);
+            "Cajero", estado, reloj.Ahora.AddDays(-1), expira);
         var repositorio = new UsuarioGestionRepositorioStub { Usuarios = [usuario] };
-        var caso = new ListarUsuariosCasoDeUso(repositorio, new UsuarioActualStub(), reloj);
+        var caso = new ListarUsuariosCasoDeUso(repositorio, reloj);
 
         var salida = await caso.EjecutarAsync(new());
 

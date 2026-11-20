@@ -67,13 +67,12 @@ public sealed class SeguridadTests
     }
 
     [Fact]
-    public void UsuarioActual_LeeUsernameYRolDelToken()
+    public void UsuarioActual_LeeElUsernameDelToken()
     {
         var usuario = UsuarioActualCon(
             new Claim("preferred_username", "admin.test"), new Claim(ClaimTypes.Role, "Administrador"));
 
         Assert.Equal("admin.test", usuario.Username);
-        Assert.Equal("Administrador", usuario.Rol);
     }
 
     [Fact]

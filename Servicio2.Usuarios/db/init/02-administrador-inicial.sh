@@ -13,8 +13,8 @@ if ! echo "$PUNTOMARKET_ADMIN_USERNAME" | grep -Eq '^[A-Za-z0-9._-]{3,50}$'; the
     exit 1
 fi
 
-if ! echo "$PUNTOMARKET_ADMIN_EMAIL" | grep -Eq '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$'; then
-    echo "PUNTOMARKET_ADMIN_EMAIL no tiene la forma de un correo valido."
+if ! echo "$PUNTOMARKET_ADMIN_EMAIL" | grep -Eq "^[^@[:space:]'\"\\\\]+@[^@[:space:]'\"\\\\]+\\.[^@[:space:]'\"\\\\]+\$"; then
+    echo "PUNTOMARKET_ADMIN_EMAIL no tiene la forma de un correo valido o usa comillas o barras invertidas."
     exit 1
 fi
 

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using PuntoMarket.Usuarios.Api.Contracts.Gestion;
 using PuntoMarket.Usuarios.Api.Filters;
 using PuntoMarket.Usuarios.Application.Ports.Gestion;
-using PuntoMarket.Usuarios.Application.UseCases.Gestion.DarDeBajaUsuario;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.ListarUsuarios;
 
 namespace PuntoMarket.Usuarios.Api.Controllers;
@@ -14,7 +13,6 @@ namespace PuntoMarket.Usuarios.Api.Controllers;
 [GestionExceptionFilter(StatusCodes.Status409Conflict)]
 public sealed class UsuariosController(
     ListarUsuariosCasoDeUso listarUsuarios,
-    DarDeBajaUsuarioCasoDeUso darDeBajaUsuario,
     IUsuarioGestionRepositorio repositorio) : ControllerBase
 {
     [HttpGet]
@@ -35,12 +33,5 @@ public sealed class UsuariosController(
     {
         var roles = await repositorio.ListarRolesActivosAsync(cancellationToken);
         return Ok(roles.Select(rol => new RolActivoRespuesta(rol.Id, rol.Nombre)).ToArray());
-    }
-
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> DarDeBaja(int id, CancellationToken cancellationToken)
-    {
-        await darDeBajaUsuario.EjecutarAsync(new DarDeBajaUsuarioEntrada(id), cancellationToken);
-        return NoContent();
     }
 }

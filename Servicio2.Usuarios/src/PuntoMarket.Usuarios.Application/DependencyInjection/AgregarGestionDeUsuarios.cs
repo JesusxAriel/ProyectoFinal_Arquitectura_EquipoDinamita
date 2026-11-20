@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
-using PuntoMarket.Usuarios.Application.UseCases.Gestion.DarDeBajaUsuario;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.ListarUsuarios;
+using PuntoMarket.Usuarios.Application.UseCases.Gestion.ObtenerPerfil;
 
 namespace PuntoMarket.Usuarios.Application.DependencyInjection;
 
@@ -11,7 +11,7 @@ public static class RegistroGestionDeUsuarios
         ArgumentNullException.ThrowIfNull(servicios);
 
         servicios.AddScoped<ListarUsuariosCasoDeUso>();
-        servicios.AddScoped<DarDeBajaUsuarioCasoDeUso>();
+        servicios.AddScoped<ObtenerPerfilCasoDeUso>();
 
         return servicios;
     }
