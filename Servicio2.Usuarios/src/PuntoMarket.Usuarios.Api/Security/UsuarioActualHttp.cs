@@ -1,16 +1,10 @@
-using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using PuntoMarket.Usuarios.Application.Ports.Comunes;
 
 namespace PuntoMarket.Usuarios.Api.Security;
 
-public interface IUsernameActual
-{
-    string Username { get; }
-}
-
-public sealed class UsuarioActualHttp : IUsuarioActual, IUsernameActual
+public sealed class UsuarioActualHttp : IUsuarioActual
 {
     private const string UsernameClaim = "preferred_username";
 
@@ -20,38 +14,6 @@ public sealed class UsuarioActualHttp : IUsuarioActual, IUsernameActual
     {
         ArgumentNullException.ThrowIfNull(httpContextAccessor);
         _httpContextAccessor = httpContextAccessor;
-    }
-
-    public int Id
-    {
-        get
-        {
-            var claim = ObtenerIdentidadAutenticada().FindFirst("sub");
-            if (claim is null ||
-                !int.TryParse(claim.Value, NumberStyles.None, CultureInfo.InvariantCulture, out var id) ||
-                id <= 0)
-            {
-                throw new InvalidOperationException(
-                    "El usuario autenticado no tiene un claim 'sub' válido.");
-            }
-
-            return id;
-        }
-    }
-
-    public string Rol
-    {
-        get
-        {
-            var claim = ObtenerIdentidadAutenticada().FindFirst(ClaimTypes.Role);
-            if (string.IsNullOrWhiteSpace(claim?.Value))
-            {
-                throw new InvalidOperationException(
-                    "El usuario autenticado no tiene un rol válido.");
-            }
-
-            return claim.Value;
-        }
     }
 
     public string Username

@@ -1,14 +1,57 @@
 using PuntoMarket.Usuarios.Application.Ports.Comunes;
 using PuntoMarket.Usuarios.Application.Ports.Gestion;
+using PuntoMarket.Usuarios.Domain;
+using PuntoMarket.Usuarios.Domain.Entities;
 
 namespace PuntoMarket.Usuarios.Tests.Gestion.TestDoubles;
 
 internal sealed class RelojFijo : IReloj
 {
-    public DateTimeOffset UtcNow { get; } = new(2026, 11, 3, 12, 0, 0, TimeSpan.Zero);
+    public DateTime Ahora { get; } = new(2026, 11, 3, 12, 0, 0, DateTimeKind.Utc);
 }
 
-internal sealed record UsuarioActualStub(int Id = 7, string Rol = "Administrador") : IUsuarioActual;
+internal sealed record UsuarioActualStub(string Username = "admin.test") : IUsuarioActual;
+
+internal sealed class UsuarioRepositorioStub : IUsuarioRepositorio
+{
+    public Usuario? UsuarioEncontrado { get; set; }
+    public Rol? RolEncontrado { get; set; }
+    public List<string> UsernamesConsultados { get; } = [];
+    public List<int> RolesConsultados { get; } = [];
+
+    public Task<Usuario?> ObtenerPorUsername(string username, CancellationToken cancellationToken = default)
+    {
+        UsernamesConsultados.Add(username);
+        return Task.FromResult(UsuarioEncontrado);
+    }
+
+    public Task<Rol?> ObtenerRol(int rolId, CancellationToken cancellationToken = default)
+    {
+        RolesConsultados.Add(rolId);
+        return Task.FromResult(RolEncontrado);
+    }
+
+    public Task<Result<Usuario>> Guardar(Usuario usuario, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<Result<Usuario>> Actualizar(Usuario usuario, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<Usuario?> ObtenerPorId(int id, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<IReadOnlyList<Usuario>> Listar(CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<bool> ExisteUsername(string username, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<bool> ExisteCorreo(string correo, CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+
+    public Task<IReadOnlyList<Rol>> ListarRolesActivos(CancellationToken cancellationToken = default) =>
+        throw new NotSupportedException();
+}
 
 internal sealed class EnviadorCorreoSpy : IEnviadorCorreo
 {

@@ -2,10 +2,18 @@ namespace PuntoMarket.Usuarios.Domain.Entities;
 
 public sealed class Rol
 {
-    public int Id { get; init; }
-    public required string Nombre { get; init; }
-    public string? Descripcion { get; init; }
-    public bool EstaActivo { get; init; } = true;
-    public DateTime FechaCreacion { get; init; }
-    public DateTime? FechaActualizacion { get; init; }
+    private Rol(int id, string nombre, bool activo)
+    {
+        Id = id;
+        Nombre = nombre;
+        Activo = activo;
+    }
+
+    public int Id { get; }
+
+    public string Nombre { get; }
+
+    public bool Activo { get; }
+
+    public static Rol Reconstruir(int id, string nombre, bool activo) => new(id, nombre, activo);
 }

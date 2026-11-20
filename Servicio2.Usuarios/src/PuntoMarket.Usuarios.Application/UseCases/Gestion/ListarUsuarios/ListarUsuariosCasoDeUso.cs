@@ -7,21 +7,17 @@ namespace PuntoMarket.Usuarios.Application.UseCases.Gestion.ListarUsuarios;
 
 public sealed class ListarUsuariosCasoDeUso(
     IUsuarioGestionRepositorio repositorio,
-    IUsuarioActual usuarioActual,
     IReloj reloj)
 {
     public async Task<ListarUsuariosSalida> EjecutarAsync(
         ListarUsuariosEntrada entrada,
         CancellationToken cancellationToken = default)
     {
-        if (usuarioActual.Rol != "Administrador" || usuarioActual.Id <= 0)
-            throw new UnauthorizedAccessException("La administración de usuarios requiere el rol Administrador.");
-
         ArgumentNullException.ThrowIfNull(entrada);
         cancellationToken.ThrowIfCancellationRequested();
 
         var usuarios = await repositorio.ListarAsync(cancellationToken);
-        var ahoraLocal = ZonaHorariaDeLaPaz.ALocal(reloj.UtcNow.UtcDateTime);
+        var ahoraLocal = ZonaHorariaDeLaPaz.ALocal(reloj.Ahora);
         var salida = usuarios.Select(usuario =>
         {
             var estaExpirado = usuario.TokenActivacionExpira is DateTime vence &&

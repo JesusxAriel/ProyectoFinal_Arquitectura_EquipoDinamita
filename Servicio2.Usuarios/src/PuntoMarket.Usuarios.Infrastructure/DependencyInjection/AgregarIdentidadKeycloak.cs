@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using PuntoMarket.Usuarios.Application.Ports.Gestion;
 using PuntoMarket.Usuarios.Infrastructure.Identity;
 
 namespace PuntoMarket.Usuarios.Infrastructure.DependencyInjection;
