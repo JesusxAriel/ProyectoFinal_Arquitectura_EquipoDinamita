@@ -5,4 +5,7 @@
     <Project Path="src/PuntoMarket.Clientes.Application/PuntoMarket.Clientes.Application.csproj" />
     <Project Path="src/PuntoMarket.Clientes.Domain/PuntoMarket.Clientes.Domain.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PuntoMarket.Clientes.Tests/PuntoMarket.Clientes.Tests.csproj" />
+  </Folder>
 </Solution>

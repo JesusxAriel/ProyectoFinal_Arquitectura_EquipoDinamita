@@ -30,7 +30,7 @@ public sealed class LoginServiceTests
         var usuariosOptions = Options.Create(new UsuariosOptions
         {
             BaseUrl = "http://usuarios.test/",
-            CurrentUserPath = "api/usuarios/yo"
+            CurrentUserPath = "api/usuarios/perfil"
         });
 
         var keycloak = new KeycloakClient(new HttpClient(keycloakHandler), keycloakOptions);
@@ -68,7 +68,7 @@ public sealed class LoginServiceTests
         Assert.Contains("grant_type=password", form);
         Assert.Contains("client_id=cliente-de-prueba", form);
         var userRequest = Assert.Single(usuarios.Requests);
-        Assert.Equal("http://usuarios.test/api/usuarios/yo", userRequest.RequestUri!.ToString());
+        Assert.Equal("http://usuarios.test/api/usuarios/perfil", userRequest.RequestUri!.ToString());
         Assert.Equal("Bearer", userRequest.Headers.Authorization!.Scheme);
         Assert.Equal("jwt-de-prueba", userRequest.Headers.Authorization.Parameter);
     }
