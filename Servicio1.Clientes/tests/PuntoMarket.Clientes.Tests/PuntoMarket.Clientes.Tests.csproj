@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\PuntoMarket.Clientes.Adapters.Out.Persistence\PuntoMarket.Clientes.Adapters.Out.Persistence.csproj" />
     <ProjectReference Include="..\..\src\PuntoMarket.Clientes.Domain\PuntoMarket.Clientes.Domain.csproj" />
     <ProjectReference Include="..\..\src\PuntoMarket.Clientes.Application\PuntoMarket.Clientes.Application.csproj" />
   </ItemGroup>

@@ -47,6 +47,8 @@ builder.Services.AddHttpClient("ApiGateway", client =>
 builder.Services.AddSingleton<DemoTokenProvider>();
 builder.Services.AddScoped<DemoPerfilSession>();
 builder.Services.AddScoped<ProveedoresApiClient>();
+// DEMO TEMPORAL: mismo Gateway y perfil; sustituir identidad por la sesión real del Grupo 2.
+builder.Services.AddScoped<ClientesApiClient>();
 // INTEGRACIÓN: Registrar junto a este cliente el cliente HTTP del nuevo módulo, una vez conocido
 //   su contrato. Crear sus páginas en Pages/<Modulo>; menú y recursos comunes en Pages/Shared/_Layout.
 

@@ -7,7 +7,7 @@
 </section>
 @if (Model.Mensaje is not null) { <div class="alert alert-success alert-dismissible fade show" role="status"><i class="bi bi-check-circle" aria-hidden="true"></i> @Model.Mensaje<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar mensaje"></button></div> }
 @if (Model.MensajeError is not null || (Model.ErrorActual is not null && !Model.AbrirModal)) { <div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> @(Model.MensajeError ?? Model.ErrorActual) <a asp-page="/Proveedores/Index" asp-all-route-data="@(new Dictionary<string,string> { ["Estado"] = Model.Estado })" class="alert-link">Volver a cargar</a></div> }
-<section class="directory-card" aria-label="Directorio de proveedores">
+<section class="directory-card provider-directory" aria-label="Directorio de proveedores">
     <div class="directory-top"><div class="directory-title"><span class="directory-icon"><i class="bi bi-journal-text" aria-hidden="true"></i></span><div><h2>Directorio de proveedores</h2><p>Información de contacto y modalidad de abastecimiento</p></div></div>@if (!Model.EsAdministrador) { <span class="read-only"><i class="bi bi-eye" aria-hidden="true"></i> Solo lectura</span> }</div>
     <div class="directory-controls">
         <nav class="state-tabs" aria-label="Estado de proveedores">
@@ -18,8 +18,8 @@
     </div>
     <form method="get" class="search-toolbar" data-live-search data-loading>
         <input type="hidden" name="Estado" value="@Model.Estado" />
-        <div class="search-box"><label class="visually-hidden" for="Busqueda">Buscar por empresa, teléfono o correo</label><i class="bi bi-search" aria-hidden="true"></i><input id="Busqueda" name="Busqueda" maxlength="150" value="@Model.Busqueda" placeholder="Buscar por empresa, teléfono o correo..." autocomplete="off" /><button type="submit" class="search-submit" aria-label="Buscar"><i class="bi bi-arrow-right" aria-hidden="true"></i></button></div><button type="button" class="btn btn-outline-secondary btn-sm" data-search-clear hidden="@(string.IsNullOrEmpty(Model.Busqueda))">Limpiar</button>
-        <div class="toolbar-options"><label for="TamanoPagina">Mostrar</label><select id="TamanoPagina" name="TamanoPagina" class="form-select form-select-sm" data-submit-on-change>@foreach (var tamano in new[] {10,25,50,100}) { <option value="@tamano" selected="@(Model.TamanoPagina == tamano)">@tamano</option> }</select><label class="visually-hidden" for="OrdenarPor">Ordenar por</label><select id="OrdenarPor" name="Descendente" class="form-select form-select-sm sort-select" data-submit-on-change><option value="false" selected="@(!Model.Descendente)">Nombre A-Z</option><option value="true" selected="@(Model.Descendente)">Nombre Z-A</option></select></div>
+        <div class="provider-search-group"><div class="search-box"><label class="visually-hidden" for="Busqueda">Buscar por empresa, teléfono o correo</label><i class="bi bi-search" aria-hidden="true"></i><input id="Busqueda" name="Busqueda" maxlength="150" value="@Model.Busqueda" placeholder="Buscar por empresa, teléfono o correo..." autocomplete="off" /><button type="submit" class="search-submit" aria-label="Buscar"><i class="bi bi-arrow-right" aria-hidden="true"></i></button></div><button type="button" class="btn btn-primary btn-sm" data-search-clear hidden="@(string.IsNullOrEmpty(Model.Busqueda))">Limpiar</button></div>
+        <div class="toolbar-options provider-filter-group"><div class="provider-filter"><label for="TamanoPagina">Mostrar</label><select id="TamanoPagina" name="TamanoPagina" class="form-select form-select-sm" data-submit-on-change>@foreach (var tamano in new[] {10,25,50,100}) { <option value="@tamano" selected="@(Model.TamanoPagina == tamano)">@tamano</option> }</select></div><div class="provider-filter"><label class="visually-hidden" for="OrdenarPor">Ordenar por</label><select id="OrdenarPor" name="Descendente" class="form-select form-select-sm sort-select" data-submit-on-change><option value="false" selected="@(!Model.Descendente)">Nombre A-Z</option><option value="true" selected="@(Model.Descendente)">Nombre Z-A</option></select></div></div>
     </form>
     <div class="alert alert-danger" data-search-error role="alert" hidden></div>
     <span class="visually-hidden" data-search-status role="status" aria-live="polite"></span>
@@ -80,3 +80,5 @@
     @* INTEGRACIÓN: Este módulo JS es específico del listado de Proveedores; no se carga globalmente para otros CRUD. *@
     <script type="module" src="~/js/proveedores-busqueda.mjs" asp-append-version="true"></script>
 }
+
+@section Styles { <link rel="stylesheet" href="~/css/proveedores.css" asp-append-version="true" /> }

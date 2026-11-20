@@ -187,3 +187,69 @@ Límites: no se inició el entorno común por acuerdo del usuario; no se verific
 La configuración de audiencia del Gateway común sigue como en main (ValidateAudience=false); Proveedores mantiene firma, issuer, audience y lifetime habilitados. Revisar esa decisión con el equipo antes de producción, sin cambiarla unilateralmente durante el merge. No se actualizó ningún realm persistido: sus mappers reales deben comprobarse al arrancar el entorno común.
 
 La comprobación final retiró únicamente un espacio al final de una línea de `Frontend/wwwroot/css/presentacion.css` heredada de main, sin alterar reglas CSS.
+
+## Demo ampliado: Clientes y Proveedores
+
+El entorno temporal ahora ofrece **ambos módulos en Frontend/Frontend.Demo**, sin trasladar Proveedores al frontend común. Seleccionar Administrador/Cajero en /Login, navegar por Clientes o Proveedores y usar Cambiar perfil. No depende de Usuarios, Keycloak ni del login común /api/usuarios/perfil.
+
+El Gateway demo conserva /api/proveedores y /dev-auth y añade /api/clientes (raíz y catch-all), con cluster independiente. Todas las llamadas del frontend pasan por ese Gateway; no usa X-Role ni accede a bases.
+
+DevIdentity sigue limitado a Development, RS256, dos identidades fijas y claves RSA privadas en memoria. La audiencia principal proveedores-api se conserva y AdditionalAudiences añade clientes-api. El perfil del navegador no puede elegir roles arbitrarios. Ambas API definitivas conservan validación de firma, issuer, audiencia, vigencia y permisos. Clientes ya admite MetadataAddress: en Compose se usa discovery interno identity-dev:8080 y el mismo issuer público de la demo que Proveedores, sin modificar backends.
+
+| Perfil | Clientes | Proveedores |
+|---|---|---|
+| Administrador | Consultar, crear, editar, desactivar y reactivar | Todas las operaciones |
+| Cajero | Consultar, crear y editar | Solo consulta |
+
+El frontend de Clientes usa ID entero, nitCi, razonSocial, correo y telefono; recibe esGenerico/estado/auditoría del servidor. Presenta búsqueda, estado, ordenación por los cuatro campos de API, paginación, refresco, detalle, formularios y confirmaciones. Conserva valores y reabre el modal al recibir errores por campo. Protege Sin Nombre y los clientes inactivos sin sustituir las comprobaciones definitivas de la API.
+
+Validaciones tempranas: NIT/CI 5–15 dígitos (0 reservado), razón social obligatoria hasta 150 con limpieza equivalente al backend y sin HTML/controles; correo opcional hasta 150 según el patrón actual de Clientes; teléfono opcional de 8 dígitos con inicio 4/6/7. No se añaden reglas de correo/nombre más restrictivas que las del backend de Clientes. No se cambian las validaciones del formulario de Proveedores.
+
+### Arranque futuro autorizado por el usuario
+
+Docker/WSL permanecieron apagados durante el desarrollo. Los comandos siguientes son para ejecutarlos posteriormente:
+
+```powershell
+# Detener el entorno común si estuviera activo, conservando sus volúmenes.
+docker compose -f docker-compose.yml stop
+# Validar y arrancar exclusivamente el demo.
+docker compose -f docker-compose.demo.yml config --quiet
+docker compose -f docker-compose.demo.yml up --build -d
+docker compose -f docker-compose.demo.yml ps
+```
+
+Requiere CLIENTES_DB_USER, CLIENTES_DB_PASSWORD y CLIENTES_DB_ROOT_PASSWORD en .env. No sobrescribir .env ni cambiar claves de un volumen MySQL previamente inicializado. El demo de Clientes usa por defecto base clientes_demo_db y volumen nuevo puntomarket_clientes_demo_data; no reutiliza clientes-mysql-data del entorno común. Las credenciales se toman de variables locales existentes, sin publicar valores. MongoDB y claves del frontend conservan sus volúmenes originales. No se crean ni migran volúmenes durante las comprobaciones sin Docker.
+
+Puertos demo predeterminados: frontend http://localhost:15100/Login, Gateway http://localhost:15000, Proveedores :15200, DevIdentity :15300, Clientes :15400, MySQL demo :13310 y MongoDB demo :27028. Variables de .env/terminal pueden sobrescribirlos (el .env local anterior usa MONGO_PORT=27018). Nuevas opciones CLIENTES_DEMO_DB_NAME/CLIENTES_DEMO_PORT/CLIENTES_DEMO_DB_PORT; para Clientes local sin Docker, el Gateway tiene destino localhost:5400 configurable. El entorno común conserva sus propias URLs, MySQL y PostgreSQL y no se sustituye.
+
+### Sustitución futura por Grupo 2
+
+Revisar Frontend/Frontend.Demo/Program.cs, Services/ClientesApiClient.cs, Services/ProveedoresApiClient.cs, Services/DemoPerfilSession.cs, Services/DemoTokenProvider.cs, Pages/Login, Pages/Shared/_Layout.cshtml, ApiGateway/ApiGateway.Demo/appsettings.json, DevIdentity/DevIdentity.Demo y docker-compose.demo.yml. Sustituir selector y tokens demo por sesión y JWT reales; conservar rutas, DTOs, validaciones y pantallas comerciales. Usar los adaptadores/sesión del frontend común cuando esa integración se autorice. No copiar la identidad demo, no desactivar JWT, ni modificar la lógica de Clientes o Proveedores. El error del login común 405/503 permanece fuera del alcance de este demo independiente.
+
+### Verificaciones sin Docker
+
+```powershell
+dotnet restore Proyecto_Microservicios.slnx
+dotnet build Proyecto_Microservicios.slnx --no-restore
+# No conectar MongoDB: las pruebas reales de persistencia se omiten en esta fase.
+$env:PROVEEDORES_TEST_MONGO=''
+dotnet test Proyecto_Microservicios.slnx --no-restore
+dotnet test Servicio4.Proveedores/Proveedores.slnx --no-restore
+node scripts/probar-clientes-demo.mjs
+node scripts/probar-validaciones-frontend.cjs
+node scripts/probar-busqueda-dinamica.mjs
+```
+
+Tests/Demo.Tests ejecuta Razor/antiforgery/sesión con TestServer, transportes HTTP falsos para formularios y YARP, y JWT RSA reales emitidos por DevIdentity con comprobación de audiencias, issuer y políticas reales de Clientes. No prueba persistencia MySQL ni MongoDB. Sigue pendiente verificar Docker, puertos efectivos, discovery entre contenedores, ambos CRUD completos con sus bases, apariencia en navegador y persistencia. No se declara funcionamiento extremo a extremo con estos tests.
+
+### Resultados de esta ampliación demo
+
+Restore completo correcto y build de los 27 proyectos sin errores ni advertencias. Suite sin conexiones de persistencia: 399 aprobadas, 0 fallidas y 14 Mongo omitidas. Incluye 38 pruebas nuevas en Tests/Demo.Tests; pasan también los 28 casos JS de Clientes, los 60 de Proveedores y el buscador dinámico existente. Los backends, componentes comunes y fuentes originales del módulo Proveedores se comprobaron contra Git y permanecen intactos. La revisión estática identifica siete servicios demo y el nuevo volumen MySQL separado; no se ejecutó Docker Compose ni WSL, ni se modificó .env o datos. La validación real de Compose y las pruebas completas con MySQL/MongoDB quedan pendientes.
+
+### Semilla de Clientes en Demo
+
+Solo el despliegue `docker-compose.demo.yml` fija `Clientes__SeedGenericoEnabled=false` y conserva `Clientes__SeedEnabled=true`. La nueva opción vale `true` por defecto en Clientes para no cambiar otros entornos. No cambia rutas, DTOs, claims ni permisos. La tabla solo recibe semillas si está vacía; no se modifican registros existentes. La retirada del genérico de la base Demo requiere una revisión de referencias y una operación manual autorizada independiente. El frontend conserva sus protecciones históricas y no filtra filas después de paginar.
+
+## Clientes y Proveedores en el frontend común
+
+Se incorporan `/Clientes` y `/Proveedores` con adaptadores registrados mediante `AddGatewayAdapter<I,T>()`, sesión/BearerTokenHandler existentes y permisos por operación en servidor. Los IDs de edición/detalle viajan por POST con antiforgery, no en la navegación visible. El Demo permanece independiente. No se modifican contratos, JWT, bases ni volúmenes. Implementación, verificación y pendientes del Grupo 2: [integración del frontend común](INTEGRACION_FRONTEND_COMUN.md). El login y las consultas reales con Keycloak y Administrador ya se comprobaron; el usuario confirmó también creación manual desde el frontend. Cajero, el 403 real y el resto del ciclo CRUD real siguen pendientes; distinguir estos resultados de las pruebas automatizadas. El seed genérico deshabilitado continúa siendo exclusivo de Demo.

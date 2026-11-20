@@ -1,0 +1,21 @@
+.client-directory .search-toolbar { flex-wrap: wrap; align-items: center; gap: 16px; }
+.client-directory .client-search-group { display: flex; align-items: center; gap: 10px; flex: 1 1 280px; max-width: 440px; min-width: 0; }
+.client-directory .search-box { flex: 1 1 auto; min-width: 0; height: 40px; min-height: 40px; max-width: none; }
+.client-directory .search-box input { padding-top: 0; padding-bottom: 0; }
+.client-directory .client-search-group [data-clientes-clear] { flex: 0 0 auto; height: 40px; min-height: 40px; white-space: nowrap; }
+.client-directory .client-filter-group { flex: 0 1 auto; width: auto; max-width: 100%; margin-left: auto; justify-content: flex-end; flex-wrap: wrap; gap: 12px; }
+.client-directory .client-filter { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.client-directory .client-filter label { margin: 0; white-space: nowrap; }
+.client-directory .client-filter .form-select { width: auto; max-width: 100%; height: 40px; min-height: 40px; }
+@media (max-width: 767px) {
+  .client-directory .client-search-group { flex-basis: 100%; max-width: none; }
+  .client-directory .client-filter-group { flex-basis: 100%; gap: 10px; }
+}
+.client-directory .provider-table td { white-space: normal; overflow-wrap: anywhere; }
+.client-directory .provider-table td:last-child { min-width: 136px; }
+
+/* Estilos propios de Clientes: los modales reutilizan íntegramente las reglas de Proveedores. */
+#clienteDetalleModal .cliente-details { display: grid; grid-template-columns: minmax(100px, .8fr) minmax(0, 1.4fr); gap: 12px 16px; margin: 0; font-size: 13px; }
+#clienteDetalleModal .cliente-details dt { color: #64748b; font-weight: 500; }
+#clienteDetalleModal .cliente-details dd { margin: 0; overflow-wrap: anywhere; }
+.client-directory [data-search-error] { margin: 0 26px 16px; }

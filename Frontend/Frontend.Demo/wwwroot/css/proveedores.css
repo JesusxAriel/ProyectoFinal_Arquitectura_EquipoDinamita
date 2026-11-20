@@ -1,0 +1,14 @@
+/* Solo la barra de Proveedores; sin cambios en estilos globales ni modales. */
+.provider-directory .search-toolbar { flex-wrap: wrap; align-items: center; gap: 16px; }
+.provider-directory .provider-search-group { display: flex; align-items: center; gap: 10px; flex: 1 1 280px; max-width: 440px; min-width: 0; }
+.provider-directory .provider-search-group .search-box { flex: 1 1 auto; max-width: none; min-width: 0; height: 40px; }
+.provider-directory .provider-search-group .search-box input { padding-top: 0; padding-bottom: 0; }
+.provider-directory [data-search-clear] { flex: 0 0 auto; height: 40px; white-space: nowrap; }
+.provider-directory .provider-filter-group { flex: 0 1 auto; width: auto; margin-left: auto; justify-content: flex-end; flex-wrap: wrap; gap: 12px; }
+.provider-directory .provider-filter { display: flex; align-items: center; gap: 8px; }
+.provider-directory .provider-filter label { margin: 0; white-space: nowrap; }
+.provider-directory .provider-filter .form-select { min-height: 40px; }
+@media (max-width: 767px) {
+  .provider-directory .provider-search-group { flex-basis: 100%; max-width: none; }
+  .provider-directory .provider-filter-group { flex-basis: 100%; }
+}

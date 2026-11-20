@@ -44,3 +44,6 @@ app.MapGet("/health", () => Results.Ok("ok"));
 app.MapReverseProxy();
 
 app.Run();
+
+// DEMO TEMPORAL: punto de entrada público para TestServer, sin iniciar puertos ni Docker.
+public partial class Program { }

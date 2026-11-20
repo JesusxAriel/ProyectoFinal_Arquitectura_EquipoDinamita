@@ -9,4 +9,7 @@ public sealed class ClientesDbOptions
 
     /// <summary>Inserta el cliente genérico y dos clientes de ejemplo SOLO si la tabla está vacía.</summary>
     public bool SeedEnabled { get; set; } = true;
+
+    /// <summary>Incluye el genérico en la semilla de una tabla vacía. No modifica registros existentes.</summary>
+    public bool SeedGenericoEnabled { get; set; } = true;
 }
