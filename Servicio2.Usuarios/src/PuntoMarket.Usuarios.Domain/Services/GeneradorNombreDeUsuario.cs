@@ -1,28 +1,44 @@
-using System.Text;
+using System.Globalization;
+using PuntoMarket.Usuarios.Domain.Entities;
 
 namespace PuntoMarket.Usuarios.Domain.Services;
 
 public static class GeneradorNombreDeUsuario
 {
-    public static string GenerarBase(string? nombre, string? apellido)
+    public const int PrimerIntento = 1;
+
+    public static Result<string> GenerarBase(string? nombres, string? apellidos)
     {
-        var nombreNormalizado = NormalizarEspacios(nombre);
-        var apellidoNormalizado = NormalizarEspacios(apellido);
-        if (nombreNormalizado.Length == 0 || apellidoNormalizado.Length == 0)
-            throw new ArgumentException("Nombre y apellido son obligatorios.");
+        var letrasDelNombre = Texto.SoloLetrasSinTildes(Texto.NormalizarEspacios(nombres));
+        var primerApellido = PrimerApellido(apellidos);
 
-        var letrasNombre = Letras(nombreNormalizado);
-        var primerApellido = Letras(apellidoNormalizado.Split(' ')[0]);
-        if (letrasNombre.Length == 0 || primerApellido.Length == 0)
-            throw new ArgumentException("Nombre y primer apellido deben contener letras latinas para generar el nombre de usuario.");
+        if (letrasDelNombre.Length == 0 || primerApellido.Length == 0)
+        {
+            return Result<string>.Fail(
+                "El nombre y el primer apellido deben tener letras para generar el nombre de usuario.");
+        }
 
-        return letrasNombre[..1] + primerApellido;
+        return Result<string>.Ok(letrasDelNombre[..1] + primerApellido);
     }
 
-    private static string NormalizarEspacios(string? valor) =>
-        string.Join(" ", (valor ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+    public static string Siguiente(string nombreBase, int intento)
+    {
+        var sufijo = intento <= PrimerIntento
+            ? ""
+            : intento.ToString(CultureInfo.InvariantCulture);
+        var espacioDisponible = Math.Min(
+            nombreBase.Length,
+            Usuario.LongitudMaximaUsername - sufijo.Length);
 
-    private static string Letras(string valor) => new(valor.Normalize(NormalizationForm.FormD)
-        .Where(c => c is >= 'a' and <= 'z' or >= 'A' and <= 'Z')
-        .Select(char.ToLowerInvariant).ToArray());
+        return nombreBase[..espacioDisponible] + sufijo;
+    }
+
+    private static string PrimerApellido(string? apellidos)
+    {
+        var normalizados = Texto.NormalizarEspacios(apellidos);
+
+        return normalizados.Length == 0
+            ? ""
+            : Texto.SoloLetrasSinTildes(normalizados.Split(' ')[0]);
+    }
 }
