@@ -12,10 +12,50 @@ internal sealed class RelojFijo : IReloj
 
 internal sealed record UsuarioActualStub(string Username = "admin.test") : IUsuarioActual;
 
+internal sealed class GestorDeIdentidadFalso : IGestorDeIdentidad
+{
+    public Result ResultadoCrearUsuario { get; set; } = Result.Ok();
+    public Result ResultadoVerificarPassword { get; set; } = Result.Ok();
+    public Result ResultadoCambiarPassword { get; set; } = Result.Ok();
+    public Result ResultadoCambiarEstado { get; set; } = Result.Ok();
+    public List<string> Llamadas { get; } = [];
+    public List<(string Username, string Password)> Verificaciones { get; } = [];
+    public List<(string Username, string Password)> Cambios { get; } = [];
+
+    public Task<Result> CrearUsuario(
+        string username, string correo, string nombreCompleto, string rol, string passwordTemporal)
+    {
+        Llamadas.Add(nameof(CrearUsuario));
+        return Task.FromResult(ResultadoCrearUsuario);
+    }
+
+    public Task<Result> VerificarPassword(string username, string passwordActual)
+    {
+        Llamadas.Add(nameof(VerificarPassword));
+        Verificaciones.Add((username, passwordActual));
+        return Task.FromResult(ResultadoVerificarPassword);
+    }
+
+    public Task<Result> CambiarPassword(string username, string passwordNueva)
+    {
+        Llamadas.Add(nameof(CambiarPassword));
+        Cambios.Add((username, passwordNueva));
+        return Task.FromResult(ResultadoCambiarPassword);
+    }
+
+    public Task<Result> CambiarEstado(string username, bool activo)
+    {
+        Llamadas.Add(nameof(CambiarEstado));
+        return Task.FromResult(ResultadoCambiarEstado);
+    }
+}
+
 internal sealed class UsuarioRepositorioStub : IUsuarioRepositorio
 {
     public Usuario? UsuarioEncontrado { get; set; }
     public Rol? RolEncontrado { get; set; }
+    public Result<Usuario>? ResultadoActualizar { get; set; }
+    public List<Usuario> Actualizados { get; } = [];
     public List<string> UsernamesConsultados { get; } = [];
     public List<int> RolesConsultados { get; } = [];
 
@@ -34,8 +74,11 @@ internal sealed class UsuarioRepositorioStub : IUsuarioRepositorio
     public Task<Result<Usuario>> Guardar(Usuario usuario, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 
-    public Task<Result<Usuario>> Actualizar(Usuario usuario, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+    public Task<Result<Usuario>> Actualizar(Usuario usuario, CancellationToken cancellationToken = default)
+    {
+        Actualizados.Add(usuario);
+        return Task.FromResult(ResultadoActualizar ?? Result<Usuario>.Ok(usuario));
+    }
 
     public Task<Usuario?> ObtenerPorId(int id, CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
