@@ -1,14 +1,10 @@
 # Servicio1.Clientes
 
-Microservicio de Clientes. Arquitectura Hexagonal con PostgreSQL. Responsable: Felipe (Grupo 1).
+Microservicio de Clientes. Arquitectura Hexagonal con MySQL 8.4.
 
-- `src/PuntoMarket.Clientes.Domain`: entidades, validaciones y `Result`.
-- `src/PuntoMarket.Clientes.Application`: puertos de entrada (`Ports/In`), puertos de salida (`Ports/Out`) y casos de uso.
-- `src/PuntoMarket.Clientes.Adapters.Out.Persistence`: adaptador de salida hacia PostgreSQL.
-- `src/PuntoMarket.Clientes.Adapters.In.Api`: adaptador de entrada HTTP.
+- Domain: entidad, validaciones, creadores y Result.
+- Application: puertos de entrada/salida y casos de uso.
+- Persistence: adaptador MySQL mediante MySqlConnector.
+- API: controlador, autenticación JWT/Keycloak y políticas de roles.
 
-Estado: esqueleto sin lógica de negocio. Solo responde `GET /api/salud`.
-
-```powershell
-dotnet build Servicio1.Clientes/PuntoMarket.Clientes.slnx
-```
+Base independiente `CLIENTE`, sin claves foráneas hacia otros microservicios.

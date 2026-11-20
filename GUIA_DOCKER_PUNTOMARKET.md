@@ -24,8 +24,8 @@ docker compose ps
 | Proveedores | 5005 | PROVEEDORES_PUBLISHED_PORT |
 | MongoDB común | 27018 | PROVEEDORES_DB_PUBLISHED_PORT |
 | MySQL Usuarios | 3308 | USUARIOS_DB_PUBLISHED_PORT |
-| MySQL Productos | 3309 | PRODUCTOS_DB_PUBLISHED_PORT |
-| PostgreSQL Clientes | 5433 | CLIENTES_DB_PUBLISHED_PORT |
+| PostgreSQL Productos | 5433 | PRODUCTOS_DB_PUBLISHED_PORT |
+| MySQL Clientes | 3310 | CLIENTES_DB_PUBLISHED_PORT |
 
 El frontend común usa `GatewayApi__BaseUrl`, el Gateway resuelve los servicios por DNS y Proveedores usa `proveedores-db:27017`, con autenticación y `PROVEEDORES_DB_NAME`. Sus credenciales siguen siendo las de main. No se ha creado, renombrado o migrado ninguna base durante el merge.
 

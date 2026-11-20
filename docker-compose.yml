@@ -132,7 +132,13 @@ services:
     build:
       context: ./Servicio1.Clientes
     environment:
-      ConnectionStrings__PostgresConnection: Host=clientes-db;Port=5432;Database=${CLIENTES_DB_NAME:?Defina CLIENTES_DB_NAME en el archivo .env};Username=${CLIENTES_DB_USER:?Defina CLIENTES_DB_USER en el archivo .env};Password=${CLIENTES_DB_PASSWORD:?Defina CLIENTES_DB_PASSWORD en el archivo .env}
+      ConnectionStrings__MySqlConnection: Server=clientes-db;Port=3306;Database=${CLIENTES_DB_NAME:?Defina CLIENTES_DB_NAME en el archivo .env};User ID=${CLIENTES_DB_USER:?Defina CLIENTES_DB_USER en el archivo .env};Password=${CLIENTES_DB_PASSWORD:?Defina CLIENTES_DB_PASSWORD en el archivo .env}
+      Authentication__Jwt__Authority: http://keycloak:8080/realms/puntomarket
+      Authentication__Jwt__Audience: clientes-api
+      Authentication__Jwt__RequireHttpsMetadata: "false"
+      Authentication__Jwt__RoleClaimPaths__0: realm_access.roles
+      Authentication__Jwt__RoleMapping__Administrador__0: Administrador
+      Authentication__Jwt__RoleMapping__Cajero__0: Cajero
     depends_on:
       keycloak:
         condition: service_healthy
@@ -159,7 +165,7 @@ services:
     build:
       context: ./Servicio3.Productos
     environment:
-      ConnectionStrings__MySqlConnection: Server=productos-db;Port=3306;Database=${PRODUCTOS_DB_NAME:?Defina PRODUCTOS_DB_NAME en el archivo .env};User ID=${PRODUCTOS_DB_USER:?Defina PRODUCTOS_DB_USER en el archivo .env};Password=${PRODUCTOS_DB_PASSWORD:?Defina PRODUCTOS_DB_PASSWORD en el archivo .env}
+      ConnectionStrings__PostgresConnection: Host=productos-db;Port=5432;Database=${PRODUCTOS_DB_NAME:?Defina PRODUCTOS_DB_NAME en el archivo .env};Username=${PRODUCTOS_DB_USER:?Defina PRODUCTOS_DB_USER en el archivo .env};Password=${PRODUCTOS_DB_PASSWORD:?Defina PRODUCTOS_DB_PASSWORD en el archivo .env}
     depends_on:
       keycloak:
         condition: service_healthy
@@ -242,38 +248,38 @@ services:
       start_period: 30s
 
   productos-db:
-    image: mysql:8.4
+    image: postgres:17
     environment:
-      MYSQL_ROOT_PASSWORD: ${PRODUCTOS_DB_ROOT_PASSWORD:?Defina PRODUCTOS_DB_ROOT_PASSWORD en el archivo .env}
-      MYSQL_DATABASE: ${PRODUCTOS_DB_NAME}
-      MYSQL_USER: ${PRODUCTOS_DB_USER}
-      MYSQL_PASSWORD: ${PRODUCTOS_DB_PASSWORD}
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
+      POSTGRES_DB: ${PRODUCTOS_DB_NAME}
+      POSTGRES_USER: ${PRODUCTOS_DB_USER}
+      POSTGRES_PASSWORD: ${PRODUCTOS_DB_PASSWORD}
     ports:
-      - "127.0.0.1:${PRODUCTOS_DB_PUBLISHED_PORT:-3309}:3306"
+      - "127.0.0.1:${PRODUCTOS_DB_PUBLISHED_PORT:-5433}:5432"
     volumes:
-      - productos-db-data:/var/lib/mysql
+      - productos-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping --host=127.0.0.1 --user=root --password=$$MYSQL_ROOT_PASSWORD --silent"]
+      test: ["CMD-SHELL", "pg_isready --username=$$POSTGRES_USER --dbname=$$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 40
       start_period: 30s
 
   clientes-db:
-    image: postgres:17
+    image: mysql:8.4
     environment:
-      POSTGRES_DB: ${CLIENTES_DB_NAME}
-      POSTGRES_USER: ${CLIENTES_DB_USER}
-      POSTGRES_PASSWORD: ${CLIENTES_DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${CLIENTES_DB_ROOT_PASSWORD:?Defina CLIENTES_DB_ROOT_PASSWORD en el archivo .env}
+      MYSQL_DATABASE: ${CLIENTES_DB_NAME}
+      MYSQL_USER: ${CLIENTES_DB_USER}
+      MYSQL_PASSWORD: ${CLIENTES_DB_PASSWORD}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     ports:
-      - "127.0.0.1:${CLIENTES_DB_PUBLISHED_PORT:-5433}:5432"
+      - "127.0.0.1:${CLIENTES_DB_PUBLISHED_PORT:-3310}:3306"
     volumes:
-      - clientes-db-data:/var/lib/postgresql/data
+      - clientes-mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready --username=$$POSTGRES_USER --dbname=$$POSTGRES_DB"]
+      test: ["CMD-SHELL", "mysqladmin ping --host=127.0.0.1 --user=root --password=$$MYSQL_ROOT_PASSWORD --silent"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -299,6 +305,6 @@ services:
 volumes:
   keycloak-data: {}
   usuarios-db-data: {}
-  productos-db-data: {}
-  clientes-db-data: {}
+  productos-postgres-data: {}
+  clientes-mysql-data: {}
   proveedores-db-data: {}

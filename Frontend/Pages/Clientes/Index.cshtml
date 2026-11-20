@@ -1,0 +1,63 @@
+@page
+@model PuntoMarket.Frontend.Pages.Clientes.IndexModel
+@{
+    ViewData["Title"] = "Clientes";
+    var editarId = ViewData["EditarId"] as int?;
+}
+<h1 class="page-heading mb-4">Administración de clientes</h1>
+@if (TempData["MensajeGestion"] is string mensaje) { <div class="alert alert-success" role="status">@mensaje</div> }
+@if (Model.ErrorGestion is not null) { <div class="alert alert-danger" role="alert">@Model.ErrorGestion</div> }
+
+<section class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h2 class="h5">@(editarId is null ? "Crear cliente" : "Editar cliente")</h2>
+    <form method="post" asp-page-handler="Guardar" novalidate>
+      @if (editarId is not null) { <input type="hidden" name="id" value="@editarId" /> }
+      <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+      <div class="row g-3">
+        <div class="col-md-3"><label asp-for="Input.NitCi" class="form-label">NIT/CI</label><input asp-for="Input.NitCi" class="form-control" maxlength="15" /><span asp-validation-for="Input.NitCi" class="text-danger"></span></div>
+        <div class="col-md-5"><label asp-for="Input.RazonSocial" class="form-label">Razón social</label><input asp-for="Input.RazonSocial" class="form-control" maxlength="150" /><span asp-validation-for="Input.RazonSocial" class="text-danger"></span></div>
+        <div class="col-md-2"><label asp-for="Input.Correo" class="form-label">Correo electrónico</label><input asp-for="Input.Correo" type="email" class="form-control" maxlength="150" /><span asp-validation-for="Input.Correo" class="text-danger"></span></div>
+        <div class="col-md-2"><label asp-for="Input.Telefono" class="form-label">Teléfono</label><input asp-for="Input.Telefono" class="form-control" maxlength="8" /><span asp-validation-for="Input.Telefono" class="text-danger"></span></div>
+        <div class="col-12"><button type="submit" class="btn btn-warning">@(editarId is null ? "Crear cliente" : "Guardar cambios")</button></div>
+      </div>
+    </form>
+  </div>
+</section>
+
+<form method="get" class="card card-body shadow-sm mb-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-md-3"><label asp-for="Busqueda" class="form-label">Buscar</label><input asp-for="Busqueda" class="form-control" /></div>
+    <div class="col-md-2"><label asp-for="Estado" class="form-label">Estado</label><select asp-for="Estado" class="form-select"><option>Todos</option><option>Activos</option><option>Inactivos</option></select></div>
+    <div class="col-md-2"><label asp-for="OrdenarPor" class="form-label">Ordenar por</label><select asp-for="OrdenarPor" class="form-select"><option value="RazonSocial">Razón social</option><option value="NitCi">NIT/CI</option><option value="FechaCreacion">Fecha de creación</option><option value="FechaActualizacion">Fecha de actualización</option></select></div>
+    <div class="col-md-2"><label asp-for="Descendente" class="form-label">Dirección</label><select asp-for="Descendente" class="form-select"><option value="false">Ascendente</option><option value="true">Descendente</option></select></div>
+    <div class="col-md-2"><label asp-for="TamanoPagina" class="form-label">Por página</label><select asp-for="TamanoPagina" class="form-select"><option>10</option><option>25</option><option>50</option><option>100</option></select></div>
+    <div class="col-md-1"><button class="btn btn-primary w-100" type="submit">Actualizar</button></div>
+  </div>
+</form>
+
+<div class="table-responsive">
+<table class="table table-hover align-middle">
+ <thead><tr><th>NIT/CI</th><th>Razón social</th><th>Correo electrónico</th><th>Teléfono</th><th>Estado</th><th>Fecha de creación</th><th>Acciones</th></tr></thead>
+ <tbody>
+ @foreach (var c in Model.Items) {
+  <tr><td>@c.NitCi</td><td>@c.RazonSocial</td><td>@c.Correo</td><td>@c.Telefono</td><td><span class="badge @(c.EstaActivo ? "text-bg-success" : "text-bg-secondary")">@(c.EstaActivo ? "Activo" : "Inactivo")</span></td><td>@c.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</td>
+   <td>
+    @if (!c.EsGenerico) {
+      <a asp-page-handler="Editar" asp-route-id="@c.Id" class="btn btn-sm btn-outline-primary">Editar</a>
+      @if (Model.EsAdministrador) {
+        if (c.EstaActivo) { <form method="post" asp-page-handler="Baja" class="d-inline"><input type="hidden" name="id" value="@c.Id" /><input type="hidden" name="confirmar" value="true" /><button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Desea dar de baja este cliente?');">Dar de baja</button></form> }
+        else { <form method="post" asp-page-handler="Reactivar" class="d-inline"><input type="hidden" name="id" value="@c.Id" /><button type="submit" class="btn btn-sm btn-outline-success">Reactivar</button></form> }
+      }
+    }
+   </td>
+  </tr>
+ }
+ </tbody>
+</table>
+</div>
+<nav aria-label="Paginación de clientes" class="d-flex justify-content-between">
+ <a class="btn btn-outline-secondary @(Model.Pagina <= 1 ? "disabled" : "")" asp-all-route-data='@(new Dictionary<string,string> { ["Busqueda"]=Model.Busqueda??"", ["Estado"]=Model.Estado, ["OrdenarPor"]=Model.OrdenarPor, ["Descendente"]=Model.Descendente.ToString(), ["pagina"]=Math.Max(1,Model.Pagina-1).ToString(), ["tamanoPagina"]=Model.TamanoPagina.ToString() })'>Anterior</a>
+ <span>Página @Model.Pagina de @Model.TotalPaginas (@Model.Total registros)</span>
+ <a class="btn btn-outline-secondary @(Model.Pagina >= Model.TotalPaginas ? "disabled" : "")" asp-all-route-data='@(new Dictionary<string,string> { ["Busqueda"]=Model.Busqueda??"", ["Estado"]=Model.Estado, ["OrdenarPor"]=Model.OrdenarPor, ["Descendente"]=Model.Descendente.ToString(), ["pagina"]=Math.Min(Math.Max(1,Model.TotalPaginas),Model.Pagina+1).ToString(), ["tamanoPagina"]=Model.TamanoPagina.ToString() })'>Siguiente</a>
+</nav>
