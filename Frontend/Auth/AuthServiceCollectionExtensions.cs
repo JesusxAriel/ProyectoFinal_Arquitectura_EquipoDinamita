@@ -30,6 +30,7 @@ public static class AuthServiceCollectionExtensions
         services.AddScoped<ISesionUsuario, SesionUsuario>();
         services.AddTransient<BearerTokenHandler>();
         services.AddGatewayAdapter<IAuthApiAdapter, AuthApiAdapter>();
+        services.AddGatewayAdapter<IPerfilApiAdapter, PerfilApiAdapter>();
         return services;
     }
 
