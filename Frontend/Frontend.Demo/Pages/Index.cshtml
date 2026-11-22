@@ -3,7 +3,7 @@
 @{ ViewData["Title"] = "Inicio"; }
 <div class="breadcrumb-line"><i class="bi bi-house" aria-hidden="true"></i><span>Inicio</span><i class="bi bi-chevron-right" aria-hidden="true"></i><span>Panel de control</span></div>
 <section class="page-heading"><div><span class="eyebrow">PANEL DE CONTROL</span><h1>Resumen de proveedores<span class="heading-dot">.</span></h1><p>Todo lo que necesitas para mantener tu micromercado en movimiento.</p></div><span class="welcome-badge"><span class="status-dot"></span> @Model.PerfilActual</span></section>
-<section class="welcome-card"><div><span class="welcome-icon"><i class="bi bi-sun" aria-hidden="true"></i></span><div><h2>¡Bienvenido a PuntoMarket!</h2><p>Tu red de proveedores, organizada en un solo lugar.</p></div></div><span class="welcome-caption">MENOS PASOS.<br /><strong>MÁS CONTROL.</strong></span></section>
+<section class="welcome-card"><div><span class="welcome-icon"><i class="bi bi-sun" aria-hidden="true"></i></span><div><h2>¡Bienvenido a PuntoMarket!</h2><p>Clientes y Proveedores, organizados en un solo lugar.</p></div></div><span class="welcome-caption">MENOS PASOS.<br /><strong>MÁS CONTROL.</strong></span></section>
 @if (Model.ErrorActual is not null)
 {
     <div class="alert alert-danger d-flex align-items-center gap-3" role="alert"><i class="bi bi-wifi-off" aria-hidden="true"></i><span>@Model.ErrorActual</span><a class="btn btn-sm btn-outline-danger ms-auto" asp-page="/Index">Reintentar</a></div>
@@ -16,3 +16,5 @@
 <div class="section-label"><h2>Todo a un clic</h2><span>ACCESO RÁPIDO</span></div>
 <a class="quick-card" asp-page="/Proveedores/Index"><span class="quick-icon"><i class="bi bi-building" aria-hidden="true"></i></span><span><strong>Gestionar proveedores</strong><small>Consulta tu directorio@(Model.PerfilActual == "Administrador" ? ", añade nuevos aliados y mantén sus datos al día." : " y encuentra la información de tus aliados comerciales.")</small></span><span class="quick-arrow"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></span></a>
 <div class="home-note"><i class="bi bi-arrow-repeat" aria-hidden="true"></i> Información consultada en tiempo real al abrir este panel.</div>
+
+<a class="quick-access" asp-page="/Clientes/Index"><span class="quick-icon"><i class="bi bi-people" aria-hidden="true"></i></span><span><strong>Clientes</strong><small>Consulta, añade y edita clientes. Las bajas y reactivaciones requieren Administrador.</small></span><span class="quick-arrow"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></span></a>

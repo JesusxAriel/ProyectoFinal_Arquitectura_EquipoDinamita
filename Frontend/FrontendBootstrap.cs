@@ -1,4 +1,5 @@
 using PuntoMarket.Frontend.Auth;
+using PuntoMarket.Frontend.Catalogos;
 
 namespace PuntoMarket.Frontend;
 
@@ -11,6 +12,8 @@ public static class FrontendBootstrap
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddSession();
         builder.Services.AddAutenticacionPorSesion(builder.Configuration);
+        builder.Services.AddGatewayAdapter<IClientesApiClient, ClientesApiClient>();
+        builder.Services.AddGatewayAdapter<IProveedoresApiClient, ProveedoresApiClient>();
 
         var app = builder.Build();
         app.UseExceptionHandler("/Error");

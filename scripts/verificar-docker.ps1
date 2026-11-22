@@ -25,10 +25,10 @@ function EsperarPila {
     $limite = [DateTime]::UtcNow.AddSeconds(150)
     do {
         $estado = @(EjecutarDocker @('compose','ps','--format','json') | ForEach-Object { $_ | ConvertFrom-Json })
-        if ($estado.Count -eq 5 -and @($estado | Where-Object { $_.Health -ne 'healthy' -or $_.State -ne 'running' }).Count -eq 0) { return }
+        if ($estado.Count -eq 7 -and @($estado | Where-Object { $_.Health -ne 'healthy' -or $_.State -ne 'running' }).Count -eq 0) { return }
         Start-Sleep -Seconds 1
     } while ([DateTime]::UtcNow -lt $limite)
-    throw 'La pila no alcanzó cinco servicios saludables.'
+    throw 'La pila no alcanzó siete servicios saludables.'
 }
 function InstantaneaDocker {
     return (EjecutarDocker @('compose','exec','-T','mongodb','mongosh','--quiet','--eval',

@@ -11,7 +11,7 @@ namespace PuntoMarket.Clientes.Adapters.Out.Persistence.Initialization;
 
 /// <summary>
 /// Prepara la base propia de Clientes al arrancar: crea la tabla (idempotente) y, si está vacía, siembra
-/// el cliente genérico y dos clientes de ejemplo a través del dominio (creadores + validaciones).
+/// opcionalmente el cliente genérico y dos clientes de ejemplo a través del dominio (creadores + validaciones).
 /// Nunca sobrescribe ni borra datos existentes.
 /// </summary>
 public sealed class ClientesDatabaseInitializer(
@@ -58,17 +58,26 @@ public sealed class ClientesDatabaseInitializer(
 
     private async Task SembrarSiEstaVaciaAsync(CancellationToken ct)
     {
+        long cantidad;
         await using (var conexion = await dataSource.OpenConnectionAsync(ct))
         await using (var conteo = new MySqlCommand("SELECT COUNT(*) FROM CLIENTE", conexion))
         {
-            if (Convert.ToInt64(await conteo.ExecuteScalarAsync(ct)) > 0) return;
+            cantidad = Convert.ToInt64(await conteo.ExecuteScalarAsync(ct));
         }
 
         using var scope = scopeFactory.CreateScope();
         var repositorio = scope.ServiceProvider.GetRequiredService<IClienteRepository>();
-        var ahora = reloj.GetUtcNow().UtcDateTime;
+        await SembrarSiEstaVaciaAsync(repositorio, cantidad, opciones.Value.SeedGenericoEnabled,
+            reloj.GetUtcNow().UtcDateTime, logger, ct);
+    }
 
-        // El genérico va primero: en una tabla vacía recibe el id 1.
+    // La decisión y las inserciones se prueban sin abrir conexiones ni tocar datos persistentes.
+    internal static async Task SembrarSiEstaVaciaAsync(IClienteRepository repositorio, long cantidad,
+        bool incluirGenerico, DateTime ahora, ILogger logger, CancellationToken ct)
+    {
+        if (cantidad > 0) return;
+
+        // Se conserva el orden histórico cuando el genérico está habilitado.
         var datos = new (TipoCliente Tipo, DatosCliente Datos)[]
         {
             (TipoCliente.Generico, ClienteGenericoCreator.DatosPorDefecto),
@@ -78,6 +87,7 @@ public sealed class ClientesDatabaseInitializer(
 
         foreach (var (tipo, dato) in datos)
         {
+            if (tipo == TipoCliente.Generico && !incluirGenerico) continue;
             var creacion = ClienteCreatorSelector.Para(tipo).Crear(dato, UsuarioSistema, ahora);
             if (creacion.IsFailure)
             {

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><IsTestProject>true</IsTestProject><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Frontend/PuntoMarket.Frontend.csproj" Aliases="Comun" />
+    <ProjectReference Include="../../Frontend/Frontend.Demo/Frontend.Demo.csproj" Aliases="Frontend" />
+    <ProjectReference Include="../../DevIdentity/DevIdentity.Demo/DevIdentity.Demo.csproj" Aliases="Identity" />
+    <ProjectReference Include="../../ApiGateway/ApiGateway.Demo/ApiGateway.Demo.csproj" Aliases="Gateway" />
+    <ProjectReference Include="../../Servicio1.Clientes/src/PuntoMarket.Clientes.Adapters.In.Api/PuntoMarket.Clientes.Adapters.In.Api.csproj" Aliases="Clientes" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

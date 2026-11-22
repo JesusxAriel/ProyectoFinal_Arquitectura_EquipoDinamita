@@ -31,6 +31,9 @@ if (!app.Environment.IsDevelopment())
 var config = app.Configuration;
 var issuer = config["DevIdentity:Issuer"] ?? "http://localhost:5300/realms/proveedores-dev";
 var audience = config["DevIdentity:Audience"] ?? "proveedores-api";
+// DEMO TEMPORAL: audiencias de servicios concretos, nunca roles o audiencias elegidos por el navegador.
+var audiencias = new[] { audience }.Concat(config.GetSection("DevIdentity:AdditionalAudiences").Get<string[]>() ?? [])
+    .Where(a => !string.IsNullOrWhiteSpace(a)).Distinct(StringComparer.Ordinal).ToArray();
 var minutosVigencia = config.GetValue("DevIdentity:TokenMinutes", 60);
 
 using var rsa = RSA.Create(2048);
@@ -80,7 +83,6 @@ app.MapPost("/token", (TokenRequest solicitud) =>
     var descriptor = new SecurityTokenDescriptor
     {
         Issuer = issuer,
-        Audience = audience,
         NotBefore = ahora.AddSeconds(-5),
         Expires = ahora.AddMinutes(minutosVigencia),
         SigningCredentials = firma,
@@ -92,6 +94,7 @@ app.MapPost("/token", (TokenRequest solicitud) =>
             ["realm_access"] = new Dictionary<string, object> { ["roles"] = new[] { rol } }
         }
     };
+    foreach (var destinatario in audiencias) descriptor.Audiences.Add(destinatario);
     var token = new JsonWebTokenHandler().CreateToken(descriptor);
     return Results.Ok(new { access_token = token, token_type = "Bearer", expires_in = minutosVigencia * 60, perfil = rol });
 });
