@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using PuntoMarket.Usuarios.Api.Contracts;
 using PuntoMarket.Usuarios.Api.Contracts.Gestion;
 using PuntoMarket.Usuarios.Api.Filters;
 using PuntoMarket.Usuarios.Application.Ports.Gestion;
+using PuntoMarket.Usuarios.Application.UseCases.Gestion.CrearUsuario;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.ListarUsuarios;
 
 namespace PuntoMarket.Usuarios.Api.Controllers;
@@ -13,8 +16,11 @@ namespace PuntoMarket.Usuarios.Api.Controllers;
 [GestionExceptionFilter(StatusCodes.Status409Conflict)]
 public sealed class UsuariosController(
     ListarUsuariosCasoDeUso listarUsuarios,
+    CrearUsuarioCasoDeUso crearUsuario,
     IUsuarioGestionRepositorio repositorio) : ControllerBase
 {
+    private const string CuerpoRequerido = "Envíe los nombres, los apellidos, el correo y el rol.";
+
     [HttpGet]
     public async Task<ActionResult<ListarUsuariosRespuesta>> Listar(CancellationToken cancellationToken)
     {
@@ -25,6 +31,29 @@ public sealed class UsuariosController(
             usuario.FechaActivacion, usuario.EstaExpirado)).ToArray();
 
         return Ok(new ListarUsuariosRespuesta(usuarios));
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<CrearUsuarioRespuesta>> Crear(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] CreateUsuarioRequest? solicitud,
+        CancellationToken cancellationToken)
+    {
+        if (solicitud is null)
+            return BadRequest(new ErrorRespuesta(CuerpoRequerido));
+
+        var resultado = await crearUsuario.EjecutarAsync(
+            new CrearUsuarioEntrada(
+                solicitud.Nombres, solicitud.Apellidos, solicitud.Correo, solicitud.RolId),
+            cancellationToken);
+
+        if (resultado.IsFail)
+            return BadRequest(new ErrorRespuesta(resultado.Error));
+
+        var salida = resultado.Value;
+
+        return StatusCode(
+            StatusCodes.Status201Created,
+            new CrearUsuarioRespuesta(salida.Id, salida.Username, salida.CorreoEnviado));
     }
 
     [HttpGet("roles")]

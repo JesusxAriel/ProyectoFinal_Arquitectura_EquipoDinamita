@@ -32,11 +32,9 @@ public static class RegistroInfraestructuraGestion
         {
             var opciones = new SmtpEnviadorCorreoOpciones();
             configuracion.GetSection("Smtp").Bind(opciones);
-            opciones.BaseUrl = configuracion["Activacion:BaseUrl"] ?? string.Empty;
             return opciones;
         });
         servicios.AddTransient<IEnviadorCorreo, SmtpEnviadorCorreo>();
-        servicios.AddTransient<IEnviadorCredenciales, SmtpEnviadorCorreo>();
         servicios.AgregarIdentidadKeycloak(configuracion);
 
         return servicios;

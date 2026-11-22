@@ -17,8 +17,4 @@ public sealed record UsuarioListadoRespuesta(
 
 public sealed record RolActivoRespuesta(int Id, string Nombre);
 
-public sealed record CrearUsuarioRespuesta(int Id);
-
-public sealed record ReenviarActivacionRespuesta(bool Reenviado);
-
-public sealed record ActivarCuentaRespuesta(bool Activada);
+public sealed record CrearUsuarioRespuesta(int Id, string Username, bool CorreoEnviado);

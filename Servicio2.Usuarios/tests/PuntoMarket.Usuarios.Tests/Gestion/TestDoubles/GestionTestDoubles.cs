@@ -55,7 +55,13 @@ internal sealed class UsuarioRepositorioStub : IUsuarioRepositorio
     public Usuario? UsuarioEncontrado { get; set; }
     public Rol? RolEncontrado { get; set; }
     public Result<Usuario>? ResultadoActualizar { get; set; }
+    public Result<Usuario>? ResultadoGuardar { get; set; }
+    public int IdAsignado { get; set; } = 42;
+    public bool CorreoExistente { get; set; }
+    public HashSet<string> UsernamesExistentes { get; } = [];
     public List<Usuario> Actualizados { get; } = [];
+    public List<Usuario> Guardados { get; } = [];
+    public List<string> UsernamesVerificados { get; } = [];
     public List<string> UsernamesConsultados { get; } = [];
     public List<int> RolesConsultados { get; } = [];
 
@@ -71,8 +77,11 @@ internal sealed class UsuarioRepositorioStub : IUsuarioRepositorio
         return Task.FromResult(RolEncontrado);
     }
 
-    public Task<Result<Usuario>> Guardar(Usuario usuario, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+    public Task<Result<Usuario>> Guardar(Usuario usuario, CancellationToken cancellationToken = default)
+    {
+        Guardados.Add(usuario);
+        return Task.FromResult(ResultadoGuardar ?? Result<Usuario>.Ok(usuario.ConIdAsignado(IdAsignado)));
+    }
 
     public Task<Result<Usuario>> Actualizar(Usuario usuario, CancellationToken cancellationToken = default)
     {
@@ -86,11 +95,14 @@ internal sealed class UsuarioRepositorioStub : IUsuarioRepositorio
     public Task<IReadOnlyList<Usuario>> Listar(CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
 
-    public Task<bool> ExisteUsername(string username, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+    public Task<bool> ExisteUsername(string username, CancellationToken cancellationToken = default)
+    {
+        UsernamesVerificados.Add(username);
+        return Task.FromResult(UsernamesExistentes.Contains(username));
+    }
 
     public Task<bool> ExisteCorreo(string correo, CancellationToken cancellationToken = default) =>
-        throw new NotSupportedException();
+        Task.FromResult(CorreoExistente);
 
     public Task<IReadOnlyList<Rol>> ListarRolesActivos(CancellationToken cancellationToken = default) =>
         throw new NotSupportedException();
@@ -98,15 +110,32 @@ internal sealed class UsuarioRepositorioStub : IUsuarioRepositorio
 
 internal sealed class EnviadorCorreoSpy : IEnviadorCorreo
 {
-    public List<(string Correo, string Token, DateTimeOffset Expira)> Envios { get; } = [];
-    public Action? AlEnviar { get; set; }
+    public Result Resultado { get; set; } = Result.Ok();
+    public Exception? ExcepcionAlEnviar { get; set; }
+    public List<(string Correo, string Username, string PasswordTemporal)> Envios { get; } = [];
 
-    public Task EnviarActivacionAsync(string correo, string token, DateTimeOffset expira,
+    public Task<Result> EnviarCredenciales(
+        string correo, string username, string passwordTemporal,
         CancellationToken cancellationToken = default)
     {
-        AlEnviar?.Invoke();
-        Envios.Add((correo, token, expira));
-        return Task.CompletedTask;
+        Envios.Add((correo, username, passwordTemporal));
+
+        return ExcepcionAlEnviar is null
+            ? Task.FromResult(Resultado)
+            : throw ExcepcionAlEnviar;
+    }
+}
+
+internal sealed class GeneradorPasswordFalso(string password = "Temporal#2026") : IGeneradorPassword
+{
+    public int Llamadas { get; private set; }
+
+    public string Password => password;
+
+    public string Generar()
+    {
+        Llamadas++;
+        return password;
     }
 }
 

@@ -24,9 +24,4 @@
     <ProjectReference Include="..\..\src\PuntoMarket.Usuarios.Infrastructure\PuntoMarket.Usuarios.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Remove="Gestion/CrearUsuarioTests.cs" />
-    <None Include="Gestion/CrearUsuarioTests.cs" />
-  </ItemGroup>
-
 </Project>

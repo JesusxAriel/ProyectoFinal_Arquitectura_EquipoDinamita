@@ -1,83 +1,123 @@
-using System.Globalization;
-using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 using PuntoMarket.Usuarios.Application.Ports.Comunes;
 using PuntoMarket.Usuarios.Application.Ports.Gestion;
-using PuntoMarket.Usuarios.Domain.Exceptions;
+using PuntoMarket.Usuarios.Domain;
+using PuntoMarket.Usuarios.Domain.Entities;
 using PuntoMarket.Usuarios.Domain.Services;
 
 namespace PuntoMarket.Usuarios.Application.UseCases.Gestion.CrearUsuario;
 
 public sealed class CrearUsuarioCasoDeUso(
-    IUsuarioGestionRepositorio repositorio,
+    IUsuarioRepositorio repositorio,
+    IGestorDeIdentidad gestorDeIdentidad,
+    IEnviadorCorreo enviadorCorreo,
+    IGeneradorPassword generadorPassword,
     IUsuarioActual usuarioActual,
-    IHasheadorPassword hasheador,
-    IReloj reloj,
-    IGeneradorTokenActivacion generadorToken,
-    IEnviadorCorreo enviadorCorreo)
+    IReloj reloj)
 {
-    public async Task<CrearUsuarioSalida> EjecutarAsync(
+    public const string RolNoDisponible = "Debe seleccionar un rol existente y activo.";
+    public const string CorreoEnUso = "Ya existe un usuario con ese correo.";
+    public const string SinUsernameDisponible = "No se pudo generar un nombre de usuario disponible.";
+    public const string IdentidadFallida =
+        "El usuario quedó inactivo porque no se pudo crear en el sistema de identidad.";
+
+    private const int MaximoIntentosDeUsername = 100;
+
+    public async Task<Result<CrearUsuarioSalida>> EjecutarAsync(
         CrearUsuarioEntrada entrada,
         CancellationToken cancellationToken = default)
     {
-        var idCreador = usuarioActual.Id;
-        if (usuarioActual.Rol != "Administrador" || idCreador <= 0)
-            throw new UnauthorizedAccessException("La administración de usuarios requiere el rol Administrador.");
-
         ArgumentNullException.ThrowIfNull(entrada);
-        cancellationToken.ThrowIfCancellationRequested();
 
-        var nombre = NormalizarEspacios(entrada.Nombre);
-        var apellido = NormalizarEspacios(entrada.Apellido);
-        var correo = (entrada.Correo ?? "").Trim().ToLowerInvariant();
-        if (nombre.Length == 0 || apellido.Length == 0)
-            throw new ArgumentException("Nombre y apellido son obligatorios.");
-        if (nombre.Length + apellido.Length + 1 > 150 ||
-            nombre.Any(char.IsControl) || apellido.Any(char.IsControl))
-            throw new ArgumentException("El nombre completo debe tener hasta 150 caracteres válidos.");
-        if (correo.Length > 150 ||
-            !Regex.IsMatch(correo, @"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.CultureInvariant))
-            throw new ArgumentException("Ingrese un correo válido de hasta 150 caracteres.");
-        if (entrada.IdRol <= 0)
-            throw new ArgumentException("Debe seleccionar un rol existente y activo.");
-        if (await repositorio.ExisteCorreoAsync(correo, cancellationToken))
-            throw new UsuarioDuplicadoException();
-        if (!await repositorio.EsRolActivoAsync(entrada.IdRol, cancellationToken))
-            throw new ArgumentException("Debe seleccionar un rol existente y activo.");
+        var rol = await repositorio.ObtenerRol(entrada.RolId, cancellationToken);
+        if (rol is null || !rol.Activo)
+            return Result<CrearUsuarioSalida>.Fail(RolNoDisponible);
 
-        var baseUsername = GeneradorNombreDeUsuario.GenerarBase(nombre, apellido);
-        var passwordHash = hasheador.Hash(Convert.ToHexString(RandomNumberGenerator.GetBytes(32)));
-        var token = generadorToken.Generar(reloj.UtcNow, TimeSpan.FromMinutes(10));
+        var nombreBase = GeneradorNombreDeUsuario.GenerarBase(entrada.Nombres, entrada.Apellidos);
+        if (nombreBase.IsFail)
+            return Result<CrearUsuarioSalida>.Fail(nombreBase.Error);
 
-        for (long sufijo = 0; ; sufijo = checked(sufijo + 1))
+        var username = await BuscarUsernameLibre(nombreBase.Value, cancellationToken);
+        if (username is null)
+            return Result<CrearUsuarioSalida>.Fail(SinUsernameDisponible);
+
+        var creacion = Usuario.Crear(
+            entrada.Nombres,
+            entrada.Apellidos,
+            entrada.Correo,
+            entrada.RolId,
+            username,
+            usuarioActual.Username,
+            reloj.Ahora);
+
+        if (creacion.IsFail)
+            return Result<CrearUsuarioSalida>.Fail(creacion.Error);
+
+        var usuario = creacion.Value;
+        if (await repositorio.ExisteCorreo(usuario.Correo, cancellationToken))
+            return Result<CrearUsuarioSalida>.Fail(CorreoEnUso);
+
+        var passwordTemporal = generadorPassword.Generar();
+
+        var guardado = await repositorio.Guardar(usuario, cancellationToken);
+        if (guardado.IsFail)
+            return Result<CrearUsuarioSalida>.Fail(guardado.Error);
+
+        var guardadoConId = guardado.Value;
+        var identidad = await gestorDeIdentidad.CrearUsuario(
+            guardadoConId.Username,
+            guardadoConId.Correo,
+            guardadoConId.NombreCompleto,
+            rol.Nombre,
+            passwordTemporal);
+
+        if (identidad.IsFail)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var numero = sufijo == 0 ? "" : sufijo.ToString(CultureInfo.InvariantCulture);
-            var username = baseUsername[..Math.Min(baseUsername.Length, 50 - numero.Length)] + numero;
-            if (await repositorio.ExisteUsernameAsync(username, cancellationToken))
-                continue;
-
-            int id;
-            try
-            {
-                id = await repositorio.CrearAsync(new UsuarioAltaInterna(
-                    nombre, apellido, correo, username, entrada.IdRol, passwordHash, idCreador,
-                    token.Hash, token.Expira.UtcDateTime), cancellationToken);
-            }
-            catch (UsuarioDuplicadoException)
-            {
-                if (await repositorio.ExisteCorreoAsync(correo, cancellationToken) ||
-                    !await repositorio.ExisteUsernameAsync(username, cancellationToken))
-                    throw;
-
-                continue;
-            }
-
-            await enviadorCorreo.EnviarActivacionAsync(correo, token.Valor, token.Expira, cancellationToken);
-            return new CrearUsuarioSalida(id);
+            await Desactivar(guardadoConId, cancellationToken);
+            return Result<CrearUsuarioSalida>.Fail($"{identidad.Error} {IdentidadFallida}");
         }
+
+        var correoEnviado = await EnviarCredenciales(guardadoConId, passwordTemporal, cancellationToken);
+
+        return Result<CrearUsuarioSalida>.Ok(
+            new CrearUsuarioSalida(guardadoConId.Id, guardadoConId.Username, correoEnviado));
     }
 
-    private static string NormalizarEspacios(string? valor) =>
-        string.Join(" ", (valor ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+    private async Task<string?> BuscarUsernameLibre(string nombreBase, CancellationToken cancellationToken)
+    {
+        for (var intento = GeneradorNombreDeUsuario.PrimerIntento;
+             intento <= MaximoIntentosDeUsername;
+             intento++)
+        {
+            var candidato = GeneradorNombreDeUsuario.Siguiente(nombreBase, intento);
+            if (!await repositorio.ExisteUsername(candidato, cancellationToken))
+                return candidato;
+        }
+
+        return null;
+    }
+
+    private async Task Desactivar(Usuario usuario, CancellationToken cancellationToken)
+    {
+        if (usuario.CambiarEstado(false, usuarioActual.Username, reloj.Ahora).IsOk)
+            await repositorio.Actualizar(usuario, cancellationToken);
+    }
+
+    private async Task<bool> EnviarCredenciales(
+        Usuario usuario,
+        string passwordTemporal,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var envio = await enviadorCorreo.EnviarCredenciales(
+                usuario.Correo, usuario.Username, passwordTemporal, cancellationToken);
+
+            return envio.IsOk;
+        }
+        catch (Exception excepcion) when (
+            excepcion is InvalidOperationException or ArgumentException)
+        {
+            return false;
+        }
+    }
 }
