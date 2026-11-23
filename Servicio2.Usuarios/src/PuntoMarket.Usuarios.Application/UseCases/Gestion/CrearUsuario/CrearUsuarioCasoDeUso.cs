@@ -14,7 +14,6 @@ public sealed class CrearUsuarioCasoDeUso(
     IUsuarioActual usuarioActual,
     IReloj reloj)
 {
-    public const string RolNoDisponible = "Debe seleccionar un rol existente y activo.";
     public const string CorreoEnUso = "Ya existe un usuario con ese correo.";
     public const string SinUsernameDisponible = "No se pudo generar un nombre de usuario disponible.";
     public const string IdentidadFallida =
@@ -30,7 +29,7 @@ public sealed class CrearUsuarioCasoDeUso(
 
         var rol = await repositorio.ObtenerRol(entrada.RolId, cancellationToken);
         if (rol is null || !rol.Activo)
-            return Result<CrearUsuarioSalida>.Fail(RolNoDisponible);
+            return Result<CrearUsuarioSalida>.Fail(MensajesDeGestion.RolNoDisponible);
 
         var nombreBase = GeneradorNombreDeUsuario.GenerarBase(entrada.Nombres, entrada.Apellidos);
         if (nombreBase.IsFail)

@@ -1,3 +1,4 @@
+using PuntoMarket.Usuarios.Application.UseCases.Gestion;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.CrearUsuario;
 using PuntoMarket.Usuarios.Domain;
 using PuntoMarket.Usuarios.Domain.Entities;
@@ -105,7 +106,7 @@ public class CrearUsuarioTests
         var resultado = await escenario.Caso.EjecutarAsync(Entrada());
 
         Assert.True(resultado.IsFail);
-        Assert.Equal(CrearUsuarioCasoDeUso.RolNoDisponible, resultado.Error);
+        Assert.Equal(MensajesDeGestion.RolNoDisponible, resultado.Error);
         Assert.Empty(escenario.Repositorio.Guardados);
         Assert.Empty(escenario.Identidad.Llamadas);
     }
@@ -118,7 +119,7 @@ public class CrearUsuarioTests
         var resultado = await escenario.Caso.EjecutarAsync(Entrada());
 
         Assert.True(resultado.IsFail);
-        Assert.Equal(CrearUsuarioCasoDeUso.RolNoDisponible, resultado.Error);
+        Assert.Equal(MensajesDeGestion.RolNoDisponible, resultado.Error);
         Assert.Empty(escenario.Repositorio.Guardados);
     }
 

@@ -27,7 +27,6 @@ public static class RegistroInfraestructuraGestion
         servicios.TryAddSingleton<IGeneradorPassword, GeneradorPasswordSeguro>();
 
         servicios.AddScoped<IUsuarioRepositorio, MySqlUsuarioRepositorio>();
-        servicios.AddScoped<IUsuarioGestionRepositorio, MySqlUsuarioGestionRepositorio>();
         servicios.AddSingleton<SmtpEnviadorCorreoOpciones>(_ =>
         {
             var opciones = new SmtpEnviadorCorreoOpciones();

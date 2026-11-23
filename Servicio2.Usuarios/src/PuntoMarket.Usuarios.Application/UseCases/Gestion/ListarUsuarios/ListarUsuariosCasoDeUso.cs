@@ -1,43 +1,27 @@
-using PuntoMarket.Usuarios.Application.Ports.Comunes;
 using PuntoMarket.Usuarios.Application.Ports.Gestion;
-using PuntoMarket.Usuarios.Domain.Enums;
-using PuntoMarket.Usuarios.Domain.Services;
+using PuntoMarket.Usuarios.Domain;
 
 namespace PuntoMarket.Usuarios.Application.UseCases.Gestion.ListarUsuarios;
 
-public sealed class ListarUsuariosCasoDeUso(
-    IUsuarioGestionRepositorio repositorio,
-    IReloj reloj)
+public sealed class ListarUsuariosCasoDeUso(IUsuarioRepositorio repositorio)
 {
-    public async Task<ListarUsuariosSalida> EjecutarAsync(
+    public async Task<Result<ListarUsuariosSalida>> EjecutarAsync(
         ListarUsuariosEntrada entrada,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(entrada);
-        cancellationToken.ThrowIfCancellationRequested();
 
-        var usuarios = await repositorio.ListarAsync(cancellationToken);
-        var ahoraLocal = ZonaHorariaDeLaPaz.ALocal(reloj.Ahora);
-        var salida = usuarios.Select(usuario =>
-        {
-            var estaExpirado = usuario.TokenActivacionExpira is DateTime vence &&
-                string.Equals(usuario.Estado, nameof(EstadoUsuario.PENDIENTE), StringComparison.OrdinalIgnoreCase) &&
-                vence <= ahoraLocal;
+        var usuarios = await repositorio.Listar(cancellationToken);
+        var roles = await repositorio.ListarRoles(cancellationToken);
+        var nombrePorRol = roles.ToDictionary(rol => rol.Id, rol => rol.Nombre);
 
-            return new UsuarioListadoSalida(
-                usuario.Id,
-                usuario.Nombre,
-                usuario.Apellido,
-                usuario.Correo,
-                usuario.Username,
-                usuario.Rol,
-                estaExpirado ? "Expirado" : usuario.Estado,
-                usuario.FechaCreacion,
-                usuario.TokenActivacionExpira,
-                usuario.FechaActivacion,
-                estaExpirado);
-        }).ToArray();
+        var salida = usuarios
+            .Select(usuario => UsuarioSalida.Desde(usuario, NombreDelRol(nombrePorRol, usuario.RolId)))
+            .ToArray();
 
-        return new ListarUsuariosSalida(salida);
+        return Result<ListarUsuariosSalida>.Ok(new ListarUsuariosSalida(salida));
     }
+
+    private static string NombreDelRol(IReadOnlyDictionary<int, string> nombrePorRol, int rolId) =>
+        nombrePorRol.TryGetValue(rolId, out var nombre) ? nombre : MensajesDeGestion.SinRolAsignado;
 }
