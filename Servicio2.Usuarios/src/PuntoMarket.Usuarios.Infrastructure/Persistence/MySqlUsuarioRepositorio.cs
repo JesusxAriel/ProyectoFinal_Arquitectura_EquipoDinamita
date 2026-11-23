@@ -141,11 +141,17 @@ public sealed class MySqlUsuarioRepositorio(ConexionMySql conexionMySql) : IUsua
         return await lector.ReadAsync(cancellationToken) ? LeerRol(lector) : null;
     }
 
-    public async Task<IReadOnlyList<Rol>> ListarRolesActivos(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<Rol>> ListarRoles(CancellationToken cancellationToken = default) =>
+        ListarRoles($"SELECT {ColumnasRol} FROM ROL ORDER BY nombre;", cancellationToken);
+
+    public Task<IReadOnlyList<Rol>> ListarRolesActivos(CancellationToken cancellationToken = default) =>
+        ListarRoles(
+            $"SELECT {ColumnasRol} FROM ROL WHERE estaActivo = 1 ORDER BY nombre;", cancellationToken);
+
+    private async Task<IReadOnlyList<Rol>> ListarRoles(string sql, CancellationToken cancellationToken)
     {
         await using var conexion = await AbrirConexion(cancellationToken);
-        await using var comando = new MySqlCommand(
-            $"SELECT {ColumnasRol} FROM ROL WHERE estaActivo = 1 ORDER BY nombre;", conexion);
+        await using var comando = new MySqlCommand(sql, conexion);
         await using var lector = await comando.ExecuteReaderAsync(cancellationToken);
 
         var roles = new List<Rol>();

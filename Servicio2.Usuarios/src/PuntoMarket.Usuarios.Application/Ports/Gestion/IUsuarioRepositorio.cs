@@ -21,5 +21,7 @@ public interface IUsuarioRepositorio
 
     Task<Rol?> ObtenerRol(int rolId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Rol>> ListarRoles(CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<Rol>> ListarRolesActivos(CancellationToken cancellationToken = default);
 }

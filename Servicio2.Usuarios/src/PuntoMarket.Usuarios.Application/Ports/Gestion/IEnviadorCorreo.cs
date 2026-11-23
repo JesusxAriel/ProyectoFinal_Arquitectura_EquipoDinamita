@@ -1,10 +1,12 @@
+using PuntoMarket.Usuarios.Domain;
+
 namespace PuntoMarket.Usuarios.Application.Ports.Gestion;
 
 public interface IEnviadorCorreo
 {
-    Task EnviarActivacionAsync(
+    Task<Result> EnviarCredenciales(
         string correo,
-        string token,
-        DateTimeOffset expira,
+        string username,
+        string passwordTemporal,
         CancellationToken cancellationToken = default);
 }
