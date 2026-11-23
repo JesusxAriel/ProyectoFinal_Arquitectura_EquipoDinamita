@@ -20,7 +20,10 @@ public sealed class SmtpEnviadorCorreo(SmtpEnviadorCorreoOpciones opciones) : IE
         ArgumentException.ThrowIfNullOrWhiteSpace(correo);
         ArgumentException.ThrowIfNullOrWhiteSpace(username);
         ArgumentException.ThrowIfNullOrWhiteSpace(passwordTemporal);
-        ValidarConfiguracionSmtp();
+
+        var errorConfiguracion = ValidarConfiguracionSmtp();
+        if (errorConfiguracion is not null)
+            return Result.Fail(errorConfiguracion);
 
         try
         {
@@ -48,21 +51,19 @@ public sealed class SmtpEnviadorCorreo(SmtpEnviadorCorreoOpciones opciones) : IE
         Si no esperaba este mensaje, puede ignorarlo.
         """;
 
-    private void ValidarConfiguracionSmtp()
+    private string? ValidarConfiguracionSmtp()
     {
         if (string.IsNullOrWhiteSpace(opciones.Host)
             || string.IsNullOrWhiteSpace(opciones.FromAddress)
             || opciones.Port is < 1 or > 65535)
         {
-            throw new InvalidOperationException(
-                "La configuración SMTP requiere Host, FromAddress y un Port válido.");
+            return "El envío de correo no está configurado: la configuración SMTP requiere Host, FromAddress y un Port válido.";
         }
 
         if (UsaUsuario() != !string.IsNullOrWhiteSpace(opciones.Password))
-        {
-            throw new InvalidOperationException(
-                "La configuración SMTP debe incluir UserName y Password juntos.");
-        }
+            return "La configuración SMTP es incompleta: debe incluir UserName y Password juntos.";
+
+        return null;
     }
 
     private bool UsaUsuario() => !string.IsNullOrWhiteSpace(opciones.UserName);
