@@ -1,5 +1,13 @@
 # Estado de la integración local — micro-proveedor
 
+## EC3 Productos (21 de noviembre de 2026)
+
+Se completa Servicio3.Productos en feature/productos-postgresql: PostgreSQL propio, migración 001 repetible, CRUD lógico con historial transaccional de precios, JWT productos-api y auditoría sub. Lectura Administrador/Cajero, toda escritura solo Administrador. Contratos nuevos: GET/POST /api/productos, GET/PUT/DELETE /api/productos/{id:int} y GET /api/productos/catalogos. Salud y rutas YARP existentes se conservan. Detalles, DTO, errores, supuestos, configuración y pruebas en [README de Productos](Servicio3.Productos/README.md).
+
+Alta/edición verifican existencia y estaActivo por HTTP de Proveedores con el Bearer recibido. Se conserva proveedor_id como texto sin FK externa y no se cambia Proveedores. El selector de /Productos consulta Proveedores por el Gateway común. No se activa el contrato inverso de conteo: la ruta propuesta api/productos/proveedor/{proveedorId}/activos/conteo sigue sin endpoint y sin invocación en el CRUD de Proveedores.
+
+Compose solo agrega configuración de Productos (seed local, URL Proveedores y JWT); bases, puertos, destinos y volúmenes se conservan. El mapper productos-api ya existe en el archivo de importación de Keycloak; falta acreditar el realm persistido y el flujo conjunto real. No se sustituye ningún componente común por Demo.
+
 Se integran las fuentes de origin/main (3eefb83) y los cambios propios de Proveedores (51b63b4). `docker-compose.yml` es el entorno común original; `docker-compose.demo.yml` conserva la demo independiente. La solución raíz cubre 25 proyectos. No se han arrancado servicios comunes ni cambiado bases o volúmenes durante esta fase.
 
 ## Acuerdos vigentes

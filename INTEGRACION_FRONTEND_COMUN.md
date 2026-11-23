@@ -1,5 +1,9 @@
 # Clientes y Proveedores en el frontend común
 
+## Módulo Productos EC3
+
+Se añade /Productos con el mismo AddGatewayAdapter, token de sesión y PaginaCatalogo. Permite lectura Administrador/Cajero y escritura exclusivamente Administrador en servidor y API; usa antiforgery, edición por POST, confirmación de baja, filtros, ordenación, páginas y mensajes en español. Categorías/empaques se consultan en /api/productos/catalogos y proveedores activos desde el Gateway paginando su contrato común. La UI no envía auditoría ni accede a PostgreSQL o al puerto del microservicio. Errores conservan el formulario. Las pruebas de sesión, permisos, antiforgery y error de precio están en Tests/Demo.Tests/ProductosComunesTests.cs (infraestructura compartida de pruebas, sin cambios al frontend Demo). Ver [README de Productos](Servicio3.Productos/README.md) para rutas y límites; el smoke real Keycloak permanece pendiente.
+
 ## Implementación
 
 Las rutas `/Clientes` y `/Proveedores` pertenecen al proyecto `Frontend/PuntoMarket.Frontend.csproj`. No referencian Frontend.Demo ni bibliotecas de persistencia o de los microservicios. Los adaptadores de `Frontend/Catalogos` usan `AddGatewayAdapter<I,T>()`: el único JWT es el de la sesión común, enviado por `BearerTokenHandler`. No hay DevIdentity, selector de perfil, refresh ficticio, localStorage ni segunda sesión en estos módulos.

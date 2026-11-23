@@ -33,6 +33,7 @@
     <Project Path="Servicio2.Usuarios/tests/PuntoMarket.Usuarios.Tests/PuntoMarket.Usuarios.Tests.csproj" />
   </Folder>
   <Folder Name="/Servicio3.Productos/">
+    <Project Path="Servicio3.Productos/tests/PuntoMarket.Productos.Tests/PuntoMarket.Productos.Tests.csproj" />
     <Project Path="Servicio3.Productos/src/PuntoMarket.Productos.Adapters.In.Api/PuntoMarket.Productos.Adapters.In.Api.csproj" />
     <Project Path="Servicio3.Productos/src/PuntoMarket.Productos.Adapters.Out.Persistence/PuntoMarket.Productos.Adapters.Out.Persistence.csproj" />
     <Project Path="Servicio3.Productos/src/PuntoMarket.Productos.Application/PuntoMarket.Productos.Application.csproj" />
