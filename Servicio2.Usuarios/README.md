@@ -23,6 +23,7 @@ La contraseña no se guarda en la tabla `USUARIO`: vive solo en Keycloak. El cam
 | `/api/usuarios` | GET, POST | Administrador |
 | `/api/usuarios/{id}` | GET, PUT | Administrador |
 | `/api/usuarios/{id}/estado` | PATCH | Administrador |
+| `/api/usuarios/{id}/reenviar-acceso` | POST | Administrador |
 | `/api/usuarios/roles` | GET | Administrador |
 | `/api/usuarios/perfil` | GET | Cualquier usuario autenticado |
 | `/api/usuarios/perfil/password` | PUT | Cualquier usuario autenticado |
