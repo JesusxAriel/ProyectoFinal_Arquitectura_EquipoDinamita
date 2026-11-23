@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
     <ProjectReference Include="..\PuntoMarket.Productos.Application\PuntoMarket.Productos.Application.csproj" />
     <ProjectReference Include="..\PuntoMarket.Productos.Adapters.Out.Persistence\PuntoMarket.Productos.Adapters.Out.Persistence.csproj" />
   </ItemGroup>

@@ -166,6 +166,11 @@ services:
       context: ./Servicio3.Productos
     environment:
       ConnectionStrings__PostgresConnection: Host=productos-db;Port=5432;Database=${PRODUCTOS_DB_NAME:?Defina PRODUCTOS_DB_NAME en el archivo .env};Username=${PRODUCTOS_DB_USER:?Defina PRODUCTOS_DB_USER en el archivo .env};Password=${PRODUCTOS_DB_PASSWORD:?Defina PRODUCTOS_DB_PASSWORD en el archivo .env}
+      Productos__SeedEnabled: "true"
+      ProveedoresApi__BaseUrl: http://proveedores-ms:8080/
+      Authentication__Jwt__Authority: http://keycloak:8080/realms/puntomarket
+      Authentication__Jwt__Audience: productos-api
+      Authentication__Jwt__RequireHttpsMetadata: "false"
     depends_on:
       keycloak:
         condition: service_healthy

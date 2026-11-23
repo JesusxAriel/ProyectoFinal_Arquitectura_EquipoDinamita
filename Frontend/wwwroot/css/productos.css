@@ -1,0 +1,29 @@
+/* Product-only adjustments; the catalog and modal palette comes from catalogos.css. */
+.productos .page-heading > form { margin: 0; }
+.productos .provider-table td:last-child { min-width: 150px; }
+.productos .modal-content > form { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.productos .modal-content > form > .modal-body { overflow-y: auto; }
+.productos .modal-content > form > .modal-footer { flex-shrink: 0; }
+.productos .search-toolbar .provider-filter { flex-wrap: wrap; }
+@media (max-width: 600px) {
+  .productos .page-heading > form { margin-top: 19px; }
+  .productos .provider-filter-group { justify-content: flex-start; }
+}
+
+/* Creation uses one scroll container, with header and actions outside it. */
+.productos .producto-creacion .modal-dialog { max-width: 660px; }
+.productos .producto-creacion .modal-header,
+.productos .producto-creacion .modal-footer { flex-shrink: 0; }
+.productos .producto-creacion .modal-content > form { flex: 1 1 auto; }
+.productos .producto-creacion .modal-body { flex: 1 1 auto; overflow-x: hidden; }
+.productos .producto-creacion .producto-campos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; }
+.productos .producto-creacion .producto-campo { min-width: 0; }
+.productos .producto-creacion .producto-campo-completo { grid-column: 1 / -1; }
+.productos .producto-creacion .form-label.mt-3 { margin-top: 0 !important; }
+.productos .producto-creacion .form-intro { margin-bottom: 16px; }
+.productos .producto-creacion .form-select { font-size: 12px; padding: 11px 36px 11px 12px; border-color: #e2e8f0; border-radius: 7px; }
+.productos .producto-creacion .field-validation-valid { display: none; }
+.productos .producto-creacion .field-validation-error { display: block; margin-top: 4px; font-size: 12px; }
+@media (max-width: 575.98px) {
+  .productos .producto-creacion .producto-campos { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+}
