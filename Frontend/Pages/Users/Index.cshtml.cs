@@ -1,163 +1,187 @@
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using PuntoMarket.Frontend.Clients;
-using PuntoMarket.Frontend.Security;
+using PuntoMarket.Frontend.Usuarios;
+
 namespace PuntoMarket.Frontend.Pages.Users;
-[Authorize(Roles = "Administrador")]
+
+[Authorize]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public sealed class IndexModel(IUsuariosGestionApiClient api, SesionesUsuario sesiones, ControlAltaUsuarios control) : PageModel
+public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
 {
-    private const string MensajeAltaRechazada = "No se pudo crear el usuario. Verifique los datos e intente de nuevo.";
-    private const string MensajeAltaIncierta = "El usuario se creó pero no se pudo enviar el correo de activación. Use Reenviar activación más tarde.";
-    private const string MensajeSolicitudProcesada = "Esta solicitud ya se procesó. Revise el listado antes de crear otro usuario.";
-    public IReadOnlyList<UsuarioGestion> Usuarios { get; private set; } = [];
-    public IReadOnlyList<RolUsuarioGestion> Roles { get; private set; } = [];
-    public UsuarioGestion? ConfirmarBaja { get; private set; }
+    public IReadOnlyList<UsuarioResponse> Usuarios { get; private set; } = [];
+    public IReadOnlyList<RolResponse> Roles { get; private set; } = [];
+    public UsuarioResponse? UsuarioEditando { get; private set; }
     public string? ErrorGestion { get; private set; }
-    public string? ErrorAlta { get; private set; }
-    public bool AltaBloqueada { get; private set; }
-    [BindProperty] public AltaUsuarioGestion Input { get; set; } = new();
-    [BindProperty] public string? Solicitud { get; set; }
-    [TempData] public string? MensajeGestion { get; set; }
-    [TempData] public int? UsuarioCreadoId { get; set; }
-    public bool EsPropia(UsuarioGestion u) => User.FindFirst(ClaimTypes.NameIdentifier)?.Value == u.Id.ToString(System.Globalization.CultureInfo.InvariantCulture);
-    private (string Id, DateTimeOffset Vence) Sesion()
+    public bool EsAdministrador => User.IsInRole("Administrador");
+
+    [BindProperty, Required, StringLength(150)]
+    public string Nombres { get; set; } = "";
+
+    [BindProperty, Required, StringLength(150)]
+    public string Apellidos { get; set; } = "";
+
+    [BindProperty, Required, EmailAddress, StringLength(150)]
+    public string Correo { get; set; } = "";
+
+    [BindProperty, Range(1, int.MaxValue)]
+    public int RolId { get; set; }
+
+    [BindProperty]
+    public int? EditarId { get; set; }
+
+    [TempData]
+    public string? MensajeGestion { get; set; }
+
+    public async Task<IActionResult> OnGetAsync()
     {
-        var id = User.FindFirst(AccesoUsuariosPreparado.ClaimSesion)?.Value;
-        var identidad = sesiones.Identidad(id);
-        return id is not null && identidad is not null ? (id, identidad.VenceEn) : throw new UsuariosGestionException(401);
-    }
-    private async Task CargarAsync(CancellationToken ct, bool conRoles = true)
-    {
-        Usuarios = await api.Listar(ct);
-        if (conRoles) Roles = await api.Roles(ct);
-    }
-    private void NuevaSolicitud()
-    {
-        var s = Sesion();
-        Solicitud = control.Nueva(s.Id, s.Vence);
-        ModelState.Remove(nameof(Solicitud));
-    }
-    public async Task<IActionResult> OnGetAsync(CancellationToken ct)
-    {
-        try
-        {
-            await CargarAsync(ct);
-            NuevaSolicitud();
-            if (UsuarioCreadoId is int id)
-            {
-                var nombre = Usuarios.FirstOrDefault(u => u.Id == id)?.Username;
-                MensajeGestion = nombre is null ? "Usuario creado." : $"Usuario creado. Nombre de usuario generado: {nombre}.";
-            }
-        }
-        catch (UsuariosGestionException e) { Fallo(e); AltaBloqueada = true; }
+        if (!EsAdministrador)
+            return Forbid();
+
+        await CargarAsync();
         return Page();
     }
-    public async Task<IActionResult> OnPostCrearAsync(CancellationToken ct)
+
+    public async Task<IActionResult> OnPostCrearAsync()
     {
-        try
+        if (!EsAdministrador)
+            return Forbid();
+
+        await CargarAsync();
+        ValidarRol();
+        if (!ModelState.IsValid)
+            return Page();
+
+        var resultado = await api.Crear(new CreateUsuarioRequest(Nombres, Apellidos, Correo, RolId));
+        if (resultado.IsFail)
         {
-            await CargarAsync(ct);
-            if (!Roles.Any(x => x.Id == Input.IdRol)) ModelState.AddModelError("Input.IdRol", "Seleccione uno de los roles disponibles.");
-            if (!ModelState.IsValid) { Response.StatusCode = 400; return Page(); }
-            var s = Sesion();
-            if (!control.Iniciar(s.Id, Solicitud, Input.Correo, s.Vence))
-            {
-                AltaBloqueada = true;
-                Response.StatusCode = 409;
-                ErrorAlta = MensajeSolicitudProcesada;
-                return Page();
-            }
-            var existiaAntes = Usuarios.Any(u => string.Equals(u.Correo, Input.Correo.Trim(), StringComparison.OrdinalIgnoreCase));
-            try
-            {
-                var id = await api.Crear(Input, ct);
-                UsuarioCreadoId = id;
-                return RedirectToPage();
-            }
-            catch (UsuariosGestionException e)
-            {
-                var creadoSinCorreo = false;
-                if (e.Estado == 409 && !existiaAntes)
-                {
-                    await RecargarListado(ct);
-                    creadoSinCorreo = Usuarios.Any(u => string.Equals(u.Correo, Input.Correo.Trim(), StringComparison.OrdinalIgnoreCase));
-                }
-                if (e.Estado is 400 or 403 or 409 && !creadoSinCorreo)
-                {
-                    control.PermitirCorreccion(s.Id, Input.Correo);
-                    NuevaSolicitud();
-                    ErrorAlta = e.Estado == 403 ? e.Message : MensajeAltaRechazada;
-                }
-                else
-                {
-                    AltaBloqueada = true;
-                    ErrorAlta = e.Estado == 401 ? e.Message : MensajeAltaIncierta;
-                    await RecargarListado(ct);
-                }
-                Response.StatusCode = e.Estado;
-            }
+            ErrorGestion = resultado.Error;
+            return Page();
         }
-        catch (UsuariosGestionException e) { Fallo(e); AltaBloqueada = true; }
+
+        MensajeGestion = "Usuario creado correctamente.";
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostEditarAsync(int id)
+    {
+        if (!EsAdministrador)
+            return Forbid();
+        if (id <= 0)
+            return BadRequest();
+
+        await CargarAsync();
+        var resultado = await api.Obtener(id);
+        if (resultado.IsFail)
+        {
+            ErrorGestion = resultado.Error;
+            return Page();
+        }
+
+        EditarId = id;
+        UsuarioEditando = resultado.Value;
+        Correo = resultado.Value.Correo;
+        RolId = Roles.FirstOrDefault(rol => rol.Nombre == resultado.Value.Rol)?.Id ?? 0;
+        ModelState.Clear();
         return Page();
     }
-    private async Task RecargarListado(CancellationToken ct)
+
+    public async Task<IActionResult> OnPostGuardarAsync()
     {
-        try { Usuarios = await api.Listar(ct); }
-        catch (UsuariosGestionException) { Usuarios = []; }
-    }
-    public async Task<IActionResult> OnGetConfirmarBajaAsync(int id, CancellationToken ct)
-    {
-        try
+        if (!EsAdministrador)
+            return Forbid();
+        if (EditarId is not > 0)
+            return BadRequest();
+
+        await CargarAsync();
+        var usuario = await api.Obtener(EditarId.Value);
+        if (usuario.IsFail)
         {
-            await CargarAsync(ct);
-            NuevaSolicitud();
-            var u = Usuarios.SingleOrDefault(x => x.Id == id);
-            if (u is null || EsPropia(u) || !(u.EsPendiente || u.Estado == "ACTIVO")) throw new UsuariosGestionException(409);
-            ConfirmarBaja = u;
+            ErrorGestion = usuario.Error;
+            return Page();
         }
-        catch (UsuariosGestionException e) { Fallo(e); }
-        return Page();
-    }
-    public async Task<IActionResult> OnPostBajaAsync(int id, bool confirmar, CancellationToken ct)
-    {
-        if (id <= 0 || !confirmar) { Response.StatusCode = 400; ErrorGestion = "Confirme la baja de una cuenta válida."; return await Recuperar(ct); }
-        try
+
+        UsuarioEditando = usuario.Value;
+        ValidarRol();
+        if (!ModelState.IsValid)
+            return Page();
+
+        var resultado = await api.Actualizar(
+            EditarId.Value,
+            new UpdateUsuarioRequest(Nombres, Apellidos, Correo, RolId));
+        if (resultado.IsFail)
         {
-            Usuarios = await api.Listar(ct);
-            var u = Usuarios.SingleOrDefault(x => x.Id == id);
-            if (u is null || EsPropia(u) || !(u.EsPendiente || u.Estado == "ACTIVO")) throw new UsuariosGestionException(409);
-            await api.Baja(id, ct);
-            MensajeGestion = "Usuario dado de baja.";
-            return RedirectToPage();
+            ErrorGestion = resultado.Error;
+            return Page();
         }
-        catch (UsuariosGestionException e) { Fallo(e, "No se pudo confirmar la baja. Actualice el listado antes de intentarlo de nuevo."); return await Recuperar(ct); }
+
+        MensajeGestion = "Cambios guardados correctamente.";
+        return RedirectToPage();
     }
-    public async Task<IActionResult> OnPostReenviarAsync(int id, CancellationToken ct)
+
+    public IActionResult OnPostCancelarEdicion()
     {
-        if (id <= 0) { Response.StatusCode = 400; ErrorGestion = "Seleccione un usuario válido."; return await Recuperar(ct); }
-        try
+        if (!EsAdministrador)
+            return Forbid();
+
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostCambiarEstadoAsync(int id, bool activo)
+    {
+        if (!EsAdministrador)
+            return Forbid();
+        if (id <= 0)
+            return BadRequest();
+
+        var usuario = await api.Obtener(id);
+        if (usuario.IsFail)
         {
-            Usuarios = await api.Listar(ct);
-            var u = Usuarios.SingleOrDefault(x => x.Id == id);
-            if (u is null || !u.EsPendiente || u.FechaActivacion is not null) throw new UsuariosGestionException(409);
-            await api.Reenviar(id, ct);
-            MensajeGestion = $"Se reenvió el correo de activación a {u.Correo}.";
-            return RedirectToPage();
+            ErrorGestion = usuario.Error;
+            await CargarAsync();
+            return Page();
         }
-        catch (UsuariosGestionException e) { Fallo(e, "No se pudo reenviar el correo de activación. Intente nuevamente más tarde."); return await Recuperar(ct); }
+
+        var usernameActual = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.Equals(usernameActual, usuario.Value.Username, StringComparison.OrdinalIgnoreCase))
+        {
+            ErrorGestion = "No puede cambiar el estado de su propia cuenta.";
+            await CargarAsync();
+            return Page();
+        }
+
+        var resultado = await api.CambiarEstado(id, new ChangeStatusRequest(activo));
+        if (resultado.IsFail)
+        {
+            ErrorGestion = resultado.Error;
+            await CargarAsync();
+            return Page();
+        }
+
+        MensajeGestion = activo ? "Usuario activado correctamente." : "Usuario desactivado correctamente.";
+        return RedirectToPage();
     }
-    private async Task<IActionResult> Recuperar(CancellationToken ct)
+
+    private void ValidarRol()
     {
-        try { await CargarAsync(ct); NuevaSolicitud(); }
-        catch (UsuariosGestionException) { Usuarios = []; AltaBloqueada = true; }
-        return Page();
+        if (!Roles.Any(rol => rol.Id == RolId))
+            ModelState.AddModelError(nameof(RolId), "Seleccione uno de los roles disponibles.");
     }
-    private void Fallo(UsuariosGestionException e, string? incierto = null)
+
+    private async Task CargarAsync()
     {
-        ErrorGestion = e.ResultadoIncierto && incierto is not null ? incierto : e.Estado == 409 ? "La operación no corresponde al estado actual del usuario." : e.Message;
-        Response.StatusCode = e.Estado;
+        var usuarios = await api.Listar();
+        if (usuarios.IsOk)
+            Usuarios = usuarios.Value;
+        else
+            ErrorGestion ??= usuarios.Error;
+
+        var roles = await api.ListarRoles();
+        if (roles.IsOk)
+            Roles = roles.Value;
+        else
+            ErrorGestion ??= roles.Error;
     }
 }

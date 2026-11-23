@@ -4,10 +4,9 @@ Razor Pages (`PuntoMarket.Frontend`). Se comunica solo con el Gateway (`GatewayA
 
 Copiado del proyecto anterior como esqueleto: `_Layout`, página de inicio, error, estilos, Bootstrap/jQuery y `Compartido/Result.cs`.
 
-Pendiente:
+`Pages/Users` usa `IUsuariosApiAdapter` y los contratos del namespace `Usuarios`. Las acciones de edición y estado se envían por POST; los IDs de usuario no aparecen en la URL. La gestión no captura ni muestra contraseñas: el cambio se realiza desde las páginas existentes de `/Auth`.
 
-- `Pages/Account/**` y `Pages/Users/**` están en el repositorio pero fuera de la compilación (`.csproj`): dependían de clientes HTTP y de la sesión por JWT propio del proyecto anterior. Se rehacen con los adaptadores (`AuthApiAdapter`, `UsuariosApiAdapter`) y `Result`.
-- Revisar la ortografía de todos los textos de la interfaz.
+Pendiente: revisar la ortografía de todos los textos de la interfaz.
 
 ```powershell
 dotnet build Frontend/PuntoMarket.Frontend.csproj
