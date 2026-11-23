@@ -5,10 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="Frontend.Demo/**;Pages/Account/**;Pages/Users/**" />
-    <Content Remove="Frontend.Demo/**;Pages/Account/**;Pages/Users/**" />
+    <Compile Remove="Frontend.Demo/**;Pages/Account/**" />
+    <Content Remove="Frontend.Demo/**;Pages/Account/**" />
     <EmbeddedResource Remove="Frontend.Demo/**" />
     <None Remove="Frontend.Demo/**" />
-    <None Include="Pages/Account/**;Pages/Users/**" />
+    <None Include="Pages/Account/**" />
   </ItemGroup>
 </Project>
