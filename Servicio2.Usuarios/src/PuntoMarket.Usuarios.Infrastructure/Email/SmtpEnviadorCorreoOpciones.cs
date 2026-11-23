@@ -15,10 +15,6 @@ public sealed class SmtpEnviadorCorreoOpciones
     public bool EnableSsl { get; set; } = true;
     public string BaseUrl { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Lee la sección Smtp tolerando valores vacíos o inválidos (el SMTP es opcional).
-    /// Nunca lanza: la validación ocurre al enviar el correo.
-    /// </summary>
     public static SmtpEnviadorCorreoOpciones Desde(IConfiguration configuracion)
     {
         ArgumentNullException.ThrowIfNull(configuracion);
