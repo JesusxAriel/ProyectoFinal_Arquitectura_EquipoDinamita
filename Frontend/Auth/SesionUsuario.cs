@@ -6,6 +6,7 @@ public interface ISesionUsuario
 {
     DatosSesion? Actual { get; }
     void Iniciar(LoginResponse login);
+    void MarcarPasswordCambiada();
     void Cerrar();
 }
 
@@ -37,6 +38,15 @@ public sealed class SesionUsuario(
             login.DebeCambiarPassword,
             reloj.GetUtcNow().AddSeconds(login.ExpiresIn));
         Sesion.SetString(DatosKey, JsonSerializer.Serialize(datos));
+    }
+
+    public void MarcarPasswordCambiada()
+    {
+        var datos = Actual;
+        if (datos is null)
+            return;
+
+        Sesion.SetString(DatosKey, JsonSerializer.Serialize(datos with { DebeCambiarPassword = false }));
     }
 
     public void Cerrar() => Sesion.Clear();
