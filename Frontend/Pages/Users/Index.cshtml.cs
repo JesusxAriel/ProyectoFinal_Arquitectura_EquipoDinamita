@@ -38,7 +38,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public async Task<IActionResult> OnGetAsync()
     {
         if (!EsAdministrador)
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden);
 
         await CargarAsync();
         return Page();
@@ -47,7 +47,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public async Task<IActionResult> OnPostCrearAsync()
     {
         if (!EsAdministrador)
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden);
 
         await CargarAsync();
         ValidarRol();
@@ -68,7 +68,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public async Task<IActionResult> OnPostEditarAsync(int id)
     {
         if (!EsAdministrador)
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden);
         if (id <= 0)
             return BadRequest();
 
@@ -91,7 +91,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public async Task<IActionResult> OnPostGuardarAsync()
     {
         if (!EsAdministrador)
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden);
         if (EditarId is not > 0)
             return BadRequest();
 
@@ -124,7 +124,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public IActionResult OnPostCancelarEdicion()
     {
         if (!EsAdministrador)
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden);
 
         return RedirectToPage();
     }
@@ -132,7 +132,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public async Task<IActionResult> OnPostCambiarEstadoAsync(int id, bool activo)
     {
         if (!EsAdministrador)
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden);
         if (id <= 0)
             return BadRequest();
 

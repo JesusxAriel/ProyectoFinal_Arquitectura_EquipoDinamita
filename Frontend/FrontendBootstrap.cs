@@ -12,6 +12,7 @@ public static class FrontendBootstrap
         builder.Services.AddRazorPages();
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddSession();
+        builder.Services.AddAuthorization();
         builder.Services.AddAutenticacionPorSesion(builder.Configuration);
         builder.Services.AddGatewayAdapter<IClientesApiClient, ClientesApiClient>();
         builder.Services.AddGatewayAdapter<IProductosApiClient, ProductosApiClient>();
@@ -24,6 +25,7 @@ public static class FrontendBootstrap
         app.UseRouting();
         app.UseSession();
         app.UseAutenticacionPorSesion();
+        app.UseAuthorization();
         app.MapRazorPages();
         return app;
     }
