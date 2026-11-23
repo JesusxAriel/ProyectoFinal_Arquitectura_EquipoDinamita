@@ -52,8 +52,44 @@ public sealed class PerfilApiAdapterTests
         Assert.True(result.IsOk);
     }
 
+    [Fact]
+    public async Task CambiarPassword_400ConMensaje_DevuelveElMensajeDelBackend()
+    {
+        var handler = FakeHttpMessageHandler.Returning(HttpStatusCode.BadRequest,
+            """{"error":"La contraseña actual es incorrecta."}""");
+
+        var result = await Crear(handler).CambiarPassword(Request);
+
+        Assert.True(result.IsFail);
+        Assert.Equal("La contraseña actual es incorrecta.", result.Error);
+        Assert.Single(handler.Requests);
+    }
+
     [Theory]
-    [InlineData(HttpStatusCode.BadRequest, "No se pudo cambiar la contraseña. Revise los datos ingresados.")]
+    [InlineData("")]
+    [InlineData("not JSON")]
+    [InlineData("{}")]
+    [InlineData("null")]
+    [InlineData("[]")]
+    [InlineData("""{"error":null}""")]
+    [InlineData("""{"error":""}""")]
+    [InlineData("""{"error":"   "}""")]
+    [InlineData("""{"error":123}""")]
+    [InlineData("""{"error":true}""")]
+    [InlineData("""{"error":{}}""")]
+    [InlineData("""{"error":[]}""")]
+    public async Task CambiarPassword_400SinMensajeValido_DevuelveMensajeGenerico(string body)
+    {
+        var handler = FakeHttpMessageHandler.Returning(HttpStatusCode.BadRequest, body);
+
+        var result = await Crear(handler).CambiarPassword(Request);
+
+        Assert.True(result.IsFail);
+        Assert.Equal("No se pudo cambiar la contraseña. Revise los datos ingresados.", result.Error);
+        Assert.Single(handler.Requests);
+    }
+
+    [Theory]
     [InlineData(HttpStatusCode.Unauthorized, "No se pudo autorizar el cambio de contraseña. Verifique su sesión.")]
     [InlineData(HttpStatusCode.Forbidden, "No tiene permisos para realizar esta acción.")]
     [InlineData(HttpStatusCode.ServiceUnavailable, "El servicio no está disponible. Intente nuevamente en unos minutos.")]

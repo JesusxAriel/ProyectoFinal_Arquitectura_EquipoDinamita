@@ -34,7 +34,7 @@ public sealed class CambiarPasswordPagesTests
         return sesion;
     }
 
-    private PageModel CrearPagina(bool obligatorio, ISesionUsuario sesion, string nueva = "Nueva#12") => obligatorio
+    private CambiarPasswordPageModel CrearPagina(bool obligatorio, ISesionUsuario sesion, string nueva = "Nueva#12") => obligatorio
         ? new CambiarPasswordObligatorioModel(sesion, _perfil)
         {
             PasswordActual = "Actual#12", PasswordNueva = nueva, RepetirPasswordNueva = nueva
@@ -58,6 +58,24 @@ public sealed class CambiarPasswordPagesTests
         _ => throw new InvalidOperationException()
     };
 
+    private static void CargarModelState(CambiarPasswordPageModel pagina)
+    {
+        pagina.ModelState.SetModelValue(nameof(pagina.PasswordActual), pagina.PasswordActual, pagina.PasswordActual);
+        pagina.ModelState.SetModelValue(nameof(pagina.PasswordNueva), pagina.PasswordNueva, pagina.PasswordNueva);
+        pagina.ModelState.SetModelValue(nameof(pagina.RepetirPasswordNueva), pagina.RepetirPasswordNueva, pagina.RepetirPasswordNueva);
+        pagina.ModelState.AddModelError(string.Empty, "Error anterior");
+    }
+
+    private static void VerificarPasswordsLimpias(CambiarPasswordPageModel pagina)
+    {
+        Assert.Equal("", pagina.PasswordActual);
+        Assert.Equal("", pagina.PasswordNueva);
+        Assert.Equal("", pagina.RepetirPasswordNueva);
+        Assert.False(pagina.ModelState.ContainsKey(nameof(pagina.PasswordActual)));
+        Assert.False(pagina.ModelState.ContainsKey(nameof(pagina.PasswordNueva)));
+        Assert.False(pagina.ModelState.ContainsKey(nameof(pagina.RepetirPasswordNueva)));
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -66,6 +84,7 @@ public sealed class CambiarPasswordPagesTests
         var sesion = CrearSesion(obligatorio);
         var anterior = sesion.Actual;
         var pagina = CrearPagina(obligatorio, sesion, "corta");
+        CargarModelState(pagina);
 
         Assert.IsType<PageResult>(await Post(pagina));
 
@@ -73,6 +92,7 @@ public sealed class CambiarPasswordPagesTests
             Assert.Single(pagina.ModelState[string.Empty]!.Errors).ErrorMessage);
         Assert.Empty(_perfil.Requests);
         Assert.Equal(anterior, sesion.Actual);
+        VerificarPasswordsLimpias(pagina);
     }
 
     [Theory]
@@ -84,6 +104,7 @@ public sealed class CambiarPasswordPagesTests
         var anterior = sesion.Actual;
         _perfil.Respuesta = Result.Fail("No se pudo cambiar la contraseña.");
         var pagina = CrearPagina(obligatorio, sesion);
+        CargarModelState(pagina);
 
         Assert.IsType<PageResult>(await Post(pagina));
 
@@ -91,6 +112,7 @@ public sealed class CambiarPasswordPagesTests
         Assert.Equal(new CambiarPasswordRequest("Actual#12", "Nueva#12", "Nueva#12"), Assert.Single(_perfil.Requests));
         Assert.Equal(anterior, sesion.Actual);
         Assert.Equal("jwt-prueba", TokenProvider.Instance.Obtener(_context.Session));
+        VerificarPasswordsLimpias(pagina);
     }
 
     [Theory]
@@ -102,6 +124,7 @@ public sealed class CambiarPasswordPagesTests
         var anterior = sesion.Actual!;
         _reloj.Advance(TimeSpan.FromMinutes(5));
         var pagina = CrearPagina(obligatorio, sesion);
+        CargarModelState(pagina);
 
         var resultado = Assert.IsType<RedirectToPageResult>(await Post(pagina));
 
@@ -109,6 +132,8 @@ public sealed class CambiarPasswordPagesTests
         Assert.Equal(new CambiarPasswordRequest("Actual#12", "Nueva#12", "Nueva#12"), Assert.Single(_perfil.Requests));
         Assert.Equal(anterior with { DebeCambiarPassword = false }, sesion.Actual);
         Assert.Equal("jwt-prueba", TokenProvider.Instance.Obtener(_context.Session));
+        VerificarPasswordsLimpias(pagina);
+        Assert.Empty(pagina.ModelState);
     }
 
     [Theory]
@@ -133,6 +158,19 @@ public sealed class CambiarPasswordPagesTests
         Assert.Equal(RutasAuth.CambiarPasswordObligatorio, Assert.IsType<RedirectToPageResult>(await Post(pagina)).PageName);
         Assert.Empty(_perfil.Requests);
         Assert.True(sesion.Actual!.DebeCambiarPassword);
+    }
+
+    [Fact]
+    public async Task Obligatorio_SinCambioPendiente_GetYPostRedirigenAInicio()
+    {
+        var sesion = CrearSesion(false);
+        var anterior = sesion.Actual;
+        var pagina = CrearPagina(true, sesion);
+
+        Assert.Equal(RutasAuth.Inicio, Assert.IsType<RedirectToPageResult>(Get(pagina)).PageName);
+        Assert.Equal(RutasAuth.Inicio, Assert.IsType<RedirectToPageResult>(await Post(pagina)).PageName);
+        Assert.Empty(_perfil.Requests);
+        Assert.Equal(anterior, sesion.Actual);
     }
 
     [Theory]
