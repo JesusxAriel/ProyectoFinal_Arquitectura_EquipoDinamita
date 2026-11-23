@@ -11,6 +11,7 @@ using PuntoMarket.Usuarios.Application.UseCases.Gestion.CambiarEstadoUsuario;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.CrearUsuario;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.ListarUsuarios;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.ObtenerUsuario;
+using PuntoMarket.Usuarios.Application.UseCases.Gestion.ReenviarAcceso;
 
 namespace PuntoMarket.Usuarios.Api.Controllers;
 
@@ -24,6 +25,7 @@ public sealed class UsuariosController(
     CrearUsuarioCasoDeUso crearUsuario,
     ActualizarUsuarioCasoDeUso actualizarUsuario,
     CambiarEstadoUsuarioCasoDeUso cambiarEstadoUsuario,
+    ReenviarAccesoCasoDeUso reenviarAcceso,
     IUsuarioRepositorio repositorio) : ControllerBase
 {
     private const string CuerpoRequerido = "Envíe los nombres, los apellidos, el correo y el rol.";
@@ -114,6 +116,18 @@ public sealed class UsuariosController(
             new CambiarEstadoUsuarioEntrada(id, solicitud.Activo), cancellationToken);
 
         return resultado.IsFail ? Problema(resultado.Error) : NoContent();
+    }
+
+    [HttpPost("{id:int}/reenviar-acceso")]
+    public async Task<ActionResult<ReenviarAccesoRespuesta>> ReenviarAcceso(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var resultado = await reenviarAcceso.EjecutarAsync(new ReenviarAccesoEntrada(id), cancellationToken);
+
+        return resultado.IsFail
+            ? Problema(resultado.Error)
+            : Ok(new ReenviarAccesoRespuesta(resultado.Value.CorreoEnviado));
     }
 
     private ActionResult Problema(string mensaje) =>

@@ -143,6 +143,34 @@ public class UsuarioTests
     }
 
     [Fact]
+    public void AccesoRestablecido_exige_el_cambio_de_password_y_registra_la_auditoria()
+    {
+        var usuario = Usuario.Reconstruir(
+            4, "jperez", "juan@correo.com", "Juan Pérez", RolCajero,
+            activo: true, debeCambiarPassword: false, "admin", Ahora, null, null);
+
+        var resultado = usuario.AccesoRestablecido("admin", Ahora.AddDays(1));
+
+        Assert.True(resultado.IsOk);
+        Assert.True(usuario.DebeCambiarPassword);
+        Assert.Equal("admin", usuario.UsuarioModificacion);
+        Assert.Equal(Ahora.AddDays(1), usuario.FechaModificacion);
+    }
+
+    [Fact]
+    public void AccesoRestablecido_rechaza_un_responsable_vacio()
+    {
+        var usuario = Usuario.Reconstruir(
+            4, "jperez", "juan@correo.com", "Juan Pérez", RolCajero,
+            activo: true, debeCambiarPassword: false, "admin", Ahora, null, null);
+
+        var resultado = usuario.AccesoRestablecido(" ", Ahora);
+
+        Assert.True(resultado.IsFail);
+        Assert.False(usuario.DebeCambiarPassword);
+    }
+
+    [Fact]
     public void Reconstruir_devuelve_el_usuario_tal_como_esta_en_la_base()
     {
         var usuario = Usuario.Reconstruir(

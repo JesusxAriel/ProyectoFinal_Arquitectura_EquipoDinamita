@@ -12,3 +12,5 @@ public sealed record UsuarioResponse(
 public sealed record RolActivoRespuesta(int Id, string Nombre);
 
 public sealed record CrearUsuarioRespuesta(int Id, string Username, bool CorreoEnviado);
+
+public sealed record ReenviarAccesoRespuesta(bool CorreoEnviado);
