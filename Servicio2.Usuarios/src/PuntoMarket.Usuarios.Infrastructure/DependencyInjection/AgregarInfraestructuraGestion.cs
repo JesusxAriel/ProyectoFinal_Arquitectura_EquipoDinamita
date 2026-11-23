@@ -27,16 +27,8 @@ public static class RegistroInfraestructuraGestion
         servicios.TryAddSingleton<IGeneradorPassword, GeneradorPasswordSeguro>();
 
         servicios.AddScoped<IUsuarioRepositorio, MySqlUsuarioRepositorio>();
-        servicios.AddScoped<IUsuarioGestionRepositorio, MySqlUsuarioGestionRepositorio>();
-        servicios.AddSingleton<SmtpEnviadorCorreoOpciones>(_ =>
-        {
-            var opciones = new SmtpEnviadorCorreoOpciones();
-            configuracion.GetSection("Smtp").Bind(opciones);
-            opciones.BaseUrl = configuracion["Activacion:BaseUrl"] ?? string.Empty;
-            return opciones;
-        });
+        servicios.AddSingleton(_ => SmtpEnviadorCorreoOpciones.Desde(configuracion));
         servicios.AddTransient<IEnviadorCorreo, SmtpEnviadorCorreo>();
-        servicios.AddTransient<IEnviadorCredenciales, SmtpEnviadorCorreo>();
         servicios.AgregarIdentidadKeycloak(configuracion);
 
         return servicios;

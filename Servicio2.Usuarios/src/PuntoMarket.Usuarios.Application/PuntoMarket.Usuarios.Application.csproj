@@ -14,9 +14,4 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Remove="UseCases/Gestion/CrearUsuario/CrearUsuarioCasoDeUso.cs" />
-    <None Include="UseCases/Gestion/CrearUsuario/CrearUsuarioCasoDeUso.cs" />
-  </ItemGroup>
-
 </Project>

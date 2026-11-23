@@ -27,11 +27,19 @@ public sealed class GestionExceptionFilterAttribute(int estadoOperacionInvalida)
             _ => (StatusCodes.Status500InternalServerError, "No se pudo completar la operación.")
         };
 
+        var logger = context.HttpContext.RequestServices
+            .GetRequiredService<ILogger<GestionExceptionFilterAttribute>>();
         if (estado == StatusCodes.Status500InternalServerError)
         {
-            var logger = context.HttpContext.RequestServices
-                .GetRequiredService<ILogger<GestionExceptionFilterAttribute>>();
             logger.LogError(context.Exception, "Error inesperado en la API de Gestión.");
+        }
+        else
+        {
+            logger.LogWarning(
+                context.Exception,
+                "Operación rechazada en la API de Gestión con estado {Estado}: {Mensaje}",
+                estado,
+                mensaje);
         }
 
         context.Result = new ObjectResult(new ProblemDetails

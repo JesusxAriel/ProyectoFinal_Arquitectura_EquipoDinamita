@@ -1,6 +1,6 @@
-using PuntoMarket.Usuarios.Application.Ports.Gestion;
+using PuntoMarket.Usuarios.Application.UseCases.Gestion;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.ListarUsuarios;
-using PuntoMarket.Usuarios.Domain.Services;
+using PuntoMarket.Usuarios.Domain.Entities;
 using PuntoMarket.Usuarios.Tests.Gestion.TestDoubles;
 using Xunit;
 
@@ -8,31 +8,80 @@ namespace PuntoMarket.Usuarios.Tests.Gestion;
 
 public class ListarUsuariosTests
 {
-    [Theory]
-    [InlineData("PENDIENTE", -1, true)]
-    [InlineData("PENDIENTE", 0, true)]
-    [InlineData("PENDIENTE", 1, false)]
-    [InlineData("PENDIENTE", null, false)]
-    [InlineData("ACTIVO", -1, false)]
-    [InlineData("ACTIVO", 0, false)]
-    [InlineData("INACTIVO", -1, false)]
-    public async Task Calcula_expiracion_solo_para_pendientes_con_token_vencido(
-        string estado, int? segundosHastaExpirar, bool esperado)
+    private static readonly DateTime Creacion = new(2026, 11, 1, 8, 0, 0, DateTimeKind.Utc);
+
+    private static Usuario UsuarioDePrueba(int id, string username, int rolId, bool activo = true) =>
+        Usuario.Reconstruir(
+            id, username, $"{username}@correo.com", "Ana Pérez", rolId,
+            activo, debeCambiarPassword: false, "admin", Creacion, null, null);
+
+    [Fact]
+    public async Task Devuelve_cada_usuario_con_el_nombre_de_su_rol()
     {
-        var reloj = new RelojFijo();
-        DateTime? expira = segundosHastaExpirar is int segundos
-            ? ZonaHorariaDeLaPaz.ALocal(reloj.Ahora.AddSeconds(segundos)) : null;
-        var usuario = new UsuarioListadoDto(42, "Ana", "Perez", "ana@example.com", "aperez",
-            "Cajero", estado, reloj.Ahora.AddDays(-1), expira);
-        var repositorio = new UsuarioGestionRepositorioStub { Usuarios = [usuario] };
-        var caso = new ListarUsuariosCasoDeUso(repositorio, reloj);
+        var repositorio = new UsuarioRepositorioStub
+        {
+            Usuarios = [UsuarioDePrueba(1, "aperez", 1), UsuarioDePrueba(2, "lgomez", 2, activo: false)],
+            Roles =
+            [
+                Rol.Reconstruir(1, "Administrador", activo: true),
+                Rol.Reconstruir(2, "Cajero", activo: true)
+            ]
+        };
+        var caso = new ListarUsuariosCasoDeUso(repositorio);
 
-        var salida = await caso.EjecutarAsync(new());
+        var resultado = await caso.EjecutarAsync(new());
 
-        var listado = Assert.Single(salida.Usuarios);
-        Assert.Equal(esperado, listado.EstaExpirado);
-        Assert.Equal(esperado ? "Expirado" : estado, listado.Estado);
-        Assert.Equal(expira, listado.TokenActivacionExpira);
-        Assert.Equal(usuario.Id, listado.Id);
+        Assert.True(resultado.IsOk);
+        Assert.Collection(
+            resultado.Value.Usuarios,
+            primero =>
+            {
+                Assert.Equal("aperez", primero.Username);
+                Assert.Equal("Administrador", primero.Rol);
+                Assert.True(primero.Activo);
+            },
+            segundo =>
+            {
+                Assert.Equal("lgomez", segundo.Username);
+                Assert.Equal("Cajero", segundo.Rol);
+                Assert.False(segundo.Activo);
+            });
+    }
+
+    [Fact]
+    public async Task Resuelve_los_roles_con_una_sola_consulta_aunque_haya_varios_usuarios()
+    {
+        var repositorio = new UsuarioRepositorioStub
+        {
+            Usuarios = [UsuarioDePrueba(1, "aperez", 1), UsuarioDePrueba(2, "lgomez", 1), UsuarioDePrueba(3, "msoto", 1)],
+            Roles = [Rol.Reconstruir(1, "Cajero", activo: true)]
+        };
+        var caso = new ListarUsuariosCasoDeUso(repositorio);
+
+        await caso.EjecutarAsync(new());
+
+        Assert.Empty(repositorio.RolesConsultados);
+    }
+
+    [Fact]
+    public async Task Sin_usuarios_devuelve_una_lista_vacia()
+    {
+        var caso = new ListarUsuariosCasoDeUso(new UsuarioRepositorioStub());
+
+        var resultado = await caso.EjecutarAsync(new());
+
+        Assert.True(resultado.IsOk);
+        Assert.Empty(resultado.Value.Usuarios);
+    }
+
+    [Fact]
+    public async Task Si_el_rol_guardado_ya_no_existe_lo_informa_en_vez_de_inventarlo()
+    {
+        var repositorio = new UsuarioRepositorioStub { Usuarios = [UsuarioDePrueba(1, "aperez", 9)] };
+        var caso = new ListarUsuariosCasoDeUso(repositorio);
+
+        var resultado = await caso.EjecutarAsync(new());
+
+        Assert.Equal(MensajesDeGestion.SinRolAsignado, Assert.Single(resultado.Value.Usuarios).Rol);
     }
 }
