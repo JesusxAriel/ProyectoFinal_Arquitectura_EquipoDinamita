@@ -21,9 +21,7 @@ public sealed class GestionExceptionFilterAttribute(int estadoOperacionInvalida)
         {
             ArgumentException => (StatusCodes.Status400BadRequest, "Los datos de la solicitud no son válidos."),
             InvalidOperationException => (estadoOperacionInvalida,
-                estadoOperacionInvalida == StatusCodes.Status400BadRequest
-                    ? "No se pudo activar la cuenta. El token no es válido o ha expirado."
-                    : "La operación no se puede realizar en el estado actual."),
+                "La operación no se puede realizar en el estado actual."),
             _ => (StatusCodes.Status500InternalServerError, "No se pudo completar la operación.")
         };
 

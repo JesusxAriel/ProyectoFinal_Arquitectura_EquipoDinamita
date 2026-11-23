@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="tests/PuntoMarket.Productos.Tests/PuntoMarket.Productos.Tests.csproj" />
     <Project Path="src/PuntoMarket.Productos.Adapters.In.Api/PuntoMarket.Productos.Adapters.In.Api.csproj" />
     <Project Path="src/PuntoMarket.Productos.Adapters.Out.Persistence/PuntoMarket.Productos.Adapters.Out.Persistence.csproj" />
     <Project Path="src/PuntoMarket.Productos.Application/PuntoMarket.Productos.Application.csproj" />

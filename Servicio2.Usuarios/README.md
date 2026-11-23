@@ -31,9 +31,14 @@ La contraseña no se guarda en la tabla `USUARIO`: vive solo en Keycloak. El cam
 
 `GET /api/usuarios` devuelve un arreglo de `UsuarioResponse`, como pide `05_CONTRATOS.md`. Los errores de negocio salen como `400 { "error": "mensaje en español" }`; un identificador que no existe devuelve `404` con la misma forma, y `GET /api/usuarios/roles` se conserva para el combo de roles del Razor aunque no esté en la tabla de rutas del contrato.
 
+## Actualización de un usuario
+
+`PUT /api/usuarios/{id}` cambia el nombre completo, el correo y el rol **solo en nuestra tabla**: esos datos no se propagan a Keycloak, porque el puerto `IGestorDeIdentidad` del contrato no tiene una operación para editarlos. Si la entrega necesita que el correo también cambie en Keycloak, hay que acordar con Ari agregar esa operación al puerto y a su adaptador.
+
+El `username` **no cambia nunca**. Se genera una sola vez al crear el usuario, con el protocolo del dominio (inicial del primer nombre más el primer apellido, en minúsculas y sin tildes, numerado si ya existe), y es la clave con la que Keycloak, el login del Gateway y las columnas de auditoría identifican a la persona.
+
 ## Pendiente
 
-- `ActualizarUsuario` cambia correo y nombre en nuestra tabla, pero no en Keycloak: el puerto `IGestorDeIdentidad` del contrato no tiene una operación para eso. Acordarlo con Ari si la entrega lo necesita.
 - `db/init/` contiene el esquema (`ROL`, `USUARIO` y los dos roles) y la siembra del administrador inicial a partir de `PUNTOMARKET_ADMIN_USERNAME`, `PUNTOMARKET_ADMIN_EMAIL` y `PUNTOMARKET_ADMIN_NOMBRE`. MySQL solo ejecuta esos scripts cuando la base aún no existe, por lo que en un volumen ya creado hay que aplicarlos a mano.
 
 ```powershell

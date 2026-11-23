@@ -1,5 +1,7 @@
 # PuntoMarket — integración de microservicios
 
+EC3 Productos: se completa Servicio3.Productos con PostgreSQL, CRUD hexagonal, JWT, historial transaccional de precios y pantalla /Productos en el frontend común. Contratos, supuestos, patrones, comandos y evidencia en [README de Productos](Servicio3.Productos/README.md). Se conserva el Gateway existente y no se activa la integración inversa de bajas de Proveedores. El flujo conjunto real con Keycloak permanece pendiente de verificación en este workspace.
+
 La rama `micro-proveedor` integra localmente `origin/main` (3eefb83) conservando Proveedores en **Servicio4.Proveedores**. El entorno común es la referencia del grupo; la demostración sigue separada y no lo sustituye.
 
 ## Estructura

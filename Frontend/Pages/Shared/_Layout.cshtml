@@ -36,6 +36,7 @@
                         }
                         @if (User.IsInRole("Administrador") || User.IsInRole("Cajero"))
                         {
+                            <li class="nav-item"><a class="nav-link @(actual.StartsWith("/Productos") ? "active" : "")" asp-page="/Productos/Index">Productos</a></li>
                             <li class="nav-item"><a class="nav-link @(actual.StartsWith("/Clientes") ? "active" : "")" asp-page="/Clientes/Index">Clientes</a></li>
                             <li class="nav-item"><a class="nav-link @(actual.StartsWith("/Proveedores") ? "active" : "")" asp-page="/Proveedores/Index">Proveedores</a></li>
                         }
