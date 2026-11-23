@@ -162,6 +162,18 @@ public sealed class Usuario
         return Result.Ok();
     }
 
+    public Result AccesoRestablecido(string? usuarioModificacion, DateTime ahora)
+    {
+        var validacion = Validaciones.NoVacio(usuarioModificacion, CampoResponsable);
+        if (validacion.IsFail)
+            return validacion;
+
+        DebeCambiarPassword = true;
+        RegistrarModificacion(usuarioModificacion, ahora);
+
+        return Result.Ok();
+    }
+
     private void RegistrarModificacion(string? usuarioModificacion, DateTime ahora)
     {
         UsuarioModificacion = Texto.NormalizarEspacios(usuarioModificacion);
