@@ -13,7 +13,6 @@ public sealed class SmtpEnviadorCorreoOpciones
     public string UserName { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
     public bool EnableSsl { get; set; } = true;
-    public string BaseUrl { get; set; } = string.Empty;
 
     public static SmtpEnviadorCorreoOpciones Desde(IConfiguration configuracion)
     {
@@ -28,8 +27,7 @@ public sealed class SmtpEnviadorCorreoOpciones
             FromName = Texto(seccion, nameof(FromName)),
             UserName = Texto(seccion, nameof(UserName)),
             Password = seccion[nameof(Password)] ?? string.Empty,
-            EnableSsl = !bool.TryParse(seccion[nameof(EnableSsl)], out var ssl) || ssl,
-            BaseUrl = Texto(seccion, nameof(BaseUrl))
+            EnableSsl = !bool.TryParse(seccion[nameof(EnableSsl)], out var ssl) || ssl
         };
     }
 
