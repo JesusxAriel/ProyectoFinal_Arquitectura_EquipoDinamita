@@ -1,9 +1,5 @@
 <Solution>
-  <Folder Name="/DevIdentity/">
-    <Project Path="DevIdentity/DevIdentity.Demo/DevIdentity.Demo.csproj" />
-  </Folder>
   <Folder Name="/Frontend/">
-    <Project Path="Frontend/Frontend.Demo/Frontend.Demo.csproj" />
     <Project Path="Frontend/PuntoMarket.Frontend.csproj" />
   </Folder>
   <Folder Name="/Frontend.Tests/">

@@ -62,6 +62,6 @@ dotnet run --project Servicio1.Clientes/src/PuntoMarket.Clientes.Adapters.In.Api
 
 En el entorno común: `docker compose up --build -d clientes-ms` (define `CLIENTES_DB_*` y `CLIENTES_DB_ROOT_PASSWORD` en `.env`). El JWT se valida con audiencia `clientes-api` (mapper ya presente en el realm de Keycloak).
 
-## Seed selectivo de Clientes en Demo
+## Seed selectivo de Clientes
 
-`Clientes:SeedGenericoEnabled` vale `true` por defecto y conserva las semillas históricas de otros entornos. Solo `docker-compose.demo.yml` lo configura como `false`, manteniendo `Clientes:SeedEnabled=true`: en una tabla vacía se insertan los dos clientes normales. Una tabla con registros no se modifica ni recibe semillas adicionales al reiniciar. Esta opción no borra ni oculta un genérico existente; las protecciones y el contrato `esGenerico` se conservan por compatibilidad. Antes de una retirada manual, verificar copia de seguridad y referencias históricas o externas (Ventas), sin cambiar identificadores ni volúmenes.
+`Clientes:SeedGenericoEnabled` vale `true` por defecto y conserva las semillas históricas de otros entornos. Al configurarlo como `false` y mantener `Clientes:SeedEnabled=true`, en una tabla vacía se insertan los dos clientes normales. Una tabla con registros no se modifica ni recibe semillas adicionales al reiniciar. Esta opción no borra ni oculta un genérico existente; las protecciones y el contrato `esGenerico` se conservan por compatibilidad. Antes de una retirada manual, verificar copia de seguridad y referencias históricas o externas (Ventas), sin cambiar identificadores ni volúmenes.

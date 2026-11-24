@@ -42,7 +42,6 @@ Servicio2.Usuarios/       Domain, Application, Infrastructure, Api y tests
 Servicio3.Productos/      Domain, Application, Adapters.In.Api, Adapters.Out.Persistence y tests
 Servicio4.Proveedores/    Domain, Application, Infrastructure, API y Tests
 docker/keycloak/          Realm de Keycloak importado al arrancar
-scripts/                  Pruebas JavaScript de los módulos del frontend
 docker-compose.yml        Los once contenedores del sistema
 .env.example              Plantilla de variables de entorno
 Proyecto_Microservicios.slnx   Solución con todos los proyectos
@@ -52,7 +51,6 @@ Proyecto_Microservicios.slnx   Solución con todos los proyectos
 
 - .NET SDK 10
 - Docker Desktop con motor Linux y Compose
-- Node.js (solo para las pruebas JavaScript)
 
 ## Variables de entorno
 
@@ -152,13 +150,6 @@ Las pruebas de persistencia de Proveedores contra MongoDB se omiten salvo que se
 ```powershell
 $env:PROVEEDORES_TEST_MONGO = 'mongodb://localhost:27017'
 dotnet test Servicio4.Proveedores/Proveedores.slnx
-```
-
-Pruebas JavaScript de los módulos del frontend:
-
-```powershell
-node scripts/probar-catalogos-comunes.mjs
-node scripts/probar-productos-comunes.mjs
 ```
 
 ## Documentación por componente
