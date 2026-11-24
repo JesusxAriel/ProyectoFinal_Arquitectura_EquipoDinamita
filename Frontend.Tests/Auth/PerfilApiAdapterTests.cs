@@ -121,6 +121,73 @@ public sealed class PerfilApiAdapterTests
         }
     }
 
+    [Theory]
+    [InlineData("""{"valida":true}""", true)]
+    [InlineData("""{"valida":false}""", false)]
+    public async Task VerificarPasswordActual_200_DevuelveElResultadoDelServidor(string cuerpo, bool esperado)
+    {
+        var handler = FakeHttpMessageHandler.Returning(HttpStatusCode.OK, cuerpo);
+
+        var result = await Crear(handler).VerificarPasswordActual("Actual#123");
+
+        Assert.True(result.IsOk);
+        Assert.Equal(esperado, result.Value);
+    }
+
+    [Fact]
+    public async Task VerificarPasswordActual_EnviaPostConLaContrasenaAlEndpointDelPerfil()
+    {
+        string? body = null;
+        var handler = new FakeHttpMessageHandler(request =>
+        {
+            body = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"valida":true}""") };
+        });
+
+        await Crear(handler).VerificarPasswordActual(" Actual#123 ");
+
+        var enviado = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Post, enviado.Method);
+        Assert.Equal("http://gateway.test/api/usuarios/perfil/password/verificacion", enviado.RequestUri!.ToString());
+        using var json = JsonDocument.Parse(body!);
+        Assert.Equal(" Actual#123 ", json.RootElement.GetProperty("actual").GetString());
+        Assert.Single(json.RootElement.EnumerateObject());
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Unauthorized, "No se pudo verificar la contraseña. Verifique su sesión.")]
+    [InlineData(HttpStatusCode.Forbidden, "No tiene permisos para realizar esta acción.")]
+    [InlineData(HttpStatusCode.ServiceUnavailable, "El servicio no está disponible. Intente nuevamente en unos minutos.")]
+    [InlineData(HttpStatusCode.InternalServerError, "Ocurrió un error inesperado. Intente nuevamente.")]
+    public async Task VerificarPasswordActual_Error_TraduceElEstado(HttpStatusCode status, string esperado)
+    {
+        var result = await Crear(FakeHttpMessageHandler.Returning(status, "{}")).VerificarPasswordActual("Actual#123");
+
+        Assert.True(result.IsFail);
+        Assert.Equal(esperado, result.Error);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("not JSON")]
+    [InlineData("null")]
+    public async Task VerificarPasswordActual_200ConCuerpoInvalido_DevuelveFail(string cuerpo)
+    {
+        var result = await Crear(FakeHttpMessageHandler.Returning(HttpStatusCode.OK, cuerpo)).VerificarPasswordActual("Actual#123");
+
+        Assert.True(result.IsFail);
+        Assert.Equal(MensajesAuth.ErrorInesperado, result.Error);
+    }
+
+    [Fact]
+    public async Task VerificarPasswordActual_SinConexion_DevuelveFail()
+    {
+        var result = await Crear(FakeHttpMessageHandler.Throwing()).VerificarPasswordActual("Actual#123");
+
+        Assert.True(result.IsFail);
+        Assert.Equal(MensajesAuth.SinConexion, result.Error);
+    }
+
     [Fact]
     public async Task CambiarPassword_SinConexion_DevuelveFailSinReintentar()
     {

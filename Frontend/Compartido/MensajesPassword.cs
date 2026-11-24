@@ -12,5 +12,7 @@ public static class MensajesPassword
     public const string NuevaSinNumero = "La nueva contraseña debe incluir al menos un número.";
     public const string NuevaSinEspecial = "La nueva contraseña debe incluir al menos un carácter especial.";
     public const string RepeticionObligatoria = "Repita la nueva contraseña.";
+    public const string Verificando = "Verificando…";
+    public const string ActualCorrecta = "Contraseña actual correcta.";
     public const string RepeticionDistinta = "La repetición no coincide con la nueva contraseña.";
 }

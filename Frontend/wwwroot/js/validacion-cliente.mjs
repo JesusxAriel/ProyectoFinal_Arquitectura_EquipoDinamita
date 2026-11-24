@@ -75,7 +75,7 @@ export function validarCampo(formulario, campo) {
 }
 
 export function camposValidables(formulario) {
-  return Array.from(formulario.querySelectorAll('[data-val="true"]')).filter(campo => campo.name);
+  return Array.from(formulario.querySelectorAll('[data-val="true"]')).filter(campo => campo.name && !campo.disabled);
 }
 
 export function validarFormulario(formulario) {

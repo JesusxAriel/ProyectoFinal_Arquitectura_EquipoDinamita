@@ -18,3 +18,7 @@ public sealed record DatosSesion(
     DateTimeOffset ExpiraEn);
 
 public sealed record ErrorApi(string? Error);
+
+public sealed record VerificarPasswordActualRequest(string Actual);
+
+public sealed record VerificarPasswordActualResponse(bool Valida);

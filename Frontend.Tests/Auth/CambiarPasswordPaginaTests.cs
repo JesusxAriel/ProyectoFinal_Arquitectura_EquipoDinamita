@@ -20,6 +20,9 @@ public sealed class CambiarPasswordPaginaTests : IAsyncLifetime
     private HttpStatusCode estadoCambio = HttpStatusCode.NoContent;
     private string cuerpoCambio = "";
     private readonly List<JsonElement> cambios = [];
+    private readonly List<string> verificaciones = [];
+    private bool verificacionValida = true;
+    private HttpStatusCode estadoVerificacion = HttpStatusCode.OK;
 
     public async Task InitializeAsync()
     {
@@ -38,6 +41,14 @@ public sealed class CambiarPasswordPaginaTests : IAsyncLifetime
         {
             cambios.Add((await contexto.Request.ReadFromJsonAsync<JsonElement>()).Clone());
             return Results.Text(cuerpoCambio, "application/json", statusCode: (int)estadoCambio);
+        });
+        gateway.MapPost("/api/usuarios/perfil/password/verificacion", async (HttpContext contexto) =>
+        {
+            var cuerpo = await contexto.Request.ReadFromJsonAsync<JsonElement>();
+            verificaciones.Add(cuerpo.GetProperty("actual").GetString()!);
+            return estadoVerificacion == HttpStatusCode.OK
+                ? Results.Json(new { valida = verificacionValida })
+                : Results.Json(new { error = "no disponible" }, statusCode: (int)estadoVerificacion);
         });
         await gateway.StartAsync();
 
@@ -205,6 +216,125 @@ public sealed class CambiarPasswordPaginaTests : IAsyncLifetime
         Assert.Contains("data-val-required=\"Repita la nueva contraseña.\"", html);
         Assert.Contains("data-val-equalto=\"La repetición no coincide con la nueva contraseña.\"", html);
         Assert.Contains("data-val-equalto-other=\"*.PasswordNueva\"", html);
+    }
+
+    private async Task<HttpResponseMessage> Verificar(HttpClient cliente, bool obligatorio, string actual, bool conToken = true)
+    {
+        var token = ExtraerToken(await cliente.GetStringAsync(Ruta(obligatorio)));
+        var campos = new Dictionary<string, string> { ["PasswordActual"] = actual };
+        if (conToken)
+            campos["__RequestVerificationToken"] = token;
+
+        return await cliente.PostAsync(Ruta(obligatorio) + "?handler=VerificarActual", new FormUrlEncodedContent(campos));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task El_navegador_verifica_la_contrasena_actual_y_recibe_correcta(bool obligatorio)
+    {
+        verificacionValida = true;
+        using var cliente = await IniciarSesion(obligatorio);
+
+        var respuesta = await Verificar(cliente, obligatorio, "Actual#123");
+        var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync()).RootElement;
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.Equal("correcta", json.GetProperty("estado").GetString());
+        Assert.Equal("Actual#123", Assert.Single(verificaciones));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task El_navegador_recibe_incorrecta_con_el_mensaje_de_la_pantalla(bool obligatorio)
+    {
+        verificacionValida = false;
+        using var cliente = await IniciarSesion(obligatorio);
+
+        var respuesta = await Verificar(cliente, obligatorio, "Equivocada#1");
+        var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync()).RootElement;
+
+        Assert.Equal("incorrecta", json.GetProperty("estado").GetString());
+        Assert.Equal("La contraseña actual no es correcta.", json.GetProperty("mensaje").GetString());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Un_503_del_servidor_se_devuelve_como_no_disponible_sin_cerrar_la_sesion(bool obligatorio)
+    {
+        estadoVerificacion = HttpStatusCode.ServiceUnavailable;
+        using var cliente = await IniciarSesion(obligatorio);
+
+        var respuesta = await Verificar(cliente, obligatorio, "Actual#123");
+        var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync()).RootElement;
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, respuesta.StatusCode);
+        Assert.Equal("no-disponible", json.GetProperty("estado").GetString());
+        var siguiente = await cliente.GetAsync(Ruta(obligatorio));
+        Assert.Equal(HttpStatusCode.OK, siguiente.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task La_verificacion_sin_token_antifalsificacion_se_rechaza(bool obligatorio)
+    {
+        using var cliente = await IniciarSesion(obligatorio);
+
+        var respuesta = await Verificar(cliente, obligatorio, "Actual#123", conToken: false);
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+        Assert.Empty(verificaciones);
+    }
+
+    [Fact]
+    public async Task La_verificacion_sin_sesion_no_llega_al_servidor()
+    {
+        using var cliente = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = true }) { BaseAddress = baseFrontend };
+        var token = ExtraerToken(await cliente.GetStringAsync("/Auth/Login"));
+
+        var respuesta = await cliente.PostAsync("/Auth/CambiarPassword?handler=VerificarActual", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["PasswordActual"] = "Actual#123",
+            ["__RequestVerificationToken"] = token
+        }));
+
+        Assert.NotEqual(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.Empty(verificaciones);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task La_pagina_ofrece_la_verificacion_de_la_contrasena_actual(bool obligatorio)
+    {
+        using var cliente = await IniciarSesion(obligatorio);
+
+        var html = WebUtility.HtmlDecode(await cliente.GetStringAsync(Ruta(obligatorio)));
+
+        Assert.Contains("/js/verificar-password-actual.mjs", html);
+        Assert.Contains("data-verificar-actual-url=\"" + Ruta(obligatorio) + "?handler=VerificarActual\"", html);
+        Assert.Contains("data-texto-verificando=\"Verificando…\"", html);
+        Assert.Contains("data-texto-correcta=\"Contraseña actual correcta.\"", html);
+        Assert.Contains("id=\"estado-password-actual\"", html);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task El_envio_final_sigue_validando_la_contrasena_actual_en_el_servidor(bool obligatorio)
+    {
+        estadoCambio = HttpStatusCode.BadRequest;
+        cuerpoCambio = """{"error":"La contraseña actual es incorrecta."}""";
+        verificacionValida = true;
+        using var cliente = await IniciarSesion(obligatorio);
+
+        var html = await Enviar(cliente, obligatorio, "Equivocada#1", "Nueva#123", "Nueva#123");
+
+        Assert.Matches(MensajeDelCampo("PasswordActual", "La contraseña actual no es correcta."), html);
+        Assert.Single(cambios);
     }
 
     [Theory]

@@ -36,6 +36,42 @@ public sealed class PerfilApiAdapter(HttpClient httpClient) : IPerfilApiAdapter
         }
     }
 
+    public async Task<Result<bool>> VerificarPasswordActual(string actual)
+    {
+        try
+        {
+            using var response = await httpClient.PostAsJsonAsync(
+                "api/usuarios/perfil/password/verificacion", new VerificarPasswordActualRequest(actual));
+            if (!response.IsSuccessStatusCode)
+            {
+                return Result<bool>.Fail(response.StatusCode switch
+                {
+                    HttpStatusCode.Unauthorized => "No se pudo verificar la contraseña. Verifique su sesión.",
+                    HttpStatusCode.Forbidden => MensajesAuth.SinPermisos,
+                    HttpStatusCode.ServiceUnavailable => MensajesAuth.ServicioNoDisponible,
+                    _ => MensajesAuth.ErrorInesperado
+                });
+            }
+
+            var cuerpo = await response.Content.ReadFromJsonAsync<VerificarPasswordActualResponse>();
+            return cuerpo is null
+                ? Result<bool>.Fail(MensajesAuth.ErrorInesperado)
+                : Result<bool>.Ok(cuerpo.Valida);
+        }
+        catch (HttpRequestException)
+        {
+            return Result<bool>.Fail(MensajesAuth.SinConexion);
+        }
+        catch (Exception exception) when (exception is OperationCanceledException)
+        {
+            return Result<bool>.Fail("El servidor tardó demasiado en responder. Intente nuevamente.");
+        }
+        catch (Exception exception) when (exception is JsonException or NotSupportedException)
+        {
+            return Result<bool>.Fail(MensajesAuth.ErrorInesperado);
+        }
+    }
+
     private static string? Normalizar(string? mensaje) =>
         string.Equals(mensaje, PasswordActualIncorrectaDelServicio, StringComparison.Ordinal)
             ? MensajesAuth.PasswordActualIncorrecta
