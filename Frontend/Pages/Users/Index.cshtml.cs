@@ -11,6 +11,8 @@ namespace PuntoMarket.Frontend.Pages.Users;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
 {
+    private const string FormatoCorreo = @"^[A-Za-z0-9._%+\-]+@(?:[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}$";
+    private const string MensajeCorreoInvalido = "Ingrese un correo válido, por ejemplo nombre@dominio.com.";
     private const string MensajeSinPermisos = "No tiene permisos para ver esta sección.";
     private const string MensajeCorreoFallido = "No se pudo enviar el correo. Use Reenviar acceso.";
     private const string MensajeReenviarPropio = "No puede reenviar el acceso a su propia cuenta.";
@@ -39,7 +41,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
 
     [BindProperty]
     [Required(ErrorMessage = "El campo Correo es obligatorio.")]
-    [EmailAddress(ErrorMessage = "El campo Correo no es una dirección de correo válida.")]
+    [RegularExpression(FormatoCorreo, ErrorMessage = MensajeCorreoInvalido)]
     [StringLength(150, ErrorMessage = "El campo Correo no puede superar los 150 caracteres.")]
     public string Correo { get; set; } = "";
 

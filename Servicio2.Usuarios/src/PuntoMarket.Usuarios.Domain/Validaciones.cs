@@ -4,8 +4,10 @@ namespace PuntoMarket.Usuarios.Domain;
 
 public static class Validaciones
 {
+    public const string MensajeCorreoInvalido = "Ingrese un correo válido, por ejemplo nombre@dominio.com.";
+
     private static readonly Regex FormatoCorreo = new(
-        @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+        @"^[A-Za-z0-9._%+\-]+@(?:[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}$",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     public static Result NoVacio(string? valor, string campo) =>
@@ -26,7 +28,7 @@ public static class Validaciones
     public static Result Correo(string? valor, string campo) =>
         FormatoCorreo.IsMatch(Texto.NormalizarEspacios(valor))
             ? Result.Ok()
-            : Result.Fail($"{campo} no tiene un formato válido.");
+            : Result.Fail(MensajeCorreoInvalido);
 
     public static Result Positivo(int valor, string campo) =>
         valor <= 0

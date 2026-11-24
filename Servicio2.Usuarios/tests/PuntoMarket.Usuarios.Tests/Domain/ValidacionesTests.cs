@@ -29,6 +29,9 @@ public class ValidacionesTests
     [Theory]
     [InlineData("ale@correo.com")]
     [InlineData("  ALE@correo.com  ")]
+    [InlineData("nombre@dominio.com")]
+    [InlineData("nombre@dominio.edu.bo")]
+    [InlineData("nombre.apellido+tag@sub-dominio.example.org")]
     public void Correo_acepta_formatos_validos(string valor)
     {
         Assert.True(Validaciones.Correo(valor, Campo).IsOk);
@@ -36,6 +39,13 @@ public class ValidacionesTests
 
     [Theory]
     [InlineData("ale@correo")]
+    [InlineData("correo@gmail")]
+    [InlineData("ale@.com")]
+    [InlineData("ale@correo.")]
+    [InlineData("ale@correo..com")]
+    [InlineData("ale@-correo.com")]
+    [InlineData("ale@correo.c")]
+    [InlineData("@correo.com")]
     [InlineData("ale.correo.com")]
     [InlineData("ale@@correo.com")]
     [InlineData("ale correo@dominio.com")]
@@ -43,6 +53,15 @@ public class ValidacionesTests
     public void Correo_rechaza_formatos_invalidos(string? valor)
     {
         Assert.True(Validaciones.Correo(valor, Campo).IsFail);
+    }
+
+    [Fact]
+    public void Correo_invalido_devuelve_el_mensaje_con_ejemplo()
+    {
+        var resultado = Validaciones.Correo("correo@gmail", Campo);
+
+        Assert.True(resultado.IsFail);
+        Assert.Equal("Ingrese un correo válido, por ejemplo nombre@dominio.com.", resultado.Error);
     }
 
     [Fact]
