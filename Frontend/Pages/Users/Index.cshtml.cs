@@ -84,7 +84,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
 
         var creado = resultado.Value;
         if (creado.CorreoEnviado)
-            AvisoGestion = $"Usuario {creado.Username} creado. Se envió un enlace de activación a {Correo}.";
+            AvisoGestion = $"Usuario {creado.Username} creado. Se envió un correo con sus credenciales de acceso a {Correo}.";
         else
             AdvertenciaGestion = $"Usuario {creado.Username} creado, pero no se pudo enviar el correo. Use Reenviar acceso.";
 
@@ -222,7 +222,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
         }
 
         if (resultado.Value.CorreoEnviado)
-            AvisoGestion = "Se envió un nuevo enlace de activación.";
+            AvisoGestion = "Se envió un correo con un nuevo acceso temporal.";
         else
             AdvertenciaGestion = MensajeCorreoFallido;
 
