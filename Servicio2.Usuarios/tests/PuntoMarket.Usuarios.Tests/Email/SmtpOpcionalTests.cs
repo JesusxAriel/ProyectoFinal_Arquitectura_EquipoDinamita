@@ -2,6 +2,7 @@ using Xunit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PuntoMarket.Usuarios.Application.Ports.Gestion;
+using PuntoMarket.Usuarios.Infrastructure.Activacion;
 using PuntoMarket.Usuarios.Infrastructure.DependencyInjection;
 using PuntoMarket.Usuarios.Infrastructure.Email;
 
@@ -87,22 +88,24 @@ public sealed class SmtpOpcionalTests
         using var proveedor = Construir(valores);
         var enviador = proveedor.GetRequiredService<IEnviadorCorreo>();
 
-        var resultado = await enviador.EnviarCredenciales("ana@ejemplo.test", "aperez", "Clave#Temporal1");
+        var resultado = await enviador.EnviarActivacion("ana@ejemplo.test", "aperez", "token-secreto", TimeSpan.FromMinutes(60));
 
         Assert.True(resultado.IsFail);
         Assert.Contains("SMTP", resultado.Error);
-        Assert.DoesNotContain("Clave#Temporal1", resultado.Error);
+        Assert.DoesNotContain("token-secreto", resultado.Error);
     }
 
     [Fact]
     public async Task ConUsuarioSinPassword_EnviarDevuelveResultFallido()
     {
-        var enviador = new SmtpEnviadorCorreo(new SmtpEnviadorCorreoOpciones
-        {
-            Host = "smtp.ejemplo.test", Port = 25, FromAddress = "no-responder@ejemplo.test", UserName = "u"
-        });
+        var enviador = new SmtpEnviadorCorreo(
+            new SmtpEnviadorCorreoOpciones
+            {
+                Host = "smtp.ejemplo.test", Port = 25, FromAddress = "no-responder@ejemplo.test", UserName = "u"
+            },
+            new ActivacionOpciones { BaseUrl = "http://localhost:5100" });
 
-        var resultado = await enviador.EnviarCredenciales("ana@ejemplo.test", "aperez", "Clave#Temporal1");
+        var resultado = await enviador.EnviarActivacion("ana@ejemplo.test", "aperez", "token-secreto", TimeSpan.FromMinutes(60));
 
         Assert.True(resultado.IsFail);
         Assert.Contains("UserName y Password", resultado.Error);

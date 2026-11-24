@@ -3,53 +3,97 @@ using System.Net.Mail;
 using System.Text;
 using PuntoMarket.Usuarios.Application.Ports.Gestion;
 using PuntoMarket.Usuarios.Domain;
+using PuntoMarket.Usuarios.Infrastructure.Activacion;
 
 namespace PuntoMarket.Usuarios.Infrastructure.Email;
 
-public sealed class SmtpEnviadorCorreo(SmtpEnviadorCorreoOpciones opciones) : IEnviadorCorreo
+public sealed class SmtpEnviadorCorreo(
+    SmtpEnviadorCorreoOpciones opciones,
+    ActivacionOpciones activacion) : IEnviadorCorreo
 {
-    public const string AsuntoCredenciales = "Sus credenciales de acceso a PuntoMarket";
-    public const string ErrorAlEnviarCredenciales = "No se pudo enviar el correo con las credenciales de acceso.";
+    public const string AsuntoActivacion = "Active su cuenta de PuntoMarket";
+    public const string ErrorAlEnviarActivacion = "No se pudo enviar el correo de activación de la cuenta.";
+    public const string UrlDeActivacionNoConfigurada =
+        "El envío de correo no está configurado: la URL de activación debe ser una dirección HTTP o HTTPS válida, sin credenciales ni parámetros.";
 
-    public async Task<Result> EnviarCredenciales(
+    private const string RutaDeActivacion = "/Auth/Activar";
+
+    public async Task<Result> EnviarActivacion(
         string correo,
         string username,
-        string passwordTemporal,
+        string token,
+        TimeSpan vigencia,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(correo);
         ArgumentException.ThrowIfNullOrWhiteSpace(username);
-        ArgumentException.ThrowIfNullOrWhiteSpace(passwordTemporal);
+        ArgumentException.ThrowIfNullOrWhiteSpace(token);
 
         var errorConfiguracion = ValidarConfiguracionSmtp();
         if (errorConfiguracion is not null)
             return Result.Fail(errorConfiguracion);
 
+        var enlace = ComponerEnlace(activacion.BaseUrl, token);
+        if (enlace is null)
+            return Result.Fail(UrlDeActivacionNoConfigurada);
+
         try
         {
             using var mensaje = CrearMensaje(
-                correo, AsuntoCredenciales, ComponerCuerpoCredenciales(username, passwordTemporal));
+                correo, AsuntoActivacion, ComponerCuerpoActivacion(username, enlace, vigencia));
             await EnviarAsync(mensaje, cancellationToken);
             return Result.Ok();
         }
         catch (Exception excepcion) when (excepcion is SmtpException or FormatException)
         {
-            return Result.Fail(ErrorAlEnviarCredenciales);
+            return Result.Fail(ErrorAlEnviarActivacion);
         }
     }
 
-    public static string ComponerCuerpoCredenciales(string username, string passwordTemporal) =>
+    public static string? ComponerEnlace(string baseUrl, string token)
+    {
+        if (string.IsNullOrWhiteSpace(baseUrl)
+            || !Uri.TryCreate(baseUrl.Trim(), UriKind.Absolute, out var origen)
+            || origen.Scheme is not ("http" or "https")
+            || !string.IsNullOrEmpty(origen.UserInfo)
+            || !string.IsNullOrEmpty(origen.Query)
+            || !string.IsNullOrEmpty(origen.Fragment))
+        {
+            return null;
+        }
+
+        return origen.GetLeftPart(UriPartial.Path).TrimEnd('/')
+            + RutaDeActivacion + "?token=" + Uri.EscapeDataString(token);
+    }
+
+    public static string ComponerCuerpoActivacion(string username, string enlace, TimeSpan vigencia) =>
         $"""
-        Se creó una cuenta para usted en PuntoMarket.
+        Se solicitó la activación de su cuenta en PuntoMarket.
 
         Nombre de usuario: {username}
-        Contraseña temporal: {passwordTemporal}
 
-        Al iniciar sesión por primera vez, el sistema le pedirá que cambie esta contraseña.
-        Por su seguridad, no comparta estos datos con otras personas.
+        Para activar su cuenta y definir su contraseña, abra el siguiente enlace:
+
+        {enlace}
+
+        El enlace puede usarse una sola vez y vence en {DescribirVigencia(vigencia)}.
+        Por su seguridad, no comparta este enlace con otras personas.
 
         Si no esperaba este mensaje, puede ignorarlo.
         """;
+
+    public static string DescribirVigencia(TimeSpan vigencia)
+    {
+        var minutos = Math.Max(1, (int)Math.Ceiling(vigencia.TotalMinutes));
+
+        if (minutos % 60 == 0)
+        {
+            var horas = minutos / 60;
+            return horas == 1 ? "1 hora" : $"{horas} horas";
+        }
+
+        return minutos == 1 ? "1 minuto" : $"{minutos} minutos";
+    }
 
     private string? ValidarConfiguracionSmtp()
     {

@@ -11,6 +11,9 @@ public sealed class CrearUsuarioCasoDeUso(
     IGestorDeIdentidad gestorDeIdentidad,
     IEnviadorCorreo enviadorCorreo,
     IGeneradorPassword generadorPassword,
+    IGeneradorTokenActivacion generadorToken,
+    IActivacionRepositorio activaciones,
+    ConfiguracionActivacion configuracionActivacion,
     IUsuarioActual usuarioActual,
     IReloj reloj)
 {
@@ -55,7 +58,7 @@ public sealed class CrearUsuarioCasoDeUso(
         if (await repositorio.ExisteCorreo(usuario.Correo, cancellationToken))
             return Result<CrearUsuarioSalida>.Fail(CorreoEnUso);
 
-        var passwordTemporal = generadorPassword.Generar();
+        var passwordDesconocida = generadorPassword.Generar();
 
         var guardado = await repositorio.Guardar(usuario, cancellationToken);
         if (guardado.IsFail)
@@ -67,7 +70,7 @@ public sealed class CrearUsuarioCasoDeUso(
             guardadoConId.Correo,
             guardadoConId.NombreCompleto,
             rol.Nombre,
-            passwordTemporal);
+            passwordDesconocida);
 
         if (identidad.IsFail)
         {
@@ -75,7 +78,7 @@ public sealed class CrearUsuarioCasoDeUso(
             return Result<CrearUsuarioSalida>.Fail($"{identidad.Error} {IdentidadFallida}");
         }
 
-        var correoEnviado = await EnviarCredenciales(guardadoConId, passwordTemporal, cancellationToken);
+        var correoEnviado = await EnviarActivacion(guardadoConId, cancellationToken);
 
         return Result<CrearUsuarioSalida>.Ok(
             new CrearUsuarioSalida(guardadoConId.Id, guardadoConId.Username, correoEnviado));
@@ -101,15 +104,18 @@ public sealed class CrearUsuarioCasoDeUso(
             await repositorio.Actualizar(usuario, cancellationToken);
     }
 
-    private async Task<bool> EnviarCredenciales(
-        Usuario usuario,
-        string passwordTemporal,
-        CancellationToken cancellationToken)
+    private async Task<bool> EnviarActivacion(Usuario usuario, CancellationToken cancellationToken)
     {
+        var token = generadorToken.Generar(reloj.Ahora, configuracionActivacion.Vigencia);
+
+        var guardado = await activaciones.GuardarToken(usuario.Id, token.Hash, token.ExpiraUtc, cancellationToken);
+        if (guardado.IsFail)
+            return false;
+
         try
         {
-            var envio = await enviadorCorreo.EnviarCredenciales(
-                usuario.Correo, usuario.Username, passwordTemporal, cancellationToken);
+            var envio = await enviadorCorreo.EnviarActivacion(
+                usuario.Correo, usuario.Username, token.Valor, configuracionActivacion.Vigencia, cancellationToken);
 
             return envio.IsOk;
         }
