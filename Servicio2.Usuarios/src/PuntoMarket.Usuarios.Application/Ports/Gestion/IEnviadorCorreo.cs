@@ -4,10 +4,9 @@ namespace PuntoMarket.Usuarios.Application.Ports.Gestion;
 
 public interface IEnviadorCorreo
 {
-    Task<Result> EnviarActivacion(
+    Task<Result> EnviarCredenciales(
         string correo,
         string username,
-        string token,
-        TimeSpan vigencia,
+        string passwordTemporal,
         CancellationToken cancellationToken = default);
 }

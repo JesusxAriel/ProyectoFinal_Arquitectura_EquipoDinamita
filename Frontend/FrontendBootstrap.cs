@@ -14,7 +14,6 @@ public static class FrontendBootstrap
         builder.Services.AddSession();
         builder.Services.AddAuthorization();
         builder.Services.AddAutenticacionPorSesion(builder.Configuration);
-        builder.Services.AddActivacionDeCuentas();
         builder.Services.AddGatewayAdapter<IClientesApiClient, ClientesApiClient>();
         builder.Services.AddGatewayAdapter<IProductosApiClient, ProductosApiClient>();
         builder.Services.AddGatewayAdapter<IProveedoresApiClient, ProveedoresApiClient>();

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using PuntoMarket.Usuarios.Api.Contracts;
 using PuntoMarket.Usuarios.Api.Contracts.Gestion;
 using PuntoMarket.Usuarios.Api.Controllers;
-using PuntoMarket.Usuarios.Application.Ports.Gestion;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.ReenviarAcceso;
 using PuntoMarket.Usuarios.Domain;
@@ -29,9 +28,6 @@ public class UsuariosControllerReenviarAccesoTests
             new GestorDeIdentidadFalso(),
             correo,
             new GeneradorPasswordFalso(),
-            new GeneradorTokenFalso(),
-            new ActivacionRepositorioFalso(),
-            new ConfiguracionActivacion(TimeSpan.FromMinutes(60)),
             new UsuarioActualStub("admin"),
             new RelojFijo());
 

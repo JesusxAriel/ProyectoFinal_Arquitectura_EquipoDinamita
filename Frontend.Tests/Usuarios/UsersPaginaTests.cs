@@ -164,7 +164,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Crear_usuario_con_correo_enviado_muestra_username_y_enlace_de_activacion()
+    public async Task Crear_usuario_con_correo_enviado_muestra_username_y_aviso_de_credenciales()
     {
         correoEnviadoRespuesta = true;
         using var cliente = await IniciarSesion("admin");
@@ -183,7 +183,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
 
         var html = await cliente.GetStringAsync("/Users");
         Assert.Contains("nuevo.usuario", html);
-        Assert.Contains("Se envió un enlace de activación a nuevo@correo.test.", WebUtility.HtmlDecode(html));
+        Assert.Contains("Se envió un correo con sus credenciales de acceso a nuevo@correo.test.", WebUtility.HtmlDecode(html));
     }
 
     [Fact]
@@ -209,7 +209,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         Assert.Contains(mensaje, html);
         Assert.Matches("class=\"alert alert-warning[^\"]*\"[^>]*>" + Regex.Escape(mensaje) + "<", html);
         Assert.DoesNotMatch("alert-success[^>]*>[^<]*creado", html);
-        Assert.DoesNotContain("Se envió un enlace de activación", WebUtility.HtmlDecode(html));
+        Assert.DoesNotContain("Se envió un correo con sus credenciales de acceso", WebUtility.HtmlDecode(html));
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         const string mensaje = "No se pudo enviar el correo. Use Reenviar acceso.";
         Assert.Matches("class=\"alert alert-warning[^\"]*\"[^>]*>" + Regex.Escape(mensaje) + "<", html);
         Assert.DoesNotMatch("alert-success[^>]*>[^<]*correo", html);
-        Assert.DoesNotContain("Se envió un nuevo enlace de activación.", WebUtility.HtmlDecode(html));
+        Assert.DoesNotContain("Se envió un correo con un nuevo acceso temporal.", WebUtility.HtmlDecode(html));
         Assert.Equal(1, llamadasReenviar);
     }
 
@@ -251,7 +251,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, post.StatusCode);
         Assert.Matches("class=\"alert alert-danger[^\"]*\"[^>]*>No puede reenviar el acceso a su propia cuenta\\.<", html);
         Assert.Equal(0, llamadasReenviar);
-        Assert.DoesNotContain("Se envió un nuevo enlace de activación.", WebUtility.HtmlDecode(await cliente.GetStringAsync("/Users")));
+        Assert.DoesNotContain("Se envió un correo con un nuevo acceso temporal.", WebUtility.HtmlDecode(await cliente.GetStringAsync("/Users")));
     }
 
     [Fact]
@@ -269,7 +269,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
             ["__RequestVerificationToken"] = token
         }));
         Assert.Equal(HttpStatusCode.Redirect, okPost.StatusCode);
-        Assert.Contains("Se envió un nuevo enlace de activación.", WebUtility.HtmlDecode(await cliente.GetStringAsync("/Users")));
+        Assert.Contains("Se envió un correo con un nuevo acceso temporal.", WebUtility.HtmlDecode(await cliente.GetStringAsync("/Users")));
 
         reenviarDebeFallar = true;
         var pagina2 = await cliente.GetStringAsync("/Users");

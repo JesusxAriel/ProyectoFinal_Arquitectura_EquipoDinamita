@@ -28,7 +28,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Frontend\PuntoMarket.Frontend.csproj" />
-    <ProjectReference Include="..\Servicio2.Usuarios\src\PuntoMarket.Usuarios.Application\PuntoMarket.Usuarios.Application.csproj" />
   </ItemGroup>
 
 </Project>

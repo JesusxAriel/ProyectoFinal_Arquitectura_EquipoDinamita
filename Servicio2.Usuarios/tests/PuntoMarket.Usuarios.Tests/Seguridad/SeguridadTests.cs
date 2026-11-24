@@ -84,17 +84,13 @@ public sealed class SeguridadTests
     }
 
     [Fact]
-    public void CorreoDeActivacion_IncluyeUsernameYEnlaceSinContrasena()
+    public void CorreoDeCredenciales_IncluyeUsernameYPasswordTemporalEnTextoPlano()
     {
-        var enlace = "http://localhost:5100/Auth/Activar?token=abc";
-
-        var cuerpo = SmtpEnviadorCorreo.ComponerCuerpoActivacion("jperez", enlace, TimeSpan.FromMinutes(60));
+        var cuerpo = SmtpEnviadorCorreo.ComponerCuerpoCredenciales("jperez", "Temporal#123");
 
         Assert.Contains("Nombre de usuario: jperez", cuerpo);
-        Assert.Contains(enlace, cuerpo);
-        Assert.Contains("vence en 1 hora", cuerpo);
-        Assert.Contains("una sola vez", cuerpo);
-        Assert.DoesNotContain("ontraseña temporal", cuerpo);
+        Assert.Contains("Contraseña temporal: Temporal#123", cuerpo);
+        Assert.Contains("cambie esta contraseña", cuerpo);
         Assert.DoesNotContain("<", cuerpo);
     }
 }

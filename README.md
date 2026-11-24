@@ -22,7 +22,7 @@ MySQL 8.4      MySQL 8.4      PostgreSQL 17   MongoDB 8
 | Gateway | Rutas YARP, validación del JWT de Keycloak, políticas por rol, `POST /api/auth/login` y `POST /api/auth/logout` | YARP |
 | Keycloak 26 | Identidad y roles (`Administrador`, `Cajero`); importa el realm `puntomarket` al arrancar | Realm versionado en `docker/keycloak` |
 | Clientes | Directorio de clientes con baja lógica | Hexagonal (puertos y adaptadores), MySQL |
-| Usuarios | Gestión de usuarios, protocolo de nombre de usuario, activación de cuenta por enlace, correo SMTP y sincronización con Keycloak | Clean Architecture, MySQL |
+| Usuarios | Gestión de usuarios, protocolo de nombre de usuario, contraseña temporal, correo SMTP y sincronización con Keycloak | Clean Architecture, MySQL |
 | Productos | Catálogo, categorías, empaques e historial de precios | Hexagonal, PostgreSQL |
 | Proveedores | Directorio de proveedores con baja lógica | Clean Architecture, MongoDB |
 
@@ -69,7 +69,6 @@ Copy-Item .env.example .env
 | Base de Clientes | `CLIENTES_DB_NAME`, `CLIENTES_DB_USER`, `CLIENTES_DB_PASSWORD`, `CLIENTES_DB_ROOT_PASSWORD` |
 | Base de Proveedores | `PROVEEDORES_DB_NAME`, `PROVEEDORES_DB_USER`, `PROVEEDORES_DB_PASSWORD` |
 | Correo SMTP (opcional) | `SMTP_HOST`, `SMTP_PORT`, `SMTP_ENABLE_SSL`, `SMTP_FROM_ADDRESS`, `SMTP_FROM_NAME`, `SMTP_USER_NAME`, `SMTP_PASSWORD` |
-| Activación de cuentas | `ACTIVACION_BASE_URL` (dirección pública del frontend, por defecto `http://localhost:5100`), `ACTIVACION_VIGENCIA_MINUTOS` (por defecto 60) |
 | Puertos publicados (opcionales) | `KEYCLOAK_PUBLISHED_PORT`, `GATEWAY_PUBLISHED_PORT`, `FRONTEND_PUBLISHED_PORT`, `USUARIOS_PUBLISHED_PORT`, `CLIENTES_PUBLISHED_PORT`, `PRODUCTOS_PUBLISHED_PORT`, `PROVEEDORES_PUBLISHED_PORT` y los `*_DB_PUBLISHED_PORT` de cada base |
 
 Reglas importantes:
@@ -77,7 +76,6 @@ Reglas importantes:
 - `PUNTOMARKET_ADMIN_USERNAME` es el mismo valor para Keycloak y para Usuarios; el administrador inicial se crea en ambos.
 - `PUNTOMARKET_ADMIN_PASSWORD` debe cumplir la política: mínimo 8 caracteres, con mayúscula, minúscula, número y carácter especial.
 - El SMTP es opcional. Con las variables vacías el servicio arranca igual: el alta de un usuario responde 201 con `correoEnviado=false` y se puede usar el reenvío de acceso cuando haya correo configurado.
-- `ACTIVACION_BASE_URL` debe ser la dirección con la que los usuarios abren el frontend; el enlace del correo apunta a `ACTIVACION_BASE_URL/Auth/Activar`.
 
 ## Cómo levantar el sistema
 
@@ -124,9 +122,9 @@ Al iniciar por primera vez se crea el administrador definido en `PUNTOMARKET_ADM
 Funcionamiento de las cuentas:
 
 - El nombre de usuario se genera a partir del nombre y apellido (`jperez`, `jperez2`, ...).
-- Al crear un usuario se registra en Keycloak con una contraseña aleatoria que nadie conoce y se envía por correo un enlace de activación de un solo uso. La contraseña nunca viaja por correo ni se guarda en la base de Usuarios.
-- El usuario abre el enlace, define su contraseña dos veces y luego inicia sesión. El enlace vence a los 60 minutos (configurable) y deja de servir al usarse.
-- El administrador puede desactivar y reactivar usuarios, y reenviar el acceso de un usuario activo con `POST /api/usuarios/{id}/reenviar-acceso`: genera un enlace nuevo, invalida los anteriores y la contraseña vigente.
+- La contraseña temporal se genera automáticamente, se fija en Keycloak y se envía por correo. La contraseña no se guarda en la base de Usuarios.
+- En el primer inicio de sesión el usuario debe cambiar su contraseña.
+- El administrador puede desactivar y reactivar usuarios, y reenviar el acceso de un usuario activo con `POST /api/usuarios/{id}/reenviar-acceso`.
 - Las tablas de Usuarios guardan auditoría con el nombre de usuario del token: usuario y fecha de creación, y usuario y fecha de la última modificación.
 
 Rutas principales del Gateway:

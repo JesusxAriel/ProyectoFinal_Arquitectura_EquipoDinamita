@@ -14,9 +14,6 @@ public sealed class LoginModel(IAuthApiAdapter authApi, ISesionUsuario sesion) :
 
     public string? MensajeError { get; private set; }
 
-    [TempData]
-    public string? MensajeActivacion { get; set; }
-
     public void OnGet() => sesion.Cerrar();
 
     public async Task<IActionResult> OnPostAsync()

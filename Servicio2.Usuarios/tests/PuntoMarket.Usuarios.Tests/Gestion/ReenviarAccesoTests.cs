@@ -1,4 +1,3 @@
-using PuntoMarket.Usuarios.Application.Ports.Gestion;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.ReenviarAcceso;
 using PuntoMarket.Usuarios.Domain;
@@ -10,7 +9,6 @@ namespace PuntoMarket.Usuarios.Tests.Gestion;
 
 public class ReenviarAccesoTests
 {
-    private static readonly TimeSpan Vigencia = TimeSpan.FromMinutes(60);
     private const int RolCajero = 2;
     private const string Administrador = "admin";
     private static readonly DateTime Creacion = new(2026, 11, 1, 8, 0, 0, DateTimeKind.Utc);
@@ -26,8 +24,6 @@ public class ReenviarAccesoTests
         GestorDeIdentidadFalso Identidad,
         EnviadorCorreoSpy Correo,
         GeneradorPasswordFalso Password,
-        GeneradorTokenFalso Token,
-        ActivacionRepositorioFalso Activaciones,
         RelojFijo Reloj);
 
     private static Escenario Preparar(Usuario? usuario)
@@ -36,19 +32,16 @@ public class ReenviarAccesoTests
         var identidad = new GestorDeIdentidadFalso();
         var correo = new EnviadorCorreoSpy();
         var password = new GeneradorPasswordFalso();
-        var token = new GeneradorTokenFalso();
-        var activaciones = new ActivacionRepositorioFalso();
         var reloj = new RelojFijo();
 
         return new Escenario(
             new ReenviarAccesoCasoDeUso(
-                repositorio, identidad, correo, password, token, activaciones,
-                new ConfiguracionActivacion(Vigencia), new UsuarioActualStub(Administrador), reloj),
-            repositorio, identidad, correo, password, token, activaciones, reloj);
+                repositorio, identidad, correo, password, new UsuarioActualStub(Administrador), reloj),
+            repositorio, identidad, correo, password, reloj);
     }
 
     [Fact]
-    public async Task Fija_una_contrasena_desconocida_marca_el_cambio_obligatorio_y_envia_el_enlace()
+    public async Task Genera_la_password_la_fija_en_identidad_marca_el_cambio_obligatorio_y_envia_el_correo()
     {
         var escenario = Preparar(UsuarioDePrueba());
 
@@ -64,7 +57,7 @@ public class ReenviarAccesoTests
         Assert.Equal(escenario.Reloj.Ahora, guardado.FechaModificacion);
 
         var envio = Assert.Single(escenario.Correo.Envios);
-        Assert.Equal(("ana@correo.com", "aperez", "token-1", Vigencia), envio);
+        Assert.Equal(("ana@correo.com", "aperez", escenario.Password.Password), envio);
     }
 
     [Fact]
@@ -134,34 +127,6 @@ public class ReenviarAccesoTests
         Assert.True(resultado.IsFail);
         Assert.Equal("El servicio de identidad no está disponible.", resultado.Error);
         Assert.Empty(escenario.Repositorio.Actualizados);
-        Assert.Empty(escenario.Correo.Envios);
-    }
-
-    [Fact]
-    public async Task Genera_un_token_nuevo_que_invalida_el_anterior()
-    {
-        var escenario = Preparar(UsuarioDePrueba());
-        escenario.Activaciones.Usuarios[7] = UsuarioDePrueba();
-        escenario.Activaciones.Tokens[7] = ("hash:token-viejo", escenario.Reloj.Ahora.AddMinutes(30));
-
-        var resultado = await escenario.Caso.EjecutarAsync(new ReenviarAccesoEntrada(7));
-
-        Assert.True(resultado.IsOk);
-        Assert.Equal("hash:token-1", escenario.Activaciones.Tokens[7].Hash);
-        Assert.Equal(escenario.Reloj.Ahora + Vigencia, escenario.Activaciones.Tokens[7].ExpiraUtc);
-        Assert.Null(await escenario.Activaciones.ConsumirToken("hash:token-viejo", escenario.Reloj.Ahora));
-        Assert.NotNull(await escenario.Activaciones.ConsumirToken("hash:token-1", escenario.Reloj.Ahora));
-    }
-
-    [Fact]
-    public async Task Si_no_se_puede_guardar_el_token_devuelve_el_error_y_no_envia_correo()
-    {
-        var escenario = Preparar(UsuarioDePrueba());
-        escenario.Activaciones.ResultadoGuardar = Result.Fail("El usuario ya no existe.");
-
-        var resultado = await escenario.Caso.EjecutarAsync(new ReenviarAccesoEntrada(7));
-
-        Assert.True(resultado.IsFail);
         Assert.Empty(escenario.Correo.Envios);
     }
 
