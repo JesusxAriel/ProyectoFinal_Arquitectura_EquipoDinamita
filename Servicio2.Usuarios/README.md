@@ -27,9 +27,21 @@ La contraseña no se guarda en la tabla `USUARIO`: vive solo en Keycloak. El cam
 | `/api/usuarios/roles` | GET | Administrador |
 | `/api/usuarios/perfil` | GET | Cualquier usuario autenticado |
 | `/api/usuarios/perfil/password` | PUT | Cualquier usuario autenticado |
+| `/api/usuarios/perfil/password/verificacion` | POST | Cualquier usuario autenticado |
 | `/api/salud` | GET | Anónimo |
 
 `GET /api/usuarios` devuelve un arreglo de `UsuarioResponse`, como pide `05_CONTRATOS.md`. Los errores de negocio salen como `400 { "error": "mensaje en español" }`; un identificador que no existe devuelve `404` con la misma forma, y `GET /api/usuarios/roles` se conserva para el combo de roles del Razor aunque no esté en la tabla de rutas del contrato.
+
+## Verificación de la contraseña actual
+
+`POST /api/usuarios/perfil/password/verificacion` recibe `{ "actual": "..." }` y responde `200 { "valida": true }` o `200 { "valida": false }`. Sirve para que la pantalla de cambio de contraseña avise al instante si la contraseña actual es correcta; el cambio real (`PUT /api/usuarios/perfil/password`) la sigue validando en el servidor.
+
+- Verifica solo la cuenta del usuario del token (`IUsuarioActual`); no recibe ni acepta un nombre de usuario.
+- Una contraseña vacía o ausente responde `valida: false` sin consultar a Keycloak. Una contraseña incorrecta no es un error: responde `valida: false`.
+- Si el servicio de identidad no está disponible responde `503 { "error": "..." }`, para que el cliente no confunda una caída con una contraseña incorrecta.
+- La contraseña no se registra en logs.
+- En el Gateway la ruta usa la política `TokenValido` (JWT obligatorio, cualquier rol), igual que el resto de las rutas del perfil.
+- No limita los intentos por sí misma: la protección contra fuerza bruta depende de la configuración de Keycloak.
 
 ## Actualización de un usuario
 

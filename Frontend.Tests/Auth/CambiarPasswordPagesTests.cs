@@ -20,6 +20,15 @@ public sealed class CambiarPasswordPagesTests
             Requests.Add(request);
             return Task.FromResult(Respuesta);
         }
+
+        public Result<bool> RespuestaVerificacion { get; set; } = Result<bool>.Ok(true);
+        public List<string> Verificaciones { get; } = [];
+
+        public Task<Result<bool>> VerificarPasswordActual(string actual)
+        {
+            Verificaciones.Add(actual);
+            return Task.FromResult(RespuestaVerificacion);
+        }
     }
 
     private readonly DefaultHttpContext _context = new() { Session = new FakeSession() };
@@ -152,6 +161,75 @@ public sealed class CambiarPasswordPagesTests
         Assert.Equal("jwt-prueba", TokenProvider.Instance.Obtener(_context.Session));
         VerificarPasswordsLimpias(pagina);
         Assert.Empty(pagina.ModelState);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task VerificarActual_Correcta_ResponderCorrectaYLimpiaLaContrasena(bool obligatorio)
+    {
+        var pagina = CrearPagina(obligatorio, CrearSesion(obligatorio));
+
+        var resultado = Assert.IsType<JsonResult>(await pagina.OnPostVerificarActualAsync());
+
+        Assert.Equal("Actual#12", Assert.Single(_perfil.Verificaciones));
+        Assert.Contains("estado = correcta", resultado.Value!.ToString());
+        Assert.Contains("Contraseña actual correcta.", resultado.Value!.ToString());
+        Assert.Equal("", pagina.PasswordActual);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task VerificarActual_Incorrecta_ResponderConElMensajeDeLaPantalla(bool obligatorio)
+    {
+        _perfil.RespuestaVerificacion = Result<bool>.Ok(false);
+        var pagina = CrearPagina(obligatorio, CrearSesion(obligatorio));
+
+        var resultado = Assert.IsType<JsonResult>(await pagina.OnPostVerificarActualAsync());
+
+        Assert.Contains("estado = incorrecta", resultado.Value!.ToString());
+        Assert.Contains("La contraseña actual no es correcta.", resultado.Value!.ToString());
+        Assert.Null(resultado.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task VerificarActual_Vacia_ResponderIncorrectaSinConsultarAlServidor(bool obligatorio)
+    {
+        var pagina = CrearPagina(obligatorio, CrearSesion(obligatorio));
+        pagina.PasswordActual = "";
+
+        var resultado = Assert.IsType<JsonResult>(await pagina.OnPostVerificarActualAsync());
+
+        Assert.Empty(_perfil.Verificaciones);
+        Assert.Contains("incorrecta", resultado.Value!.ToString());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task VerificarActual_ServicioNoDisponible_Responde503ParaQueElNavegadorNoBloquee(bool obligatorio)
+    {
+        _perfil.RespuestaVerificacion = Result<bool>.Fail(MensajesAuth.ServicioNoDisponible);
+        var pagina = CrearPagina(obligatorio, CrearSesion(obligatorio));
+
+        var resultado = Assert.IsType<JsonResult>(await pagina.OnPostVerificarActualAsync());
+
+        Assert.Equal(503, resultado.StatusCode);
+        Assert.Contains("no-disponible", resultado.Value!.ToString());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task VerificarActual_SinSesion_Responde401SinLlamarAlServidor(bool obligatorio)
+    {
+        var pagina = CrearPagina(obligatorio, CrearSesion(null));
+
+        Assert.IsType<UnauthorizedResult>(await pagina.OnPostVerificarActualAsync());
+        Assert.Empty(_perfil.Verificaciones);
     }
 
     [Theory]

@@ -1,3 +1,5 @@
+using PuntoMarket.Usuarios.Application.UseCases.Gestion;
+
 namespace PuntoMarket.Usuarios.Infrastructure.Identity;
 
 public static class KeycloakMensajes
@@ -7,6 +9,6 @@ public static class KeycloakMensajes
     public const string UsuarioNoEncontrado = "El usuario no existe en el sistema de identidad.";
     public const string RolNoEncontrado = "El rol indicado no existe en el sistema de identidad.";
     public const string PasswordNoCumplePolitica = "La contraseña no cumple la política de seguridad.";
-    public const string PasswordActualIncorrecta = "La contraseña actual es incorrecta.";
+    public const string PasswordActualIncorrecta = MensajesDeGestion.PasswordActualIncorrecta;
     public const string OperacionRechazada = "El sistema de identidad rechazó la operación.";
 }
