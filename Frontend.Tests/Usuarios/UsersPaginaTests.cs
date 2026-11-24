@@ -69,7 +69,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         {
             Interlocked.Increment(ref llamadasReenviar);
             if (reenviarDebeFallar)
-                return Results.Problem(statusCode: StatusCodes.Status502BadGateway, title: "Error de correo");
+                return Results.Json(new { error = "Error de correo" }, statusCode: StatusCodes.Status400BadRequest);
 
             return Results.Json(new
             {
@@ -145,11 +145,11 @@ public sealed class UsersPaginaTests : IAsyncLifetime
 
         var respuesta = await cliente.GetAsync("/Users");
         Assert.Equal(HttpStatusCode.Redirect, respuesta.StatusCode);
-        Assert.Equal("/Index", respuesta.Headers.Location!.OriginalString);
+        Assert.Equal("/", respuesta.Headers.Location!.OriginalString);
 
-        var inicio = await cliente.GetAsync("/Index");
+        var inicio = await cliente.GetAsync("/");
         var htmlInicio = await inicio.Content.ReadAsStringAsync();
-        Assert.Contains("No tiene permisos para ver esta sección.", htmlInicio);
+        Assert.Contains("No tiene permisos para ver esta sección.", WebUtility.HtmlDecode(htmlInicio));
     }
 
     [Fact]
@@ -183,7 +183,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
 
         var html = await cliente.GetStringAsync("/Users");
         Assert.Contains("nuevo.usuario", html);
-        Assert.Contains("Se envió un enlace de activación a nuevo@correo.test.", html);
+        Assert.Contains("Se envió un enlace de activación a nuevo@correo.test.", WebUtility.HtmlDecode(html));
     }
 
     [Fact]
@@ -269,7 +269,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
             ["__RequestVerificationToken"] = token
         }));
         Assert.Equal(HttpStatusCode.Redirect, okPost.StatusCode);
-        Assert.Contains("Se envió un nuevo enlace de activación.", await cliente.GetStringAsync("/Users"));
+        Assert.Contains("Se envió un nuevo enlace de activación.", WebUtility.HtmlDecode(await cliente.GetStringAsync("/Users")));
 
         reenviarDebeFallar = true;
         var pagina2 = await cliente.GetStringAsync("/Users");
@@ -305,6 +305,6 @@ public sealed class UsersPaginaTests : IAsyncLifetime
 
         var html = await post.Content.ReadAsStringAsync();
         Assert.Contains("El campo Nombres es obligatorio.", html);
-        Assert.Contains("Seleccione un rol válido.", html);
+        Assert.Contains("Seleccione un rol válido.", WebUtility.HtmlDecode(html));
     }
 }
