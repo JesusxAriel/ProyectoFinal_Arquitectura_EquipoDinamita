@@ -15,4 +15,11 @@ public sealed record UsuarioResponse(
     bool Activo,
     bool DebeCambiarPassword);
 
+public sealed record CreateUsuarioResponse(
+    int Id,
+    string Username,
+    bool CorreoEnviado);
+
+public sealed record ReenviarAccesoResponse(bool CorreoEnviado);
+
 public sealed record RolResponse(int Id, string Nombre);

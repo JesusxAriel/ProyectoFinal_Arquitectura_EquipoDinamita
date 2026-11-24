@@ -11,34 +11,55 @@ namespace PuntoMarket.Frontend.Pages.Users;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
 {
+    private const string MensajeSinPermisos = "No tiene permisos para ver esta sección.";
+    private const string MensajeCorreoFallido = "No se pudo enviar el correo. Use Reenviar acceso.";
+    private const string MensajeReenviarPropio = "No puede reenviar el acceso a su propia cuenta.";
+
     public IReadOnlyList<UsuarioResponse> Usuarios { get; private set; } = [];
     public IReadOnlyList<RolResponse> Roles { get; private set; } = [];
     public UsuarioResponse? UsuarioEditando { get; private set; }
-    public string? ErrorGestion { get; private set; }
     public bool EsAdministrador => User.IsInRole("Administrador");
+    public string? ErrorGestion { get; private set; }
 
-    [BindProperty, Required, StringLength(150)]
+    [BindProperty]
+    [Required(ErrorMessage = "El campo Nombres es obligatorio.")]
+    [StringLength(150, ErrorMessage = "El campo Nombres no puede superar los 150 caracteres.")]
     public string Nombres { get; set; } = "";
 
-    [BindProperty, Required, StringLength(150)]
+    [BindProperty]
+    [Required(ErrorMessage = "El campo Apellidos es obligatorio.")]
+    [StringLength(150, ErrorMessage = "El campo Apellidos no puede superar los 150 caracteres.")]
     public string Apellidos { get; set; } = "";
 
-    [BindProperty, Required, EmailAddress, StringLength(150)]
+    [BindProperty]
+    [Required(ErrorMessage = "El campo Correo es obligatorio.")]
+    [EmailAddress(ErrorMessage = "El campo Correo no es una dirección de correo válida.")]
+    [StringLength(150, ErrorMessage = "El campo Correo no puede superar los 150 caracteres.")]
     public string Correo { get; set; } = "";
 
-    [BindProperty, Range(1, int.MaxValue)]
+    [BindProperty]
+    [Range(1, int.MaxValue, ErrorMessage = "Seleccione un rol válido.")]
     public int RolId { get; set; }
 
     [BindProperty]
     public int? EditarId { get; set; }
 
     [TempData]
-    public string? MensajeGestion { get; set; }
+    public string? AvisoGestion { get; set; }
+
+    [TempData]
+    public string? AdvertenciaGestion { get; set; }
+
+    private IActionResult RedirigirSinPermisos()
+    {
+        TempData["MensajePermisos"] = MensajeSinPermisos;
+        return RedirectToPage("/Index");
+    }
 
     public async Task<IActionResult> OnGetAsync()
     {
         if (!EsAdministrador)
-            return StatusCode(StatusCodes.Status403Forbidden);
+            return RedirigirSinPermisos();
 
         await CargarAsync();
         return Page();
@@ -47,7 +68,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public async Task<IActionResult> OnPostCrearAsync()
     {
         if (!EsAdministrador)
-            return StatusCode(StatusCodes.Status403Forbidden);
+            return RedirigirSinPermisos();
 
         await CargarAsync();
         ValidarRol();
@@ -61,14 +82,19 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
             return Page();
         }
 
-        MensajeGestion = "Usuario creado correctamente.";
+        var creado = resultado.Value;
+        if (creado.CorreoEnviado)
+            AvisoGestion = $"Usuario {creado.Username} creado. Se envió un enlace de activación a {Correo}.";
+        else
+            AdvertenciaGestion = $"Usuario {creado.Username} creado, pero no se pudo enviar el correo. Use Reenviar acceso.";
+
         return RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostEditarAsync(int id)
     {
         if (!EsAdministrador)
-            return StatusCode(StatusCodes.Status403Forbidden);
+            return RedirigirSinPermisos();
         if (id <= 0)
             return BadRequest();
 
@@ -91,7 +117,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public async Task<IActionResult> OnPostGuardarAsync()
     {
         if (!EsAdministrador)
-            return StatusCode(StatusCodes.Status403Forbidden);
+            return RedirigirSinPermisos();
         if (EditarId is not > 0)
             return BadRequest();
 
@@ -117,14 +143,14 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
             return Page();
         }
 
-        MensajeGestion = "Cambios guardados correctamente.";
+        AvisoGestion = "Cambios guardados correctamente.";
         return RedirectToPage();
     }
 
     public IActionResult OnPostCancelarEdicion()
     {
         if (!EsAdministrador)
-            return StatusCode(StatusCodes.Status403Forbidden);
+            return RedirigirSinPermisos();
 
         return RedirectToPage();
     }
@@ -132,7 +158,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public async Task<IActionResult> OnPostCambiarEstadoAsync(int id, bool activo)
     {
         if (!EsAdministrador)
-            return StatusCode(StatusCodes.Status403Forbidden);
+            return RedirigirSinPermisos();
         if (id <= 0)
             return BadRequest();
 
@@ -160,14 +186,65 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
             return Page();
         }
 
-        MensajeGestion = activo ? "Usuario activado correctamente." : "Usuario desactivado correctamente.";
+        AvisoGestion = activo ? "Usuario activado correctamente." : "Usuario desactivado correctamente.";
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostReenviarAccesoAsync(int id)
+    {
+        if (!EsAdministrador)
+            return RedirigirSinPermisos();
+        if (id <= 0)
+            return BadRequest();
+
+        var usuario = await api.Obtener(id);
+        if (usuario.IsFail)
+        {
+            ErrorGestion = usuario.Error;
+            await CargarAsync();
+            return Page();
+        }
+
+        var usernameActual = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.Equals(usernameActual, usuario.Value.Username, StringComparison.OrdinalIgnoreCase))
+        {
+            ErrorGestion = MensajeReenviarPropio;
+            await CargarAsync();
+            return Page();
+        }
+
+        var resultado = await api.Reenviar(id);
+        if (resultado.IsFail)
+        {
+            ErrorGestion = resultado.Error;
+            await CargarAsync();
+            return Page();
+        }
+
+        if (resultado.Value.CorreoEnviado)
+            AvisoGestion = "Se envió un nuevo enlace de activación.";
+        else
+            AdvertenciaGestion = MensajeCorreoFallido;
+
         return RedirectToPage();
     }
 
     private void ValidarRol()
     {
-        if (!Roles.Any(rol => rol.Id == RolId))
+        if (ModelState.TryGetValue(nameof(RolId), out var entry) && entry.Errors.Count > 0)
+        {
+            entry.Errors.Clear();
+            ModelState.AddModelError(nameof(RolId), "Seleccione un rol válido.");
+            return;
+        }
+
+        if (RolId <= 0 || !Roles.Any(rol => rol.Id == RolId))
+        {
+            if (ModelState.TryGetValue(nameof(RolId), out var rolEntry))
+                rolEntry.Errors.Clear();
+
             ModelState.AddModelError(nameof(RolId), "Seleccione uno de los roles disponibles.");
+        }
     }
 
     private async Task CargarAsync()
