@@ -5,6 +5,7 @@ using PuntoMarket.Usuarios.Api.Contracts;
 using PuntoMarket.Usuarios.Api.Contracts.Perfil;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.CambiarPassword;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.ObtenerPerfil;
+using PuntoMarket.Usuarios.Application.UseCases.Gestion.VerificarPasswordActual;
 
 namespace PuntoMarket.Usuarios.Api.Controllers;
 
@@ -13,7 +14,8 @@ namespace PuntoMarket.Usuarios.Api.Controllers;
 [Authorize]
 public sealed class PerfilController(
     ObtenerPerfilCasoDeUso obtenerPerfil,
-    CambiarPasswordCasoDeUso cambiarPassword) : ControllerBase
+    CambiarPasswordCasoDeUso cambiarPassword,
+    VerificarPasswordActualCasoDeUso verificarPasswordActual) : ControllerBase
 {
     private const string CuerpoRequerido = "Envíe la contraseña actual, la nueva y su confirmación.";
 
@@ -32,6 +34,18 @@ public sealed class PerfilController(
             perfil.Rol,
             perfil.Activo,
             perfil.DebeCambiarPassword));
+    }
+
+    [HttpPost("password/verificacion")]
+    public async Task<ActionResult<VerificarPasswordActualRespuesta>> VerificarPasswordActual(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] VerificarPasswordActualRequest? solicitud)
+    {
+        var resultado = await verificarPasswordActual.EjecutarAsync(
+            new VerificarPasswordActualEntrada(solicitud?.Actual));
+
+        return resultado.IsFail
+            ? StatusCode(StatusCodes.Status503ServiceUnavailable, new ErrorRespuesta(resultado.Error))
+            : Ok(new VerificarPasswordActualRespuesta(resultado.Value.Valida));
     }
 
     [HttpPut("password")]

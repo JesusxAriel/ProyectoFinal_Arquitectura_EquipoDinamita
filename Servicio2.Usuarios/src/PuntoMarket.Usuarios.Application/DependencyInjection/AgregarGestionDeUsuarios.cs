@@ -7,6 +7,7 @@ using PuntoMarket.Usuarios.Application.UseCases.Gestion.ListarUsuarios;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.ObtenerPerfil;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.ObtenerUsuario;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.ReenviarAcceso;
+using PuntoMarket.Usuarios.Application.UseCases.Gestion.VerificarPasswordActual;
 
 namespace PuntoMarket.Usuarios.Application.DependencyInjection;
 
@@ -24,6 +25,7 @@ public static class RegistroGestionDeUsuarios
         servicios.AddScoped<CambiarEstadoUsuarioCasoDeUso>();
         servicios.AddScoped<CambiarPasswordCasoDeUso>();
         servicios.AddScoped<ReenviarAccesoCasoDeUso>();
+        servicios.AddScoped<VerificarPasswordActualCasoDeUso>();
 
         return servicios;
     }
