@@ -29,6 +29,7 @@ public static class AuthServiceCollectionExtensions
         services.AddSingleton<ITokenProvider>(_ => TokenProvider.Instance);
         services.AddScoped<ISesionUsuario, SesionUsuario>();
         services.AddTransient<BearerTokenHandler>();
+        services.AddTransient<SesionExpiradaHandler>();
         services.AddGatewayAdapter<IAuthApiAdapter, AuthApiAdapter>();
         services.AddGatewayAdapter<IPerfilApiAdapter, PerfilApiAdapter>();
         return services;
@@ -43,7 +44,8 @@ public static class AuthServiceCollectionExtensions
             .AddHttpClient<TInterface, TImplementation>((provider, client) =>
                 client.BaseAddress = new Uri(
                     provider.GetRequiredService<IOptions<GatewayApiOptions>>().Value.BaseUrl))
-            .AddHttpMessageHandler<BearerTokenHandler>();
+            .AddHttpMessageHandler<BearerTokenHandler>()
+            .AddHttpMessageHandler<SesionExpiradaHandler>();
     }
 
     public static IApplicationBuilder UseAutenticacionPorSesion(this IApplicationBuilder app)

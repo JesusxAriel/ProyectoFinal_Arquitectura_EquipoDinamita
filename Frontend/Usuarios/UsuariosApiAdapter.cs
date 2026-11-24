@@ -175,10 +175,15 @@ public sealed class UsuariosApiAdapter(HttpClient httpClient) : IUsuariosApiAdap
             return mensaje ?? "Revise los datos ingresados.";
         }
 
+        if (response.StatusCode == HttpStatusCode.Forbidden)
+        {
+            var mensaje = await LeerMensajeErrorAsync(response);
+            return mensaje ?? MensajesAuth.SinPermisos;
+        }
+
         return response.StatusCode switch
         {
             HttpStatusCode.Unauthorized => "Su sesión expiró o no está autenticado. Inicie sesión nuevamente.",
-            HttpStatusCode.Forbidden => MensajesAuth.SinPermisos,
             HttpStatusCode.NotFound => "No se encontró el usuario solicitado.",
             HttpStatusCode.ServiceUnavailable => MensajesAuth.ServicioNoDisponible,
             _ => MensajesAuth.ErrorInesperado

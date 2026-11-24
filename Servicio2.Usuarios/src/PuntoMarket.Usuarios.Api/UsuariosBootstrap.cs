@@ -1,5 +1,6 @@
 using PuntoMarket.Usuarios.Application.DependencyInjection;
 using PuntoMarket.Usuarios.Api.Documentation;
+using PuntoMarket.Usuarios.Api.Filters;
 using PuntoMarket.Usuarios.Api.Security;
 using PuntoMarket.Usuarios.Infrastructure.DependencyInjection;
 namespace PuntoMarket.Usuarios.Api;
@@ -10,7 +11,7 @@ public static class UsuariosBootstrap
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, ApplicationName = typeof(UsuariosBootstrap).Assembly.FullName });
         configurar?.Invoke(builder);
         var documentar = builder.Environment.IsDevelopment();
-        builder.Services.AddControllers();
+        builder.Services.AddControllers(opciones => opciones.Filters.Add<CambioPasswordObligatorioFilter>());
         builder.Services.AgregarGestionDeUsuarios();
         builder.Services.AgregarInfraestructuraGestion(builder.Configuration);
         builder.Services.AgregarAutenticacionKeycloak(builder.Configuration);

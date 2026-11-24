@@ -81,8 +81,8 @@ public sealed class ClientesDatabaseInitializer(
         var datos = new (TipoCliente Tipo, DatosCliente Datos)[]
         {
             (TipoCliente.Generico, ClienteGenericoCreator.DatosPorDefecto),
-            (TipoCliente.Estandar, new DatosCliente("4545451226", "JUAN PEREZ VARGAS", "jperez@gmail.com", "77123456")),
-            (TipoCliente.Estandar, new DatosCliente("1020304050", "MARIA ROJAS LOPEZ", "mrojas@gmail.com", "70711223"))
+            (TipoCliente.Estandar, new DatosCliente("4545451226", "JUAN PÉREZ VARGAS", "jperez@gmail.com", "77123456")),
+            (TipoCliente.Estandar, new DatosCliente("1020304050", "MARÍA ROJAS LÓPEZ", "mrojas@gmail.com", "70711223"))
         };
 
         foreach (var (tipo, dato) in datos)
