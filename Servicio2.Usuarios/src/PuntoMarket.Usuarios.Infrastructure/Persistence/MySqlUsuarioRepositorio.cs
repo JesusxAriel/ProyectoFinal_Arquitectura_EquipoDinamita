@@ -19,7 +19,7 @@ public sealed class MySqlUsuarioRepositorio(ConexionMySql conexionMySql) : IUsua
     private const string IndiceUsername = "uq_usuario_username";
     private const string IndiceCorreo = "uq_usuario_correo";
 
-    internal const string ColumnasUsuario =
+    private const string ColumnasUsuario =
         "id, username, correo, nombreCompleto, idRol, activo, debeCambiarPassword, " +
         "usuarioCreacion, fechaCreacion, usuarioModificacion, fechaModificacion";
 
@@ -77,9 +77,7 @@ public sealed class MySqlUsuarioRepositorio(ConexionMySql conexionMySql) : IUsua
                 activo = @activo,
                 debeCambiarPassword = @debeCambiarPassword,
                 usuarioModificacion = @usuarioModificacion,
-                fechaModificacion = @fechaModificacion,
-                tokenActivacionHash = CASE WHEN @activo = 0 THEN NULL ELSE tokenActivacionHash END,
-                tokenActivacionExpira = CASE WHEN @activo = 0 THEN NULL ELSE tokenActivacionExpira END
+                fechaModificacion = @fechaModificacion
             WHERE id = @id;
             """;
 
@@ -189,7 +187,7 @@ public sealed class MySqlUsuarioRepositorio(ConexionMySql conexionMySql) : IUsua
         return conexion;
     }
 
-    internal static Usuario LeerUsuario(DbDataReader lector) =>
+    private static Usuario LeerUsuario(DbDataReader lector) =>
         Usuario.Reconstruir(
             lector.GetInt32(0),
             lector.GetString(1),

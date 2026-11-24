@@ -1,5 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using PuntoMarket.Usuarios.Application.UseCases.Gestion.ActivarCuenta;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.ActualizarUsuario;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.CambiarEstadoUsuario;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.CambiarPassword;
@@ -25,7 +24,6 @@ public static class RegistroGestionDeUsuarios
         servicios.AddScoped<CambiarEstadoUsuarioCasoDeUso>();
         servicios.AddScoped<CambiarPasswordCasoDeUso>();
         servicios.AddScoped<ReenviarAccesoCasoDeUso>();
-        servicios.AddScoped<ActivarCuentaCasoDeUso>();
 
         return servicios;
     }

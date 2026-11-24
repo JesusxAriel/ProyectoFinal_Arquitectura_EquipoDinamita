@@ -1,4 +1,3 @@
-using PuntoMarket.Usuarios.Application.Ports.Gestion;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.CrearUsuario;
 using PuntoMarket.Usuarios.Domain;
@@ -11,7 +10,6 @@ namespace PuntoMarket.Usuarios.Tests.Gestion;
 
 public class CrearUsuarioTests
 {
-    private static readonly TimeSpan Vigencia = TimeSpan.FromMinutes(60);
     private const int RolCajero = 2;
     private const string Administrador = "admin";
 
@@ -28,8 +26,6 @@ public class CrearUsuarioTests
         GestorDeIdentidadFalso Identidad,
         EnviadorCorreoSpy Correo,
         GeneradorPasswordFalso Password,
-        GeneradorTokenFalso Token,
-        ActivacionRepositorioFalso Activaciones,
         RelojFijo Reloj);
 
     private static Escenario Preparar(bool rolActivo = true, Rol? rol = null)
@@ -41,19 +37,16 @@ public class CrearUsuarioTests
         var identidad = new GestorDeIdentidadFalso();
         var correo = new EnviadorCorreoSpy();
         var password = new GeneradorPasswordFalso();
-        var token = new GeneradorTokenFalso();
-        var activaciones = new ActivacionRepositorioFalso();
         var reloj = new RelojFijo();
 
         return new Escenario(
             new CrearUsuarioCasoDeUso(
-                repositorio, identidad, correo, password, token, activaciones,
-                new ConfiguracionActivacion(Vigencia), new UsuarioActualStub(Administrador), reloj),
-            repositorio, identidad, correo, password, token, activaciones, reloj);
+                repositorio, identidad, correo, password, new UsuarioActualStub(Administrador), reloj),
+            repositorio, identidad, correo, password, reloj);
     }
 
     [Fact]
-    public async Task Crea_el_usuario_con_el_protocolo_lo_registra_en_keycloak_y_envia_el_enlace_de_activacion()
+    public async Task Crea_el_usuario_con_el_protocolo_lo_registra_en_keycloak_y_envia_las_credenciales()
     {
         var escenario = Preparar();
 
@@ -75,7 +68,7 @@ public class CrearUsuarioTests
 
         Assert.Equal([nameof(GestorDeIdentidadFalso.CrearUsuario)], escenario.Identidad.Llamadas);
         Assert.Equal(
-            ("juan@correo.com", "jperez", "token-1", Vigencia),
+            ("juan@correo.com", "jperez", escenario.Password.Password),
             Assert.Single(escenario.Correo.Envios));
     }
 
@@ -94,54 +87,14 @@ public class CrearUsuarioTests
     }
 
     [Fact]
-    public async Task La_contrasena_desconocida_se_genera_una_vez_y_nunca_viaja_al_correo()
+    public async Task La_temporal_se_genera_una_sola_vez_y_es_la_que_viaja_a_keycloak_y_al_correo()
     {
         var escenario = Preparar();
 
         await escenario.Caso.EjecutarAsync(Entrada());
 
         Assert.Equal(1, escenario.Password.Llamadas);
-        var envio = Assert.Single(escenario.Correo.Envios);
-        Assert.DoesNotContain(escenario.Password.Password, envio.Correo + envio.Username + envio.Token);
-    }
-
-    [Fact]
-    public async Task Guarda_solo_el_hash_del_token_con_el_vencimiento_configurado()
-    {
-        var escenario = Preparar();
-
-        var resultado = await escenario.Caso.EjecutarAsync(Entrada());
-
-        var guardado = Assert.Single(escenario.Activaciones.Guardados);
-        Assert.Equal(resultado.Value.Id, guardado.UsuarioId);
-        Assert.Equal("hash:token-1", guardado.Hash);
-        Assert.Equal(escenario.Reloj.Ahora + Vigencia, guardado.ExpiraUtc);
-    }
-
-    [Fact]
-    public async Task Si_el_correo_falla_responde_ok_con_correo_enviado_en_falso_y_conserva_el_token()
-    {
-        var escenario = Preparar();
-        escenario.Correo.Resultado = Result.Fail("Sin servidor SMTP.");
-
-        var resultado = await escenario.Caso.EjecutarAsync(Entrada());
-
-        Assert.True(resultado.IsOk);
-        Assert.False(resultado.Value.CorreoEnviado);
-        Assert.Single(escenario.Activaciones.Guardados);
-    }
-
-    [Fact]
-    public async Task Si_no_se_puede_guardar_el_token_no_envia_correo_y_responde_correo_enviado_en_falso()
-    {
-        var escenario = Preparar();
-        escenario.Activaciones.ResultadoGuardar = Result.Fail("El usuario ya no existe.");
-
-        var resultado = await escenario.Caso.EjecutarAsync(Entrada());
-
-        Assert.True(resultado.IsOk);
-        Assert.False(resultado.Value.CorreoEnviado);
-        Assert.Empty(escenario.Correo.Envios);
+        Assert.Equal(escenario.Password.Password, Assert.Single(escenario.Correo.Envios).PasswordTemporal);
     }
 
     [Fact]

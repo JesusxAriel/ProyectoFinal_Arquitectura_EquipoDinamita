@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using PuntoMarket.Usuarios.Application.Ports.Comunes;
 using PuntoMarket.Usuarios.Application.Ports.Gestion;
-using PuntoMarket.Usuarios.Infrastructure.Activacion;
 using PuntoMarket.Usuarios.Infrastructure.Email;
 using PuntoMarket.Usuarios.Infrastructure.Persistence;
 using PuntoMarket.Usuarios.Infrastructure.Security;
@@ -26,13 +25,8 @@ public static class RegistroInfraestructuraGestion
             () => configuracion.GetConnectionString(NombreCadenaConexion)));
         servicios.TryAddSingleton<IReloj, RelojSistema>();
         servicios.TryAddSingleton<IGeneradorPassword, GeneradorPasswordSeguro>();
-        servicios.TryAddSingleton<IGeneradorTokenActivacion, GeneradorTokenActivacion>();
-        servicios.AddSingleton(_ => ActivacionOpciones.Desde(configuracion));
-        servicios.AddSingleton(proveedor =>
-            new ConfiguracionActivacion(proveedor.GetRequiredService<ActivacionOpciones>().Vigencia));
 
         servicios.AddScoped<IUsuarioRepositorio, MySqlUsuarioRepositorio>();
-        servicios.AddScoped<IActivacionRepositorio, MySqlActivacionRepositorio>();
         servicios.AddSingleton(_ => SmtpEnviadorCorreoOpciones.Desde(configuracion));
         servicios.AddTransient<IEnviadorCorreo, SmtpEnviadorCorreo>();
         servicios.AgregarIdentidadKeycloak(configuracion);
