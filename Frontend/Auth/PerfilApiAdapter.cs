@@ -7,6 +7,8 @@ namespace PuntoMarket.Frontend.Auth;
 
 public sealed class PerfilApiAdapter(HttpClient httpClient) : IPerfilApiAdapter
 {
+    private const string PasswordActualIncorrectaDelServicio = "La contraseña actual es incorrecta.";
+
     public async Task<Result> CambiarPassword(CambiarPasswordRequest request)
     {
         try
@@ -16,7 +18,7 @@ public sealed class PerfilApiAdapter(HttpClient httpClient) : IPerfilApiAdapter
                 ? Result.Ok()
                 : Result.Fail(response.StatusCode switch
                 {
-                    HttpStatusCode.BadRequest => await ReadApiMessage(response)
+                    HttpStatusCode.BadRequest => Normalizar(await ReadApiMessage(response))
                         ?? "No se pudo cambiar la contraseña. Revise los datos ingresados.",
                     HttpStatusCode.Unauthorized => "No se pudo autorizar el cambio de contraseña. Verifique su sesión.",
                     HttpStatusCode.Forbidden => MensajesAuth.SinPermisos,
@@ -33,6 +35,11 @@ public sealed class PerfilApiAdapter(HttpClient httpClient) : IPerfilApiAdapter
             return Result.Fail("El servidor tardó demasiado en responder. Intente nuevamente.");
         }
     }
+
+    private static string? Normalizar(string? mensaje) =>
+        string.Equals(mensaje, PasswordActualIncorrectaDelServicio, StringComparison.Ordinal)
+            ? MensajesAuth.PasswordActualIncorrecta
+            : mensaje;
 
     private static async Task<string?> ReadApiMessage(HttpResponseMessage response)
     {

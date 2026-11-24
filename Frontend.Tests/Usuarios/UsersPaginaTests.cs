@@ -465,7 +465,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         Assert.Contains("data-valmsg-for=\"ApellidoPaterno\"", html);
         Assert.Contains("data-valmsg-for=\"Correo\"", html);
         Assert.Contains("data-valmsg-for=\"RolId\"", html);
-        Assert.Contains("El campo Correo no es una dirección de correo válida.", html);
+        Assert.Contains("Ingrese un correo válido, por ejemplo nombre@dominio.com.", html);
     }
 
     [Fact]
@@ -599,6 +599,23 @@ public sealed class UsersPaginaTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Los_modales_de_crear_y_editar_muestran_los_placeholders_de_ejemplo()
+    {
+        using var cliente = await IniciarSesion("admin");
+
+        var crear = WebUtility.HtmlDecode(await (await Publicar(cliente, "/Users?handler=Nuevo", [])).Content.ReadAsStringAsync());
+        var editar = WebUtility.HtmlDecode(await (await Publicar(cliente, "/Users?handler=Editar", new() { ["id"] = "2" })).Content.ReadAsStringAsync());
+
+        foreach (var html in new[] { crear, editar })
+        {
+            Assert.Contains("placeholder=\"Ej.: María Fernanda\"", html);
+            Assert.Contains("placeholder=\"Ej.: Pérez\"", html);
+            Assert.Contains("placeholder=\"Ej.: Rojas (opcional)\"", html);
+            Assert.Contains("placeholder=\"nombre@dominio.com\"", html);
+        }
+    }
+
+    [Fact]
     public async Task Editar_un_usuario_sin_apellido_materno_deja_ese_campo_vacio()
     {
         using var cliente = await IniciarSesion("admin");
@@ -662,6 +679,56 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         Assert.Empty(creaciones);
     }
 
+    [Theory]
+    [InlineData("correo@gmail")]
+    [InlineData("correo@.com")]
+    [InlineData("correo@dominio..com")]
+    [InlineData("correo.dominio.com")]
+    public async Task Un_correo_sin_dominio_con_punto_se_rechaza_al_crear_y_al_editar(string correo)
+    {
+        using var cliente = await IniciarSesion("admin");
+
+        var crear = WebUtility.HtmlDecode(await (await Publicar(cliente, "/Users?handler=Crear", new()
+        {
+            ["Nombres"] = "Ana", ["ApellidoPaterno"] = "Pérez", ["Correo"] = correo, ["RolId"] = "2"
+        })).Content.ReadAsStringAsync());
+        var editar = WebUtility.HtmlDecode(await (await Publicar(cliente, "/Users?handler=Guardar", new()
+        {
+            ["EditarId"] = "2", ["Nombres"] = "Ana", ["ApellidoPaterno"] = "Pérez", ["Correo"] = correo, ["RolId"] = "2"
+        })).Content.ReadAsStringAsync());
+
+        foreach (var html in new[] { crear, editar })
+        {
+            Assert.Matches(CampoInvalido("input", "Correo"), html);
+            Assert.Matches(MensajeDelCampo("Correo", @"Ingrese un correo válido, por ejemplo nombre@dominio\.com\."), html);
+        }
+
+        Assert.Empty(creaciones);
+        Assert.Empty(actualizaciones);
+    }
+
+    [Theory]
+    [InlineData("nombre@dominio.com")]
+    [InlineData("nombre@dominio.edu.bo")]
+    public async Task Un_correo_con_dominio_y_punto_se_acepta_al_crear_y_al_editar(string correo)
+    {
+        using var cliente = await IniciarSesion("admin");
+
+        var crear = await Publicar(cliente, "/Users?handler=Crear", new()
+        {
+            ["Nombres"] = "Ana", ["ApellidoPaterno"] = "Pérez", ["Correo"] = correo, ["RolId"] = "2"
+        });
+        var editar = await Publicar(cliente, "/Users?handler=Guardar", new()
+        {
+            ["EditarId"] = "2", ["Nombres"] = "Ana", ["ApellidoPaterno"] = "Pérez", ["Correo"] = correo, ["RolId"] = "2"
+        });
+
+        Assert.Equal(HttpStatusCode.Redirect, crear.StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, editar.StatusCode);
+        Assert.Equal(correo, Assert.Single(creaciones).GetProperty("correo").GetString());
+        Assert.Equal(correo, Assert.Single(actualizaciones).Correo);
+    }
+
     [Fact]
     public async Task Los_errores_al_guardar_reabren_el_modal_de_edicion_con_los_datos_y_el_id()
     {
@@ -679,7 +746,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         Assert.Matches(ValorDelCampo("ApellidoPaterno", "Uno"), html);
         Assert.Matches(ValorDelCampo("Correo", "no-es-correo"), html);
         Assert.Matches(MensajeDelCampo("Nombres", @"El campo Nombres es obligatorio\."), html);
-        Assert.Matches(MensajeDelCampo("Correo", @"El campo Correo no es una dirección de correo válida\."), html);
+        Assert.Matches(MensajeDelCampo("Correo", @"Ingrese un correo válido, por ejemplo nombre@dominio\.com\."), html);
         Assert.Empty(actualizaciones);
     }
 

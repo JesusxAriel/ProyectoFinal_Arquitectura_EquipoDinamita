@@ -71,9 +71,6 @@ public sealed class CambiarPasswordPagesTests
         Assert.Equal("", pagina.PasswordActual);
         Assert.Equal("", pagina.PasswordNueva);
         Assert.Equal("", pagina.RepetirPasswordNueva);
-        Assert.False(pagina.ModelState.ContainsKey(nameof(pagina.PasswordActual)));
-        Assert.False(pagina.ModelState.ContainsKey(nameof(pagina.PasswordNueva)));
-        Assert.False(pagina.ModelState.ContainsKey(nameof(pagina.RepetirPasswordNueva)));
     }
 
     [Theory]
@@ -88,10 +85,31 @@ public sealed class CambiarPasswordPagesTests
 
         Assert.IsType<PageResult>(await Post(pagina));
 
+        Assert.False(pagina.ModelState.ContainsKey(string.Empty));
         Assert.Equal("La nueva contraseña debe tener al menos 8 caracteres.",
-            Assert.Single(pagina.ModelState[string.Empty]!.Errors).ErrorMessage);
+            Assert.Single(pagina.ModelState[nameof(pagina.PasswordNueva)]!.Errors).ErrorMessage);
         Assert.Empty(_perfil.Requests);
         Assert.Equal(anterior, sesion.Actual);
+        VerificarPasswordsLimpias(pagina);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task AdapterFail_PasswordActualIncorrecta_SeMuestraBajoSuCampoSinCerrarSesion(bool obligatorio)
+    {
+        var sesion = CrearSesion(obligatorio);
+        var anterior = sesion.Actual;
+        _perfil.Respuesta = Result.Fail(MensajesAuth.PasswordActualIncorrecta);
+        var pagina = CrearPagina(obligatorio, sesion);
+
+        Assert.IsType<PageResult>(await Post(pagina));
+
+        Assert.Equal("La contraseña actual no es correcta.",
+            Assert.Single(pagina.ModelState[nameof(pagina.PasswordActual)]!.Errors).ErrorMessage);
+        Assert.False(pagina.ModelState.ContainsKey(string.Empty));
+        Assert.Equal(anterior, sesion.Actual);
+        Assert.Equal("jwt-prueba", TokenProvider.Instance.Obtener(_context.Session));
         VerificarPasswordsLimpias(pagina);
     }
 

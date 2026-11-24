@@ -56,6 +56,32 @@ public sealed class SmtpOpcionalTests
     }
 
     [Fact]
+    public void SinConfiguracionDelFrontend_ElEnlaceDeLoginUsaLaDireccionPorDefecto()
+    {
+        using var proveedor = Construir(SmtpVacio());
+
+        var opciones = proveedor.GetRequiredService<SmtpEnviadorCorreoOpciones>();
+
+        Assert.Equal("http://localhost:5100", opciones.FrontendBaseUrl);
+        Assert.Equal("http://localhost:5100/Auth/Login", opciones.UrlLogin);
+    }
+
+    [Theory]
+    [InlineData("https://puntomarket.ejemplo.test", "https://puntomarket.ejemplo.test/Auth/Login")]
+    [InlineData("https://puntomarket.ejemplo.test/", "https://puntomarket.ejemplo.test/Auth/Login")]
+    [InlineData("  http://localhost:5100  ", "http://localhost:5100/Auth/Login")]
+    public void ConFrontendBaseUrl_ElEnlaceDeLoginSeArmaSinBarrasDuplicadas(string baseUrl, string esperado)
+    {
+        var valores = SmtpVacio();
+        valores["Frontend:BaseUrl"] = baseUrl;
+        using var proveedor = Construir(valores);
+
+        var opciones = proveedor.GetRequiredService<SmtpEnviadorCorreoOpciones>();
+
+        Assert.Equal(esperado, opciones.UrlLogin);
+    }
+
+    [Fact]
     public void ConSmtpCompleto_LeeLosValoresConfigurados()
     {
         var valores = SmtpVacio();

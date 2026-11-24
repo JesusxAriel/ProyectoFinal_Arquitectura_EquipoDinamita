@@ -28,7 +28,7 @@ public sealed class SmtpEnviadorCorreo(SmtpEnviadorCorreoOpciones opciones) : IE
         try
         {
             using var mensaje = CrearMensaje(
-                correo, AsuntoCredenciales, ComponerCuerpoCredenciales(username, passwordTemporal));
+                correo, AsuntoCredenciales, ComponerCuerpoCredenciales(username, passwordTemporal, opciones.UrlLogin));
             await EnviarAsync(mensaje, cancellationToken);
             return Result.Ok();
         }
@@ -38,12 +38,14 @@ public sealed class SmtpEnviadorCorreo(SmtpEnviadorCorreoOpciones opciones) : IE
         }
     }
 
-    public static string ComponerCuerpoCredenciales(string username, string passwordTemporal) =>
+    public static string ComponerCuerpoCredenciales(string username, string passwordTemporal, string urlLogin) =>
         $"""
         Se creó una cuenta para usted en PuntoMarket.
 
         Nombre de usuario: {username}
         Contraseña temporal: {passwordTemporal}
+
+        Puede iniciar sesión aquí: {urlLogin}
 
         Al iniciar sesión por primera vez, el sistema le pedirá que cambie esta contraseña.
         Por su seguridad, no comparta estos datos con otras personas.

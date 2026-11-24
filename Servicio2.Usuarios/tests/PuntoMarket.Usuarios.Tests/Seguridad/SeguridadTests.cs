@@ -86,11 +86,21 @@ public sealed class SeguridadTests
     [Fact]
     public void CorreoDeCredenciales_IncluyeUsernameYPasswordTemporalEnTextoPlano()
     {
-        var cuerpo = SmtpEnviadorCorreo.ComponerCuerpoCredenciales("jperez", "Temporal#123");
+        var cuerpo = SmtpEnviadorCorreo.ComponerCuerpoCredenciales(
+            "jperez", "Temporal#123", "http://localhost:5100/Auth/Login");
 
         Assert.Contains("Nombre de usuario: jperez", cuerpo);
         Assert.Contains("Contraseña temporal: Temporal#123", cuerpo);
         Assert.Contains("cambie esta contraseña", cuerpo);
         Assert.DoesNotContain("<", cuerpo);
+    }
+
+    [Fact]
+    public void CorreoDeCredenciales_IncluyeElEnlaceParaIniciarSesion()
+    {
+        var cuerpo = SmtpEnviadorCorreo.ComponerCuerpoCredenciales(
+            "jperez", "Temporal#123", "https://puntomarket.ejemplo.test/Auth/Login");
+
+        Assert.Contains("Puede iniciar sesión aquí: https://puntomarket.ejemplo.test/Auth/Login", cuerpo);
     }
 }

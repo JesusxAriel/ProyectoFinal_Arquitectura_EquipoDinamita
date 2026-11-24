@@ -155,7 +155,7 @@
                             <div class="row g-3">
                                 <div class="col-12">
                                     <label asp-for="Nombres" class="form-label">Nombres</label>
-                                    <input asp-for="Nombres" class="@Model.ClaseCampo(nameof(Model.Nombres))" maxlength="100" autocomplete="given-name" required />
+                                    <input asp-for="Nombres" class="@Model.ClaseCampo(nameof(Model.Nombres))" maxlength="100" autocomplete="given-name" placeholder="Ej.: María Fernanda" required />
                                     <span asp-validation-for="Nombres" class="invalid-feedback"></span>
                                 </div>
                                 <div class="col-md-6">
@@ -170,7 +170,7 @@
                                 </div>
                                 <div class="col-12">
                                     <label asp-for="Correo" class="form-label">Correo</label>
-                                    <input asp-for="Correo" type="email" class="@Model.ClaseCampo(nameof(Model.Correo))" maxlength="150" autocomplete="email" required />
+                                    <input asp-for="Correo" type="email" class="@Model.ClaseCampo(nameof(Model.Correo))" maxlength="150" autocomplete="email" placeholder="nombre@dominio.com" required />
                                     <span asp-validation-for="Correo" class="invalid-feedback"></span>
                                 </div>
                                 <div class="col-12">

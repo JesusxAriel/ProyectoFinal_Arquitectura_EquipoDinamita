@@ -18,6 +18,11 @@ public abstract class CambiarPasswordPageModel(ISesionUsuario sesion, IPerfilApi
     [BindProperty]
     public string RepetirPasswordNueva { get; set; } = "";
 
+    public string ClaseCampo(string campo) =>
+        ModelState.TryGetValue(campo, out var entrada) && entrada.Errors.Count > 0
+            ? "form-control is-invalid"
+            : "form-control";
+
     protected async Task<IActionResult> ProcesarCambioPasswordAsync()
     {
         var request = new CambiarPasswordRequest(PasswordActual, PasswordNueva, RepetirPasswordNueva);
@@ -26,17 +31,22 @@ public abstract class CambiarPasswordPageModel(ISesionUsuario sesion, IPerfilApi
         PasswordNueva = "";
         RepetirPasswordNueva = "";
 
-        var validacion = ValidadorPassword.Validar(request.Actual, request.Nueva, request.Confirmacion);
-        if (validacion.IsFail)
+        var errores = ValidadorPassword.ValidarCampos(request.Actual, request.Nueva, request.Confirmacion);
+        if (errores.Count > 0)
         {
-            ModelState.AddModelError(string.Empty, validacion.Error);
+            foreach (var error in errores)
+                ModelState.AddModelError(error.Campo, error.Mensaje);
+
             return Page();
         }
 
         var resultado = await perfilApi.CambiarPassword(request);
         if (resultado.IsFail)
         {
-            ModelState.AddModelError(string.Empty, resultado.Error);
+            var campo = resultado.Error == MensajesAuth.PasswordActualIncorrecta
+                ? ValidadorPassword.CampoActual
+                : string.Empty;
+            ModelState.AddModelError(campo, resultado.Error);
             return Page();
         }
 
