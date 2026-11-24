@@ -18,9 +18,12 @@ CREATE TABLE IF NOT EXISTS USUARIO (
     fechaCreacion DATETIME NOT NULL,
     usuarioModificacion VARCHAR(50) NULL,
     fechaModificacion DATETIME NULL,
+    tokenActivacionHash CHAR(64) NULL,
+    tokenActivacionExpira DATETIME NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uq_usuario_username (username),
     UNIQUE KEY uq_usuario_correo (correo),
+    UNIQUE KEY uq_usuario_token_activacion (tokenActivacionHash),
     CONSTRAINT fk_usuario_rol FOREIGN KEY (idRol) REFERENCES ROL (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
