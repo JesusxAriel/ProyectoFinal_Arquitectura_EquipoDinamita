@@ -90,13 +90,14 @@ public sealed class UsersPaginaTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task El_cajero_recibe_403_y_no_ve_el_listado()
+    public async Task El_cajero_es_redirigido_a_inicio_y_no_ve_el_listado()
     {
         using var cliente = await IniciarSesion("cajero");
 
         var respuesta = await cliente.GetAsync("/Users");
 
-        Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, respuesta.StatusCode);
+        Assert.Equal("/Index", respuesta.Headers.Location!.OriginalString);
         Assert.DoesNotContain("admin@correo.test", await respuesta.Content.ReadAsStringAsync());
     }
 

@@ -221,6 +221,13 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
 
     private void ValidarRol()
     {
+        if (ModelState.TryGetValue(nameof(RolId), out var entry) && entry.Errors.Count > 0)
+        {
+            entry.Errors.Clear();
+            ModelState.AddModelError(nameof(RolId), "Seleccione un rol válido.");
+            return;
+        }
+
         if (!Roles.Any(rol => rol.Id == RolId))
             ModelState.AddModelError(nameof(RolId), "Seleccione uno de los roles disponibles.");
     }
