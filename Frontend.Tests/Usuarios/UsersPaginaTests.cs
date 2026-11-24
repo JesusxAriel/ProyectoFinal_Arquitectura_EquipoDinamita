@@ -281,7 +281,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         var html = await cliente.GetStringAsync("/Users");
         const string mensaje = "Usuario nuevo.usuario creado, pero no se pudo enviar el correo. Use Reenviar acceso.";
         Assert.Contains(mensaje, html);
-        Assert.Matches("class=\"alert alert-warning[^\"]*\"[^>]*>" + Regex.Escape(mensaje) + "<", html);
+        Assert.Matches("class=\"alert alert-warning[^\"]*\"[^>]*>\\s*" + Regex.Escape(mensaje) + "\\s*<button", html);
         Assert.DoesNotMatch("alert-success[^>]*>[^<]*creado", html);
         Assert.DoesNotContain("Se envió un correo con sus credenciales de acceso", WebUtility.HtmlDecode(html));
     }
@@ -303,7 +303,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
 
         var html = await cliente.GetStringAsync("/Users");
         const string mensaje = "No se pudo enviar el correo. Use Reenviar acceso.";
-        Assert.Matches("class=\"alert alert-warning[^\"]*\"[^>]*>" + Regex.Escape(mensaje) + "<", html);
+        Assert.Matches("class=\"alert alert-warning[^\"]*\"[^>]*>\\s*" + Regex.Escape(mensaje) + "\\s*<button", html);
         Assert.DoesNotMatch("alert-success[^>]*>[^<]*correo", html);
         Assert.DoesNotContain("Se envió un correo con un nuevo acceso temporal.", WebUtility.HtmlDecode(html));
         Assert.Equal(1, llamadasReenviar);
@@ -323,7 +323,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
 
         var html = await post.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.OK, post.StatusCode);
-        Assert.Matches("class=\"alert alert-danger[^\"]*\"[^>]*>No puede reenviar el acceso a su propia cuenta\\.<", html);
+        Assert.Matches("class=\"alert alert-danger[^\"]*\"[^>]*>\\s*No puede reenviar el acceso a su propia cuenta\\.\\s*<button", html);
         Assert.Equal(0, llamadasReenviar);
         Assert.DoesNotContain("Se envió un correo con un nuevo acceso temporal.", WebUtility.HtmlDecode(await cliente.GetStringAsync("/Users")));
     }
@@ -359,6 +359,99 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         var despues = await cliente.GetAsync("/Users");
         Assert.Equal(HttpStatusCode.OK, despues.StatusCode);
         Assert.DoesNotContain("Error de correo", await despues.Content.ReadAsStringAsync());
+    }
+
+    private static string CampoInvalido(string etiqueta, string nombre) =>
+        "<" + etiqueta + @"(?=[^>]*\bname=""" + nombre + @""")[^>]*\bclass=""[^""]*\bis-invalid\b[^""]*""";
+
+    private static string MensajeDelCampo(string nombre, string mensaje) =>
+        @"<span(?=[^>]*\bdata-valmsg-for=""" + nombre + @""")(?=[^>]*\bclass=""[^""]*\binvalid-feedback\b[^""]*"")[^>]*>" + mensaje + "</span>";
+
+    private static async Task<HttpResponseMessage> Publicar(HttpClient cliente, string ruta, Dictionary<string, string> campos)
+    {
+        var token = ExtraerToken(await cliente.GetStringAsync("/Users"));
+        campos["__RequestVerificationToken"] = token;
+        return await cliente.PostAsync(ruta, new FormUrlEncodedContent(campos));
+    }
+
+    [Fact]
+    public async Task El_aviso_de_exito_se_cierra_solo_a_los_6_segundos_y_tiene_boton_de_cerrar()
+    {
+        correoEnviadoRespuesta = true;
+        using var cliente = await IniciarSesion("admin");
+        await Publicar(cliente, "/Users?handler=Crear", new()
+        {
+            ["Nombres"] = "Nuevo", ["Apellidos"] = "Usuario", ["Correo"] = "nuevo@correo.test", ["RolId"] = "2"
+        });
+
+        var html = await cliente.GetStringAsync("/Users");
+
+        Assert.Matches("<div class=\"alert alert-success[^\"]*alert-dismissible[^\"]*fade show[^\"]*\" role=\"status\" data-aviso-ms=\"6000\">", html);
+        Assert.Matches("data-bs-dismiss=\"alert\" aria-label=\"Cerrar aviso\"", html);
+    }
+
+    [Fact]
+    public async Task Los_avisos_de_advertencia_y_de_error_duran_10_segundos_y_conservan_su_rol()
+    {
+        correoEnviadoRespuesta = false;
+        using var cliente = await IniciarSesion("admin");
+        await Publicar(cliente, "/Users?handler=Crear", new()
+        {
+            ["Nombres"] = "Nuevo", ["Apellidos"] = "Usuario", ["Correo"] = "nuevo@correo.test", ["RolId"] = "2"
+        });
+        var advertencia = await cliente.GetStringAsync("/Users");
+        var error = await (await Publicar(cliente, "/Users?handler=ReenviarAcceso", new() { ["id"] = "1" })).Content.ReadAsStringAsync();
+
+        Assert.Matches("<div class=\"alert alert-warning[^\"]*alert-dismissible[^\"]*fade show[^\"]*\" role=\"status\" data-aviso-ms=\"10000\">", advertencia);
+        Assert.Matches("<div class=\"alert alert-danger[^\"]*alert-dismissible[^\"]*fade show[^\"]*\" role=\"alert\" data-aviso-ms=\"10000\">", error);
+        Assert.Contains("data-bs-dismiss=\"alert\"", advertencia);
+        Assert.Contains("data-bs-dismiss=\"alert\"", error);
+    }
+
+    [Fact]
+    public async Task Sin_avisos_la_pagina_no_dibuja_alertas_ni_campos_con_error()
+    {
+        using var cliente = await IniciarSesion("admin");
+
+        var html = await cliente.GetStringAsync("/Users");
+
+        Assert.DoesNotContain("data-aviso-ms", html);
+        Assert.DoesNotContain("is-invalid", html);
+    }
+
+    [Fact]
+    public async Task Cada_campo_con_error_lleva_is_invalid_y_su_mensaje_enlazado_por_nombre()
+    {
+        using var cliente = await IniciarSesion("admin");
+
+        var respuesta = await Publicar(cliente, "/Users?handler=Crear", new()
+        {
+            ["Nombres"] = "", ["Apellidos"] = "", ["Correo"] = "no-es-un-correo", ["RolId"] = "0"
+        });
+        var html = WebUtility.HtmlDecode(await respuesta.Content.ReadAsStringAsync());
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.Matches(CampoInvalido("input", "Nombres"), html);
+        Assert.Matches(CampoInvalido("input", "Apellidos"), html);
+        Assert.Matches(CampoInvalido("input", "Correo"), html);
+        Assert.Matches(CampoInvalido("select", "RolId"), html);
+        Assert.Matches(MensajeDelCampo("Nombres", @"El campo Nombres es obligatorio\."), html);
+        Assert.Contains("data-valmsg-for=\"Apellidos\"", html);
+        Assert.Contains("data-valmsg-for=\"Correo\"", html);
+        Assert.Contains("data-valmsg-for=\"RolId\"", html);
+        Assert.Contains("El campo Correo no es una dirección de correo válida.", html);
+    }
+
+    [Fact]
+    public async Task La_pagina_carga_los_scripts_de_limpieza_y_de_avisos_y_su_hoja_de_estilos()
+    {
+        using var cliente = await IniciarSesion("admin");
+
+        var html = await cliente.GetStringAsync("/Users");
+
+        Assert.Contains("/js/limpiar-validacion.mjs", html);
+        Assert.Contains("/js/avisos-temporales.mjs", html);
+        Assert.Contains("/css/usuarios.css", html);
     }
 
     [Fact]

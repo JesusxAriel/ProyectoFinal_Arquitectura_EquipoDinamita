@@ -50,6 +50,11 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     [TempData]
     public string? AdvertenciaGestion { get; set; }
 
+    public string ClaseCampo(string campo, string clase = "form-control") =>
+        ModelState.TryGetValue(campo, out var entrada) && entrada.Errors.Count > 0
+            ? clase + " is-invalid"
+            : clase;
+
     private IActionResult RedirigirSinPermisos()
     {
         TempData["MensajePermisos"] = MensajeSinPermisos;
