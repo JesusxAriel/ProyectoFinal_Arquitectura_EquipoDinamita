@@ -1,7 +1,4 @@
 <Solution>
-  <Folder Name="/ApiGateway/">
-    <Project Path="ApiGateway/ApiGateway.Demo/ApiGateway.Demo.csproj" />
-  </Folder>
   <Folder Name="/DevIdentity/">
     <Project Path="DevIdentity/DevIdentity.Demo/DevIdentity.Demo.csproj" />
   </Folder>
@@ -45,8 +42,5 @@
     <Project Path="Servicio4.Proveedores/Proveedores.Domain/Proveedores.Domain.csproj" />
     <Project Path="Servicio4.Proveedores/Proveedores.Infrastructure/Proveedores.Infrastructure.csproj" />
     <Project Path="Servicio4.Proveedores/Proveedores.Tests/Proveedores.Tests.csproj" />
-  </Folder>
-  <Folder Name="/Tests/">
-    <Project Path="Tests/Demo.Tests/Demo.Tests.csproj" />
   </Folder>
 </Solution>

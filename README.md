@@ -1,83 +1,173 @@
-# PuntoMarket — integración de microservicios
+# PuntoMarket
 
-EC3 Productos: se completa Servicio3.Productos con PostgreSQL, CRUD hexagonal, JWT, historial transaccional de precios y pantalla /Productos en el frontend común. Contratos, supuestos, patrones, comandos y evidencia en [README de Productos](Servicio3.Productos/README.md). Se conserva el Gateway existente y no se activa la integración inversa de bajas de Proveedores. El flujo conjunto real con Keycloak permanece pendiente de verificación en este workspace.
+Sistema de punto de venta para un minimarket, construido como microservicios sobre .NET 10. Un frontend Razor Pages se comunica únicamente con un Gateway, que valida el JWT emitido por Keycloak y enruta hacia cuatro microservicios independientes, cada uno con su propia base de datos.
 
-La rama `micro-proveedor` integra localmente `origin/main` (3eefb83) conservando Proveedores en **Servicio4.Proveedores**. El entorno común es la referencia del grupo; la demostración sigue separada y no lo sustituye.
-
-## Estructura
+## Arquitectura
 
 ```text
-Gateway/ y Gateway.Tests/           YARP común, Keycloak y login
-Frontend/ y Frontend.Tests/         Razor común con sesión
-Servicio1.Clientes/                 Servicio y base propios
-Servicio2.Usuarios/                 API, MySQL, Keycloak, SMTP y pruebas
-Servicio3.Productos/                Servicio y base propios
-Servicio4.Proveedores/              Domain, Application, Infrastructure, API, Tests
-ApiGateway/ApiGateway.Demo/         Gateway temporal
-Frontend/Frontend.Demo/             Interfaz temporal completa de Proveedores
-DevIdentity/DevIdentity.Demo/        Emisor temporal, solo demo
-Proyecto_Microservicios.slnx         Los 25 proyectos comunes y demo
+Navegador ──► Frontend (Razor Pages, sesión)
+                  │  HTTP + JWT
+                  ▼
+              Gateway (YARP) ──► Keycloak (realm puntomarket)
+                  │
+   ┌──────────────┼───────────────┬────────────────┐
+   ▼              ▼               ▼                ▼
+Clientes       Usuarios       Productos       Proveedores
+MySQL 8.4      MySQL 8.4      PostgreSQL 17   MongoDB 8
 ```
 
-## Entorno común (principal)
+| Componente | Responsabilidad | Arquitectura |
+|---|---|---|
+| Frontend | Interfaz Razor Pages con sesión de servidor; consume solo el Gateway mediante adaptadores HTTP | Razor Pages, adaptadores y `Result` |
+| Gateway | Rutas YARP, validación del JWT de Keycloak, políticas por rol, `POST /api/auth/login` y `POST /api/auth/logout` | YARP |
+| Keycloak 26 | Identidad y roles (`Administrador`, `Cajero`); importa el realm `puntomarket` al arrancar | Realm versionado en `docker/keycloak` |
+| Clientes | Directorio de clientes con baja lógica | Hexagonal (puertos y adaptadores), MySQL |
+| Usuarios | Gestión de usuarios, protocolo de nombre de usuario, contraseña temporal, correo SMTP y sincronización con Keycloak | Clean Architecture, MySQL |
+| Productos | Catálogo, categorías, empaques e historial de precios | Hexagonal, PostgreSQL |
+| Proveedores | Directorio de proveedores con baja lógica | Clean Architecture, MongoDB |
 
-`docker-compose.yml` conserva los servicios, nombres y volúmenes de main. Revisar `.env.example` y completar un `.env` privado con las variables comunes; **no sobrescribir un .env existente**. El .env anterior de la demo no contiene necesariamente estas variables.
+Cada microservicio valida por sí mismo el JWT (firma, emisor, audiencia y vigencia) y aplica sus permisos. Las bases de datos no se comparten: la integración entre servicios va solo por HTTP. Las validaciones de negocio devuelven `Result` y no lanzan excepciones; las excepciones quedan para fallos técnicos.
+
+Patrones aplicados en los servicios: Result, Adapter, Factory Method y Singleton por inyección de dependencias (por ejemplo, el cliente de base de datos).
+
+## Estructura de carpetas
+
+```text
+Frontend/                 Razor Pages (PuntoMarket.Frontend)
+Frontend.Tests/           Pruebas del frontend
+Gateway/                  Gateway YARP y login contra Keycloak
+Gateway.Tests/            Pruebas del Gateway
+Servicio1.Clientes/       Domain, Application, Adapters.In.Api, Adapters.Out.Persistence y tests
+Servicio2.Usuarios/       Domain, Application, Infrastructure, Api y tests
+Servicio3.Productos/      Domain, Application, Adapters.In.Api, Adapters.Out.Persistence y tests
+Servicio4.Proveedores/    Domain, Application, Infrastructure, API y Tests
+docker/keycloak/          Realm de Keycloak importado al arrancar
+scripts/                  Pruebas JavaScript de los módulos del frontend
+docker-compose.yml        Los once contenedores del sistema
+.env.example              Plantilla de variables de entorno
+Proyecto_Microservicios.slnx   Solución con todos los proyectos
+```
+
+## Requisitos
+
+- .NET SDK 10
+- Docker Desktop con motor Linux y Compose
+- Node.js (solo para las pruebas JavaScript)
+
+## Variables de entorno
+
+Copie la plantilla y complete los valores. El archivo `.env` es privado y no se versiona.
+
+```powershell
+Copy-Item .env.example .env
+```
+
+| Grupo | Variables |
+|---|---|
+| Keycloak | `KEYCLOAK_ADMIN_USER`, `KEYCLOAK_ADMIN_PASSWORD` |
+| Administrador inicial | `PUNTOMARKET_ADMIN_USERNAME`, `PUNTOMARKET_ADMIN_PASSWORD`, `PUNTOMARKET_ADMIN_EMAIL`, `PUNTOMARKET_ADMIN_NOMBRE` |
+| Base de Usuarios | `USUARIOS_DB_NAME`, `USUARIOS_DB_USER`, `USUARIOS_DB_PASSWORD`, `USUARIOS_DB_ROOT_PASSWORD` |
+| Base de Productos | `PRODUCTOS_DB_NAME`, `PRODUCTOS_DB_USER`, `PRODUCTOS_DB_PASSWORD` |
+| Base de Clientes | `CLIENTES_DB_NAME`, `CLIENTES_DB_USER`, `CLIENTES_DB_PASSWORD`, `CLIENTES_DB_ROOT_PASSWORD` |
+| Base de Proveedores | `PROVEEDORES_DB_NAME`, `PROVEEDORES_DB_USER`, `PROVEEDORES_DB_PASSWORD` |
+| Correo SMTP (opcional) | `SMTP_HOST`, `SMTP_PORT`, `SMTP_ENABLE_SSL`, `SMTP_FROM_ADDRESS`, `SMTP_FROM_NAME`, `SMTP_USER_NAME`, `SMTP_PASSWORD` |
+| Puertos publicados (opcionales) | `KEYCLOAK_PUBLISHED_PORT`, `GATEWAY_PUBLISHED_PORT`, `FRONTEND_PUBLISHED_PORT`, `USUARIOS_PUBLISHED_PORT`, `CLIENTES_PUBLISHED_PORT`, `PRODUCTOS_PUBLISHED_PORT`, `PROVEEDORES_PUBLISHED_PORT` y los `*_DB_PUBLISHED_PORT` de cada base |
+
+Reglas importantes:
+
+- `PUNTOMARKET_ADMIN_USERNAME` es el mismo valor para Keycloak y para Usuarios; el administrador inicial se crea en ambos.
+- `PUNTOMARKET_ADMIN_PASSWORD` debe cumplir la política: mínimo 8 caracteres, con mayúscula, minúscula, número y carácter especial.
+- El SMTP es opcional. Con las variables vacías el servicio arranca igual: el alta de un usuario responde 201 con `correoEnviado=false` y se puede usar el reenvío de acceso cuando haya correo configurado.
+
+## Cómo levantar el sistema
 
 ```powershell
 docker compose config --quiet
-# Arranque futuro, tras revisar credenciales, puertos y bases:
 docker compose up --build -d
+docker compose ps
 ```
 
-Puertos predeterminados: frontend 5100, Gateway 5000, Keycloak 8180, Usuarios 5003, Clientes 5001, Productos 5004 y Proveedores 5005. MongoDB común se publica en 27018. Keycloak proporciona la audiencia `proveedores-api`; cada API conserva su validación.
+Espere a que los once contenedores estén `healthy`. Los servicios esperan a sus bases de datos y a Keycloak antes de iniciar.
 
-El frontend común tiene login/sesión, pero todavía no incorpora las pantallas de Proveedores del demo. No confundir la integración de fuentes con la implementación de ese módulo en la interfaz común.
-
-## Demostración independiente
+Para detener el sistema conservando contenedores y volúmenes:
 
 ```powershell
-docker compose -f docker-compose.demo.yml config --quiet
-docker compose -f docker-compose.demo.yml up --build -d
+docker compose stop
 ```
 
-Proyecto `puntomarket`: frontend 15100, Gateway 15000, API 15200, identidad 15300 y MongoDB 27028 por defecto. Las variables `*_PORT` de un .env existente prevalecen: comprobarlas antes de ejecutar ambos entornos. No confundirlas con las variables `*_PUBLISHED_PORT` del entorno común. El selector Administrador/Cajero y DevIdentity son temporales.
+No use `docker compose down -v`: elimina los volúmenes y con ellos los datos de todas las bases.
 
-La demo conserva sus volúmenes `puntomarket_mongodb_data` y `puntomarket_frontend_keys`. El común utiliza `puntomarket-microservicios_proveedores-db-data`: **son bases distintas**, sin migración ni copia automática. Cambiar un puerto publicado no cambia el volumen ni la base. No borrar volúmenes, especialmente para actualizar un realm persistido.
+## Puertos
 
-## Verificación
+Los puertos del host son configurables con las variables `*_PUBLISHED_PORT`. Valores predeterminados:
+
+| Servicio | Puerto | Servicio | Puerto |
+|---|---:|---|---:|
+| Frontend | 5100 | MySQL Usuarios | 3308 |
+| Gateway | 5000 | MySQL Clientes | 3310 |
+| Keycloak | 8180 | PostgreSQL Productos | 5433 |
+| Usuarios | 5003 | MongoDB Proveedores | 27018 |
+| Clientes | 5001 | Productos | 5004 |
+| Proveedores | 5005 | | |
+
+Dentro de la red de Docker los servicios se resuelven por nombre y escuchan en el puerto 8080.
+
+## Usuarios y roles
+
+Al iniciar por primera vez se crea el administrador definido en `PUNTOMARKET_ADMIN_*`. Desde `http://localhost:5100/Auth/Login` inicie sesión con ese usuario y cree los demás desde la pantalla Usuarios.
+
+| Rol | Permisos |
+|---|---|
+| Administrador | Gestión de usuarios (alta, edición, baja lógica y reenvío de acceso); lectura y escritura en Clientes, Productos y Proveedores |
+| Cajero | Lectura de Clientes, Productos y Proveedores; alta y edición de clientes; sin acceso a la gestión de usuarios |
+
+Funcionamiento de las cuentas:
+
+- El nombre de usuario se genera a partir del nombre y apellido (`jperez`, `jperez2`, ...).
+- La contraseña temporal se genera automáticamente, se fija en Keycloak y se envía por correo. La contraseña no se guarda en la base de Usuarios.
+- En el primer inicio de sesión el usuario debe cambiar su contraseña.
+- El administrador puede desactivar y reactivar usuarios, y reenviar el acceso de un usuario activo con `POST /api/usuarios/{id}/reenviar-acceso`.
+- Las tablas de Usuarios guardan auditoría con el nombre de usuario del token: usuario y fecha de creación, y usuario y fecha de la última modificación.
+
+Rutas principales del Gateway:
+
+| Ruta | Acceso |
+|---|---|
+| `POST /api/auth/login`, `POST /api/auth/logout` | Anónimo |
+| `/api/usuarios/**` | Administrador |
+| `GET /api/usuarios/perfil`, `PUT /api/usuarios/perfil/password` | Cualquier usuario autenticado |
+| `/api/clientes/**`, `/api/productos/**`, `/api/proveedores/**` | Token válido; cada servicio aplica el rol por operación |
+| `/api/*/salud` | Anónimo |
+
+## Pruebas
 
 ```powershell
 dotnet restore Proyecto_Microservicios.slnx
 dotnet build Proyecto_Microservicios.slnx --no-restore
-$env:PROVEEDORES_TEST_MONGO='mongodb://localhost:27017'
 dotnet test Proyecto_Microservicios.slnx --no-restore
-dotnet test Servicio4.Proveedores/Proveedores.slnx --no-restore
-node scripts/probar-validaciones-frontend.cjs
-node scripts/probar-busqueda-dinamica.mjs
 ```
 
-Las pruebas Mongo crean bases temporales aisladas y no utilizan la colección real de proveedores. Sin la variable se omiten esas pruebas. Las pruebas de otros servicios no sustituyen una prueba funcional del conjunto con Keycloak, SMTP y bases reales.
+Las pruebas de persistencia de Proveedores contra MongoDB se omiten salvo que se defina una instancia de pruebas; usan bases temporales que eliminan al terminar:
 
-## Documentación
+```powershell
+$env:PROVEEDORES_TEST_MONGO = 'mongodb://localhost:27017'
+dotnet test Servicio4.Proveedores/Proveedores.slnx
+```
 
-- [Integración común](GUIA_INTEGRACION_MICROSERVICIOS.md).
-- [Contrato, reglas y arquitectura del Grupo 1](GUIA_INTEGRACION_GRUPO1.md).
-- [Acuerdos y estado Grupo 2](INTEGRACION_GRUPO2.md).
-- [Docker y separación de entornos](GUIA_DOCKER_PUNTOMARKET.md).
-- [Gateway](Gateway/README.md), [frontend común](Frontend/README.md), [Usuarios](Servicio2.Usuarios/README.md) y [API Proveedores](Servicio4.Proveedores/README.md).
+Pruebas JavaScript de los módulos del frontend:
 
-Pendientes: incorporar la UI de Proveedores al frontend común coordinadamente con Grupo 2 y conectar Productos por HTTP antes de impedir bajas con productos activos. No publicar secretos, tokens, BSON ni artefactos locales.
+```powershell
+node scripts/probar-catalogos-comunes.mjs
+node scripts/probar-productos-comunes.mjs
+```
 
-## Demo ampliado: Clientes y Proveedores
+## Documentación por componente
 
-El entorno temporal ofrece ambos módulos en Frontend/Frontend.Demo: seleccionar perfil en /Login y navegar con el menú Clientes/Proveedores. Conserva las pantallas originales de Proveedores y no depende del login común de Usuarios/Keycloak.
+- [Gateway](Gateway/README.md)
+- [Frontend](Frontend/README.md)
+- [Clientes](Servicio1.Clientes/README.md)
+- [Usuarios](Servicio2.Usuarios/README.md)
+- [Productos](Servicio3.Productos/README.md)
+- [Proveedores](Servicio4.Proveedores/README.md)
 
-El Gateway demo enruta /api/clientes y /api/proveedores. DevIdentity firma JWT para clientes-api y proveedores-api; cada API conserva su autorización. El demo añade MySQL 8.4 con base clientes_demo_db y volumen nuevo clientes_demo_data, sin reutilizar el volumen común ni modificar MongoDB existente. Utiliza CLIENTES_DB_USER/PASSWORD/ROOT_PASSWORD locales; no publica credenciales.
-
-Puertos nuevos: Clientes 15400 y MySQL demo 13310 (CLIENTES_DEMO_PORT/CLIENTES_DEMO_DB_PORT). Entrada futura: http://localhost:15100/Login, según variables locales. Usar exclusivamente docker-compose.demo.yml. Docker y WSL no se iniciaron durante este desarrollo.
-
-Matriz de roles, validaciones, comandos, pruebas sin bases y puntos de sustitución por Grupo 2: [sección Demo ampliado](INTEGRACION_GRUPO2.md#demo-ampliado-clientes-y-proveedores). Nueva suite Tests/Demo.Tests y script `node scripts/probar-clientes-demo.mjs`. El funcionamiento con bases reales queda pendiente de verificación posterior.
-
-## Clientes y Proveedores en el frontend común
-
-Se incorporan `/Clientes` y `/Proveedores` con adaptadores registrados mediante `AddGatewayAdapter<I,T>()`, sesión/BearerTokenHandler existentes y permisos por operación en servidor. Los IDs de edición/detalle viajan por POST con antiforgery, no en la navegación visible. El Demo permanece independiente. No se modifican contratos, JWT, bases ni volúmenes. Implementación, verificación y pendientes del Grupo 2: [integración del frontend común](INTEGRACION_FRONTEND_COMUN.md). El login y las consultas reales con Keycloak y Administrador ya se comprobaron; el usuario confirmó también creación manual desde el frontend. Cajero, el 403 real y el resto del ciclo CRUD real siguen pendientes; distinguir estos resultados de las pruebas automatizadas. El seed genérico deshabilitado continúa siendo exclusivo de Demo.
+Nunca publique contraseñas, tokens ni archivos `.env`.
