@@ -4,9 +4,9 @@
 
 <h1 class="page-heading mb-4">Administración de usuarios</h1>
 
-@if (Model.MensajeGestion is not null)
+@if (Model.AvisoGestion is not null)
 {
-    <div class="alert alert-success shadow-sm" role="status">@Model.MensajeGestion</div>
+    <div class="alert alert-success shadow-sm" role="status">@Model.AvisoGestion</div>
 }
 @if (Model.ErrorGestion is not null)
 {
@@ -120,8 +120,10 @@ else
                 </tr>
             </thead>
             <tbody>
+                @{ var usuarioActual = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value; }
                 @foreach (var usuario in Model.Usuarios)
                 {
+                    var esUsuarioActual = string.Equals(usuarioActual, usuario.Username, StringComparison.OrdinalIgnoreCase);
                     <tr>
                         <td>@usuario.NombreCompleto</td>
                         <td>@usuario.Correo</td>
@@ -133,14 +135,14 @@ else
                                 <input type="hidden" name="id" value="@usuario.Id" />
                                 <button type="submit" class="btn btn-sm btn-outline-primary">Editar</button>
                             </form>
-                            @if (usuario.Activo)
+                            @if (usuario.Activo && !esUsuarioActual)
                             {
                                 <form method="post" asp-page-handler="ReenviarAcceso" class="d-inline">
                                     <input type="hidden" name="id" value="@usuario.Id" />
                                     <button type="submit" class="btn btn-sm btn-outline-info">Reenviar acceso</button>
                                 </form>
                             }
-                            @if (!string.Equals(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, usuario.Username, StringComparison.OrdinalIgnoreCase))
+                            @if (!esUsuarioActual)
                             {
                                 <form method="post" asp-page-handler="CambiarEstado" class="d-inline">
                                     <input type="hidden" name="id" value="@usuario.Id" />

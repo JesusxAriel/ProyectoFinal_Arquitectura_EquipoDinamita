@@ -12,11 +12,13 @@ namespace PuntoMarket.Frontend.Pages.Users;
 public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
 {
     private const string MensajeSinPermisos = "No tiene permisos para ver esta sección.";
+    private const string MensajeCorreoFallido = "No se pudo enviar el correo. Use Reenviar acceso.";
 
     public IReadOnlyList<UsuarioResponse> Usuarios { get; private set; } = [];
     public IReadOnlyList<RolResponse> Roles { get; private set; } = [];
     public UsuarioResponse? UsuarioEditando { get; private set; }
     public bool EsAdministrador => User.IsInRole("Administrador");
+    public string? ErrorGestion { get; private set; }
 
     [BindProperty]
     [Required(ErrorMessage = "El campo Nombres es obligatorio.")]
@@ -42,10 +44,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public int? EditarId { get; set; }
 
     [TempData]
-    public string? MensajeGestion { get; set; }
-
-    [TempData]
-    public string? ErrorGestion { get; set; }
+    public string? AvisoGestion { get; set; }
 
     private IActionResult RedirigirSinPermisos()
     {
@@ -80,15 +79,9 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
         }
 
         var creado = resultado.Value;
-        if (creado.CorreoEnviado)
-        {
-            MensajeGestion = $"Usuario creado correctamente. Nombre de usuario generado: {creado.Username}. Correo de acceso enviado.";
-        }
-        else
-        {
-            MensajeGestion = $"Usuario creado ({creado.Username}).";
-            ErrorGestion = "Usuario creado, pero no se pudo enviar el correo. Use Reenviar acceso.";
-        }
+        AvisoGestion = creado.CorreoEnviado
+            ? $"Usuario {creado.Username} creado. Se envió un enlace de activación a {Correo}."
+            : MensajeCorreoFallido;
 
         return RedirectToPage();
     }
@@ -145,7 +138,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
             return Page();
         }
 
-        MensajeGestion = "Cambios guardados correctamente.";
+        AvisoGestion = "Cambios guardados correctamente.";
         return RedirectToPage();
     }
 
@@ -188,7 +181,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
             return Page();
         }
 
-        MensajeGestion = activo ? "Usuario activado correctamente." : "Usuario desactivado correctamente.";
+        AvisoGestion = activo ? "Usuario activado correctamente." : "Usuario desactivado correctamente.";
         return RedirectToPage();
     }
 
@@ -207,14 +200,9 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
             return Page();
         }
 
-        if (resultado.Value.CorreoEnviado)
-        {
-            MensajeGestion = "Correo de acceso reenviado correctamente.";
-        }
-        else
-        {
-            ErrorGestion = "No se pudo reenviar el correo de acceso.";
-        }
+        AvisoGestion = resultado.Value.CorreoEnviado
+            ? "Se envió un nuevo enlace de activación."
+            : MensajeCorreoFallido;
 
         return RedirectToPage();
     }
