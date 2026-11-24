@@ -1,187 +1,204 @@
 @page
 @model PuntoMarket.Frontend.Pages.Users.IndexModel
-@{ ViewData["Title"] = "Usuarios"; }
-
-<h1 class="page-heading mb-4">Administración de usuarios</h1>
-
-@if (Model.AvisoGestion is not null)
-{
-    <div class="alert alert-success alert-dismissible aviso-temporal fade show shadow-sm" role="status" data-aviso-ms="6000">
-        @Model.AvisoGestion
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar aviso"></button>
-    </div>
-}
-@if (Model.AdvertenciaGestion is not null)
-{
-    <div class="alert alert-warning alert-dismissible aviso-temporal fade show shadow-sm" role="status" data-aviso-ms="10000">
-        @Model.AdvertenciaGestion
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar aviso"></button>
-    </div>
-}
-@if (Model.ErrorGestion is not null)
-{
-    <div class="alert alert-danger alert-dismissible aviso-temporal fade show shadow-sm" role="alert" data-aviso-ms="10000">
-        @Model.ErrorGestion
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar aviso"></button>
-    </div>
+@{
+    ViewData["Title"] = "Usuarios";
+    var usuarioActual = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
 
-@if (Model.EditarId is not null)
-{
-    <section class="card shadow-sm mb-4" aria-labelledby="editarUsuarioTitulo">
-        <div class="card-body">
-            <h2 class="h5 card-title mb-3" id="editarUsuarioTitulo">Editar usuario</h2>
-            @if (Model.UsuarioEditando is { } actual)
-            {
-                <p>Nombre actual: @actual.NombreCompleto</p>
-                <p class="text-muted small">Vuelva a ingresar nombres y apellidos por separado para guardar el nombre completo.</p>
-            }
-            <form method="post" asp-page-handler="Guardar" novalidate>
-                <input type="hidden" asp-for="EditarId" />
-                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label asp-for="Nombres" class="form-label">Nombres</label>
-                        <input asp-for="Nombres" class="@Model.ClaseCampo(nameof(Model.Nombres))" maxlength="150" autocomplete="given-name" required />
-                        <span asp-validation-for="Nombres" class="invalid-feedback"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="Apellidos" class="form-label">Apellidos</label>
-                        <input asp-for="Apellidos" class="@Model.ClaseCampo(nameof(Model.Apellidos))" maxlength="150" autocomplete="family-name" required />
-                        <span asp-validation-for="Apellidos" class="invalid-feedback"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="Correo" class="form-label">Correo</label>
-                        <input asp-for="Correo" type="email" class="@Model.ClaseCampo(nameof(Model.Correo))" maxlength="150" autocomplete="email" required />
-                        <span asp-validation-for="Correo" class="invalid-feedback"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="RolId" class="form-label">Rol</label>
-                        <select asp-for="RolId" class="@Model.ClaseCampo(nameof(Model.RolId), "form-select")" required>
-                            <option value="0">Seleccione un rol</option>
-                            @foreach (var rol in Model.Roles)
-                            {
-                                <option value="@rol.Id">@rol.Nombre</option>
-                            }
-                        </select>
-                        <span asp-validation-for="RolId" class="invalid-feedback"></span>
-                    </div>
-                </div>
-                <div class="mt-3">
-                    <button type="submit" class="btn btn-warning fw-semibold">Guardar cambios</button>
-                    <button type="submit" asp-page-handler="CancelarEdicion" formnovalidate class="btn btn-outline-secondary">Cancelar</button>
-                </div>
-            </form>
+<div class="catalogo usuarios">
+    <div class="breadcrumb-line"><a asp-page="/Index">Inicio</a> &gt; Usuarios</div>
+
+    <section class="page-heading">
+        <div>
+            <span class="eyebrow">PUNTOMARKET</span>
+            <h1>Usuarios<span class="heading-dot">.</span></h1>
+            <p>Administre las cuentas de acceso y los roles de su equipo.</p>
         </div>
+        <form method="post" asp-page-handler="Nuevo">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg" aria-hidden="true"></i> Crear usuario</button>
+        </form>
     </section>
-}
-else
-{
-    <section class="card shadow-sm mb-4" aria-labelledby="crearUsuarioTitulo">
-        <div class="card-body">
-            <h2 class="h5 card-title mb-3" id="crearUsuarioTitulo">Crear usuario</h2>
-            <form method="post" asp-page-handler="Crear" novalidate>
-                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label asp-for="Nombres" class="form-label">Nombres</label>
-                        <input asp-for="Nombres" class="@Model.ClaseCampo(nameof(Model.Nombres))" maxlength="150" autocomplete="given-name" required />
-                        <span asp-validation-for="Nombres" class="invalid-feedback"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="Apellidos" class="form-label">Apellidos</label>
-                        <input asp-for="Apellidos" class="@Model.ClaseCampo(nameof(Model.Apellidos))" maxlength="150" autocomplete="family-name" required />
-                        <span asp-validation-for="Apellidos" class="invalid-feedback"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="Correo" class="form-label">Correo</label>
-                        <input asp-for="Correo" type="email" class="@Model.ClaseCampo(nameof(Model.Correo))" maxlength="150" autocomplete="email" required />
-                        <span asp-validation-for="Correo" class="invalid-feedback"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="RolId" class="form-label">Rol</label>
-                        <select asp-for="RolId" class="@Model.ClaseCampo(nameof(Model.RolId), "form-select")" required>
-                            <option value="0">Seleccione un rol</option>
-                            @foreach (var rol in Model.Roles)
-                            {
-                                <option value="@rol.Id">@rol.Nombre</option>
-                            }
-                        </select>
-                        <span asp-validation-for="RolId" class="invalid-feedback"></span>
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-warning fw-semibold" disabled="@(Model.Roles.Count == 0)">Crear usuario</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </section>
-}
 
-<section aria-labelledby="listadoUsuariosTitulo">
-    <h2 class="h5 mb-3" id="listadoUsuariosTitulo">Listado de usuarios</h2>
-    <div class="table-responsive shadow-sm rounded-3">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th scope="col">Nombre completo</th>
-                    <th scope="col">Correo</th>
-                    <th scope="col">Nombre de usuario</th>
-                    <th scope="col">Rol</th>
-                    <th scope="col">Estado</th>
-                    <th scope="col">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                @{ var usuarioActual = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value; }
-                @foreach (var usuario in Model.Usuarios)
-                {
-                    var esUsuarioActual = string.Equals(usuarioActual, usuario.Username, StringComparison.OrdinalIgnoreCase);
-                    <tr>
-                        <td>@usuario.NombreCompleto</td>
-                        <td>@usuario.Correo</td>
-                        <td>@usuario.Username</td>
-                        <td>@usuario.Rol</td>
-                        <td>@(usuario.Activo ? "Activo" : "Inactivo")</td>
-                        <td class="text-nowrap">
-                            <form method="post" asp-page-handler="Editar" class="d-inline">
-                                <input type="hidden" name="id" value="@usuario.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-primary">Editar</button>
-                            </form>
-                            @if (usuario.Activo && !esUsuarioActual)
-                            {
-                                <form method="post" asp-page-handler="ReenviarAcceso" class="d-inline">
-                                    <input type="hidden" name="id" value="@usuario.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-info">Reenviar acceso</button>
-                                </form>
-                            }
-                            @if (!esUsuarioActual)
-                            {
-                                <form method="post" asp-page-handler="CambiarEstado" class="d-inline">
-                                    <input type="hidden" name="id" value="@usuario.Id" />
-                                    <input type="hidden" name="activo" value="@(usuario.Activo ? "false" : "true")" />
-                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                        @(usuario.Activo ? "Desactivar" : "Activar")
-                                    </button>
-                                </form>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-    @if (Model.Usuarios.Count == 0 && Model.ErrorGestion is null)
+    @if (Model.AvisoGestion is not null)
     {
-        <div class="alert alert-info mt-3">No hay usuarios registrados.</div>
+        <div class="alert alert-success alert-dismissible aviso-temporal fade show shadow-sm" role="status" data-aviso-ms="6000">
+            @Model.AvisoGestion
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar aviso"></button>
+        </div>
     }
-</section>
+    @if (Model.AdvertenciaGestion is not null)
+    {
+        <div class="alert alert-warning alert-dismissible aviso-temporal fade show shadow-sm" role="status" data-aviso-ms="10000">
+            @Model.AdvertenciaGestion
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar aviso"></button>
+        </div>
+    }
+    @if (Model.ErrorGestion is not null && !Model.AbrirModal)
+    {
+        <div class="alert alert-danger alert-dismissible aviso-temporal fade show shadow-sm" role="alert" data-aviso-ms="10000">
+            @Model.ErrorGestion
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar aviso"></button>
+        </div>
+    }
+
+    <section class="directory-card" aria-labelledby="listadoUsuariosTitulo">
+        <div class="directory-top">
+            <div class="directory-title">
+                <span class="directory-icon"><i class="bi bi-people" aria-hidden="true"></i></span>
+                <div>
+                    <h2 id="listadoUsuariosTitulo">Listado de usuarios</h2>
+                    <p>Cuentas registradas y su estado de acceso</p>
+                </div>
+            </div>
+            <span class="directory-count">@Model.Usuarios.Count @(Model.Usuarios.Count == 1 ? "usuario" : "usuarios")</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table provider-table table-hover mb-0">
+                <caption class="visually-hidden">Usuarios registrados</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">Nombre completo</th>
+                        <th scope="col">Correo</th>
+                        <th scope="col">Nombre de usuario</th>
+                        <th scope="col">Rol</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col" class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var usuario in Model.Usuarios)
+                    {
+                        var esUsuarioActual = string.Equals(usuarioActual, usuario.Username, StringComparison.OrdinalIgnoreCase);
+                        <tr>
+                            <td><strong>@usuario.NombreCompleto</strong>@if (esUsuarioActual) { <span class="badge text-bg-secondary ms-1">Usted</span> }</td>
+                            <td>@usuario.Correo</td>
+                            <td>@usuario.Username</td>
+                            <td>@usuario.Rol</td>
+                            <td><span class="status-dot @(usuario.Activo ? "" : "muted")" aria-hidden="true"></span> @(usuario.Activo ? "Activo" : "Inactivo")</td>
+                            <td class="text-end">
+                                <div class="row-actions">
+                                    <form method="post" asp-page-handler="Editar">
+                                        <input type="hidden" name="id" value="@usuario.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Editar</button>
+                                    </form>
+                                    @if (usuario.Activo && !esUsuarioActual)
+                                    {
+                                        <form method="post" asp-page-handler="ReenviarAcceso">
+                                            <input type="hidden" name="id" value="@usuario.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Reenviar acceso</button>
+                                        </form>
+                                    }
+                                    @if (!esUsuarioActual)
+                                    {
+                                        <form method="post" asp-page-handler="CambiarEstado">
+                                            <input type="hidden" name="id" value="@usuario.Id" />
+                                            <input type="hidden" name="activo" value="@(usuario.Activo ? "false" : "true")" />
+                                            @if (usuario.Activo)
+                                            {
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Desactivar</button>
+                                            }
+                                            else
+                                            {
+                                                <button type="submit" class="btn btn-sm btn-reactivate">Activar</button>
+                                            }
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (Model.Usuarios.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <h3>No hay usuarios para mostrar</h3>
+                                    <p>@(Model.ErrorGestion is null ? "Cree el primer usuario con el botón Crear usuario." : "No se pudo cargar el listado. Intente nuevamente.")</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    @if (Model.AbrirModal)
+    {
+        var titulo = Model.EsEdicion ? "Editar usuario" : "Crear usuario";
+        <div class="modal fade" id="usuarioModal" tabindex="-1" aria-labelledby="usuarioModalTitulo" aria-hidden="true" data-auto-open="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div>
+                            <span class="eyebrow">ADMINISTRACIÓN DE USUARIOS</span>
+                            <h2 class="modal-title" id="usuarioModalTitulo">@titulo</h2>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <form method="post" asp-page-handler="@(Model.EsEdicion ? "Guardar" : "Crear")" novalidate>
+                        <input type="hidden" asp-for="EditarId" />
+                        <div class="modal-body">
+                            @if (Model.ErrorGestion is not null)
+                            {
+                                <div class="alert alert-danger" role="alert">@Model.ErrorGestion</div>
+                            }
+                            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+                            @if (Model.EsEdicion && Model.UsuarioEditando is { } actual)
+                            {
+                                <p class="form-intro">Nombre actual: <strong>@actual.NombreCompleto</strong>. Vuelva a ingresar los nombres y apellidos por separado para guardar el nombre completo.</p>
+                            }
+                            else
+                            {
+                                <p class="form-intro">Todos los campos son obligatorios. Se enviará un correo con las credenciales de acceso.</p>
+                            }
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label asp-for="Nombres" class="form-label">Nombres</label>
+                                    <input asp-for="Nombres" class="@Model.ClaseCampo(nameof(Model.Nombres))" maxlength="150" autocomplete="given-name" required />
+                                    <span asp-validation-for="Nombres" class="invalid-feedback"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Apellidos" class="form-label">Apellidos</label>
+                                    <input asp-for="Apellidos" class="@Model.ClaseCampo(nameof(Model.Apellidos))" maxlength="150" autocomplete="family-name" required />
+                                    <span asp-validation-for="Apellidos" class="invalid-feedback"></span>
+                                </div>
+                                <div class="col-12">
+                                    <label asp-for="Correo" class="form-label">Correo</label>
+                                    <input asp-for="Correo" type="email" class="@Model.ClaseCampo(nameof(Model.Correo))" maxlength="150" autocomplete="email" required />
+                                    <span asp-validation-for="Correo" class="invalid-feedback"></span>
+                                </div>
+                                <div class="col-12">
+                                    <label asp-for="RolId" class="form-label">Rol</label>
+                                    <select asp-for="RolId" class="@Model.ClaseCampo(nameof(Model.RolId), "form-select")" required>
+                                        <option value="0">Seleccione un rol</option>
+                                        @foreach (var rol in Model.Roles)
+                                        {
+                                            <option value="@rol.Id">@rol.Nombre</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="RolId" class="invalid-feedback"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" disabled="@(Model.Roles.Count == 0)"><i class="bi bi-check2" aria-hidden="true"></i> @(Model.EsEdicion ? "Guardar cambios" : "Crear usuario")</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
 
 @section Styles {
+    <link rel="stylesheet" href="~/css/catalogos.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/usuarios.css" asp-append-version="true" />
 }
 
 @section Scripts {
+    <script type="module" src="~/js/catalogos-modales.mjs" asp-append-version="true"></script>
     <script type="module" src="~/js/limpiar-validacion.mjs" asp-append-version="true"></script>
     <script type="module" src="~/js/avisos-temporales.mjs" asp-append-version="true"></script>
 }
