@@ -228,8 +228,13 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
             return;
         }
 
-        if (!Roles.Any(rol => rol.Id == RolId))
+        if (RolId <= 0 || !Roles.Any(rol => rol.Id == RolId))
+        {
+            if (ModelState.TryGetValue(nameof(RolId), out var rolEntry))
+                rolEntry.Errors.Clear();
+
             ModelState.AddModelError(nameof(RolId), "Seleccione uno de los roles disponibles.");
+        }
     }
 
     private async Task CargarAsync()
