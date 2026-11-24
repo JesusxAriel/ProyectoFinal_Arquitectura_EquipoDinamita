@@ -56,13 +56,26 @@ public sealed class PerfilApiAdapterTests
     public async Task CambiarPassword_400ConMensaje_DevuelveElMensajeDelBackend()
     {
         var handler = FakeHttpMessageHandler.Returning(HttpStatusCode.BadRequest,
+            """{"error":"La contraseña no cumple la política de seguridad."}""");
+
+        var result = await Crear(handler).CambiarPassword(Request);
+
+        Assert.True(result.IsFail);
+        Assert.Equal("La contraseña no cumple la política de seguridad.", result.Error);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task CambiarPassword_400ConPasswordActualIncorrecta_DevuelveElMensajeDelFrontend()
+    {
+        var handler = FakeHttpMessageHandler.Returning(HttpStatusCode.BadRequest,
             """{"error":"La contraseña actual es incorrecta."}""");
 
         var result = await Crear(handler).CambiarPassword(Request);
 
         Assert.True(result.IsFail);
-        Assert.Equal("La contraseña actual es incorrecta.", result.Error);
-        Assert.Single(handler.Requests);
+        Assert.Equal(MensajesAuth.PasswordActualIncorrecta, result.Error);
+        Assert.Equal("La contraseña actual no es correcta.", result.Error);
     }
 
     [Theory]
