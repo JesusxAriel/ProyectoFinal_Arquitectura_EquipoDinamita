@@ -20,6 +20,8 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public UsuarioResponse? UsuarioEditando { get; private set; }
     public bool EsAdministrador => User.IsInRole("Administrador");
     public string? ErrorGestion { get; private set; }
+    public bool AbrirModal { get; private set; }
+    public bool EsEdicion => EditarId is > 0;
 
     [BindProperty]
     [Required(ErrorMessage = "El campo Nombres es obligatorio.")]
@@ -50,6 +52,11 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     [TempData]
     public string? AdvertenciaGestion { get; set; }
 
+    public string ClaseCampo(string campo, string clase = "form-control") =>
+        ModelState.TryGetValue(campo, out var entrada) && entrada.Errors.Count > 0
+            ? clase + " is-invalid"
+            : clase;
+
     private IActionResult RedirigirSinPermisos()
     {
         TempData["MensajePermisos"] = MensajeSinPermisos;
@@ -65,6 +72,17 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
         return Page();
     }
 
+    public async Task<IActionResult> OnPostNuevoAsync()
+    {
+        if (!EsAdministrador)
+            return RedirigirSinPermisos();
+
+        await CargarAsync();
+        ModelState.Clear();
+        AbrirModal = true;
+        return Page();
+    }
+
     public async Task<IActionResult> OnPostCrearAsync()
     {
         if (!EsAdministrador)
@@ -73,12 +91,16 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
         await CargarAsync();
         ValidarRol();
         if (!ModelState.IsValid)
+        {
+            AbrirModal = true;
             return Page();
+        }
 
         var resultado = await api.Crear(new CreateUsuarioRequest(Nombres, Apellidos, Correo, RolId));
         if (resultado.IsFail)
         {
             ErrorGestion = resultado.Error;
+            AbrirModal = true;
             return Page();
         }
 
@@ -111,6 +133,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
         Correo = resultado.Value.Correo;
         RolId = Roles.FirstOrDefault(rol => rol.Nombre == resultado.Value.Rol)?.Id ?? 0;
         ModelState.Clear();
+        AbrirModal = true;
         return Page();
     }
 
@@ -132,7 +155,10 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
         UsuarioEditando = usuario.Value;
         ValidarRol();
         if (!ModelState.IsValid)
+        {
+            AbrirModal = true;
             return Page();
+        }
 
         var resultado = await api.Actualizar(
             EditarId.Value,
@@ -140,18 +166,11 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
         if (resultado.IsFail)
         {
             ErrorGestion = resultado.Error;
+            AbrirModal = true;
             return Page();
         }
 
         AvisoGestion = "Cambios guardados correctamente.";
-        return RedirectToPage();
-    }
-
-    public IActionResult OnPostCancelarEdicion()
-    {
-        if (!EsAdministrador)
-            return RedirigirSinPermisos();
-
         return RedirectToPage();
     }
 

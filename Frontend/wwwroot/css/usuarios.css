@@ -1,0 +1,16 @@
+.aviso-temporal.fade { transition: opacity .8s ease; }
+.usuarios .alert-warning { color: #8a5a05; background: #fff8e6; border-color: #fcefc7; }
+.usuarios .alert-dismissible .btn-close { font-size: 9px; }
+.usuarios .page-heading form { margin: 0; }
+.usuarios .row-actions form { margin: 0; }
+.usuarios .row-actions { flex-wrap: wrap; }
+.usuarios .btn-outline-danger { --bs-btn-color: #b42332; --bs-btn-border-color: #fecdd3; --bs-btn-hover-bg: #fff1f2; --bs-btn-hover-color: #b42332; --bs-btn-hover-border-color: #fda4af; --bs-btn-active-bg: #ffe0e4; --bs-btn-active-color: #b42332; }
+.usuarios .invalid-feedback { font-size: 11px; }
+.usuarios .modal-body .form-intro { margin-bottom: 18px; }
+.usuarios .provider-table td, .usuarios .provider-table th { padding-left: 16px; padding-right: 16px; }
+.usuarios .provider-table td { white-space: nowrap; }
+.usuarios .provider-table td:first-child { white-space: normal; min-width: 190px; }
+.usuarios .row-actions { flex-wrap: nowrap; }
+.usuarios .row-actions .btn { white-space: nowrap; }
+.usuarios .form-control.is-invalid, .usuarios .form-select.is-invalid { border-color: #dc3545; }
+.usuarios .form-control.is-invalid:focus, .usuarios .form-select.is-invalid:focus { border-color: #dc3545; box-shadow: 0 0 0 3px #dc354526; }
