@@ -69,6 +69,7 @@ Copy-Item .env.example .env
 | Base de Clientes | `CLIENTES_DB_NAME`, `CLIENTES_DB_USER`, `CLIENTES_DB_PASSWORD`, `CLIENTES_DB_ROOT_PASSWORD` |
 | Base de Proveedores | `PROVEEDORES_DB_NAME`, `PROVEEDORES_DB_USER`, `PROVEEDORES_DB_PASSWORD` |
 | Correo SMTP (opcional) | `SMTP_HOST`, `SMTP_PORT`, `SMTP_ENABLE_SSL`, `SMTP_FROM_ADDRESS`, `SMTP_FROM_NAME`, `SMTP_USER_NAME`, `SMTP_PASSWORD` |
+| Enlace de acceso en el correo (opcional) | `FRONTEND_PUBLIC_URL` (por defecto `http://localhost:5100`); el correo de credenciales incluye `<URL>/Auth/Login` |
 | Puertos publicados (opcionales) | `KEYCLOAK_PUBLISHED_PORT`, `GATEWAY_PUBLISHED_PORT`, `FRONTEND_PUBLISHED_PORT`, `USUARIOS_PUBLISHED_PORT`, `CLIENTES_PUBLISHED_PORT`, `PRODUCTOS_PUBLISHED_PORT`, `PROVEEDORES_PUBLISHED_PORT` y los `*_DB_PUBLISHED_PORT` de cada base |
 
 Reglas importantes:

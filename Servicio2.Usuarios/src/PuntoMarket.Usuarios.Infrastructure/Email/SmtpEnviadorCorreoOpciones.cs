@@ -5,6 +5,9 @@ namespace PuntoMarket.Usuarios.Infrastructure.Email;
 public sealed class SmtpEnviadorCorreoOpciones
 {
     public const string Seccion = "Smtp";
+    public const string SeccionFrontend = "Frontend";
+    public const string UrlFrontendPorDefecto = "http://localhost:5100";
+    public const string RutaLogin = "/Auth/Login";
 
     public string Host { get; set; } = string.Empty;
     public int Port { get; set; }
@@ -13,6 +16,9 @@ public sealed class SmtpEnviadorCorreoOpciones
     public string UserName { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
     public bool EnableSsl { get; set; } = true;
+    public string FrontendBaseUrl { get; set; } = UrlFrontendPorDefecto;
+
+    public string UrlLogin => FrontendBaseUrl.TrimEnd('/') + RutaLogin;
 
     public static SmtpEnviadorCorreoOpciones Desde(IConfiguration configuracion)
     {
@@ -27,8 +33,15 @@ public sealed class SmtpEnviadorCorreoOpciones
             FromName = Texto(seccion, nameof(FromName)),
             UserName = Texto(seccion, nameof(UserName)),
             Password = seccion[nameof(Password)] ?? string.Empty,
-            EnableSsl = !bool.TryParse(seccion[nameof(EnableSsl)], out var ssl) || ssl
+            EnableSsl = !bool.TryParse(seccion[nameof(EnableSsl)], out var ssl) || ssl,
+            FrontendBaseUrl = UrlBase(configuracion)
         };
+    }
+
+    private static string UrlBase(IConfiguration configuracion)
+    {
+        var valor = Texto(configuracion.GetSection(SeccionFrontend), "BaseUrl");
+        return valor.Length == 0 ? UrlFrontendPorDefecto : valor;
     }
 
     private static string Texto(IConfigurationSection seccion, string clave) =>
