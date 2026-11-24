@@ -599,6 +599,23 @@ public sealed class UsersPaginaTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Los_modales_de_crear_y_editar_muestran_los_placeholders_de_ejemplo()
+    {
+        using var cliente = await IniciarSesion("admin");
+
+        var crear = WebUtility.HtmlDecode(await (await Publicar(cliente, "/Users?handler=Nuevo", [])).Content.ReadAsStringAsync());
+        var editar = WebUtility.HtmlDecode(await (await Publicar(cliente, "/Users?handler=Editar", new() { ["id"] = "2" })).Content.ReadAsStringAsync());
+
+        foreach (var html in new[] { crear, editar })
+        {
+            Assert.Contains("placeholder=\"Ej.: María Fernanda\"", html);
+            Assert.Contains("placeholder=\"Ej.: Pérez\"", html);
+            Assert.Contains("placeholder=\"Ej.: Rojas (opcional)\"", html);
+            Assert.Contains("placeholder=\"nombre@dominio.com\"", html);
+        }
+    }
+
+    [Fact]
     public async Task Editar_un_usuario_sin_apellido_materno_deja_ese_campo_vacio()
     {
         using var cliente = await IniciarSesion("admin");
