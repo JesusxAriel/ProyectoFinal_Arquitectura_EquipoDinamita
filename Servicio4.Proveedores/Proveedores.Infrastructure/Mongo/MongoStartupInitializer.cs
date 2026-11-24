@@ -5,11 +5,6 @@ using MongoDB.Driver;
 
 namespace Proveedores.Infrastructure.Mongo;
 
-/// <summary>
-/// Al arrancar: crea índices (idempotente) y, si Mongo__SeedEnabled=true, siembra datos demo.
-/// Reintenta unas veces porque MongoDB puede tardar en aceptar conexiones aunque el contenedor esté "up".
-/// Se desactiva por completo con Mongo__InitializeOnStartup=false.
-/// </summary>
 public sealed class MongoStartupInitializer(
     IMongoCollection<ProveedorDocument> coleccion,
     IOptions<MongoSettings> opciones,

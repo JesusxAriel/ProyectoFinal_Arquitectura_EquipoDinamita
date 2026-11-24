@@ -3,7 +3,6 @@ using System.Text.RegularExpressions;
 
 namespace PuntoMarket.Frontend.Catalogos;
 
-// Presentación DEMO: contratos HTTP propios de Clientes; nunca se referencia su persistencia.
 public sealed record ClienteVm(int Id, string NitCi, string RazonSocial, string? Correo, string? Telefono,
     bool EstaActivo, bool EsGenerico, string IdUsuarioCreacion, string? IdUsuarioActualizacion,
     DateTime FechaCreacion, DateTime? FechaActualizacion);

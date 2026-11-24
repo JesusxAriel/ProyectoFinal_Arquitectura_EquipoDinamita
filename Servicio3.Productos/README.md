@@ -155,14 +155,14 @@ Punto de partida confirmado: origin JesusxAriel/ProyectoFinal_Arquitectura_Equip
 | dotnet restore Proyecto_Microservicios.slnx; restore solución Productos tras añadir Tests | Correctos. El primer build no pudo descargar paquetes por restricción de red; la restauración autorizada resolvió ese bloqueo. |
 | dotnet build Servicio3.Productos/PuntoMarket.Productos.slnx --no-restore | Correcto, 0 advertencias y 0 errores |
 | dotnet build Proyecto_Microservicios.slnx --no-restore | Correcto, 0 advertencias y 0 errores |
-| dotnet test Servicio3.Productos/PuntoMarket.Productos.slnx --no-build --no-restore | 34 aprobadas, 0 omitidas, PostgreSQL real aislado |
-| dotnet test Proyecto_Microservicios.slnx --no-restore | 545 aprobadas, 0 fallidas, 14 omitidas de MongoDB |
-| dotnet test Servicio4.Proveedores/Proveedores.slnx --no-restore | 201 aprobadas, 0 fallidas, 14 omitidas de MongoDB |
+| dotnet test Servicio3.Productos/PuntoMarket.Productos.slnx --no-build --no-restore | 33 aprobadas, 1 omitida (PostgreSQL real aislado) |
+| dotnet test Proyecto_Microservicios.slnx --no-restore | 562 aprobadas, 0 fallidas, 15 omitidas (14 de MongoDB y 1 de PostgreSQL) |
+| dotnet test Servicio4.Proveedores/Proveedores.slnx --no-restore | 167 aprobadas, 0 fallidas, 14 omitidas de MongoDB |
 | docker compose config --quiet | Bloqueado por ausencia de variables privadas del entorno común |
 | docker --config artifacts/docker-config-test compose --env-file artifacts/productos-compose.env.tmp config --quiet | Correcto con valores sintéticos temporales; solo sintaxis/configuración, sin arrancar servicios |
 | git diff --check | Correcto |
 
-Desglose raíz: Clientes 54, Usuarios 111, Gateway 16, Frontend 43, Productos 34, Proveedores 201 aprobadas/14 omitidas.
+Desglose raíz: Clientes 54, Usuarios 186, Gateway 16, Frontend 106, Productos 33 aprobadas/1 omitida, Proveedores 167 aprobadas/14 omitidas.
 
 Persistencia: se inicializó un cluster PostgreSQL 18.6 nuevo en artifacts/productos-pg-<GUID>, publicado exclusivamente en 127.0.0.1:55439, usando binarios locales, sin tocar instancias existentes. La prueba creó y retiró su propio esquema. Se comprobó migración repetible, catálogos, CRUD, restricciones, historial, rollback y auditoría. El proceso temporal se detuvo al finalizar; los archivos locales de prueba quedan excluidos de Git. Compose utiliza PostgreSQL 17; su ejecución en contenedor no se verificó aquí.
 
