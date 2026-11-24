@@ -16,7 +16,6 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public IReadOnlyList<UsuarioResponse> Usuarios { get; private set; } = [];
     public IReadOnlyList<RolResponse> Roles { get; private set; } = [];
     public UsuarioResponse? UsuarioEditando { get; private set; }
-    public string? ErrorGestion { get; private set; }
     public bool EsAdministrador => User.IsInRole("Administrador");
 
     [BindProperty]
@@ -44,6 +43,9 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
 
     [TempData]
     public string? MensajeGestion { get; set; }
+
+    [TempData]
+    public string? ErrorGestion { get; set; }
 
     private IActionResult RedirigirSinPermisos()
     {
@@ -77,7 +79,17 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
             return Page();
         }
 
-        MensajeGestion = "Usuario creado correctamente.";
+        var creado = resultado.Value;
+        if (creado.CorreoEnviado)
+        {
+            MensajeGestion = $"Usuario creado correctamente. Nombre de usuario generado: {creado.Username}. Correo de acceso enviado.";
+        }
+        else
+        {
+            MensajeGestion = $"Usuario creado ({creado.Username}).";
+            ErrorGestion = "Usuario creado, pero no se pudo enviar el correo. Use Reenviar acceso.";
+        }
+
         return RedirectToPage();
     }
 
@@ -177,6 +189,33 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
         }
 
         MensajeGestion = activo ? "Usuario activado correctamente." : "Usuario desactivado correctamente.";
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostReenviarAccesoAsync(int id)
+    {
+        if (!EsAdministrador)
+            return RedirigirSinPermisos();
+        if (id <= 0)
+            return BadRequest();
+
+        var resultado = await api.Reenviar(id);
+        if (resultado.IsFail)
+        {
+            ErrorGestion = resultado.Error;
+            await CargarAsync();
+            return Page();
+        }
+
+        if (resultado.Value.CorreoEnviado)
+        {
+            MensajeGestion = "Correo de acceso reenviado correctamente.";
+        }
+        else
+        {
+            ErrorGestion = "No se pudo reenviar el correo de acceso.";
+        }
+
         return RedirectToPage();
     }
 
