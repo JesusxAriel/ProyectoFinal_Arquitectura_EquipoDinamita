@@ -7,7 +7,7 @@ namespace PuntoMarket.Frontend.Auth;
 
 public sealed class AuthApiAdapter(HttpClient httpClient) : IAuthApiAdapter
 {
-    private const string LoginRoute = "api/auth/login";
+    public const string LoginRoute = "api/auth/login";
     private const string LogoutRoute = "api/auth/logout";
 
     public async Task<Result<LoginResponse>> Login(LoginRequest request)

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using PuntoMarket.Usuarios.Api.Contracts;
 using PuntoMarket.Usuarios.Api.Contracts.Perfil;
+using PuntoMarket.Usuarios.Api.Filters;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.CambiarPassword;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.ObtenerPerfil;
 using PuntoMarket.Usuarios.Application.UseCases.Gestion.VerificarPasswordActual;
@@ -20,6 +21,7 @@ public sealed class PerfilController(
     private const string CuerpoRequerido = "Envíe la contraseña actual, la nueva y su confirmación.";
 
     [HttpGet]
+    [PermiteConCambioPasswordPendiente]
     public async Task<ActionResult<PerfilRespuesta>> Obtener(CancellationToken cancellationToken)
     {
         var resultado = await obtenerPerfil.EjecutarAsync(new ObtenerPerfilEntrada(), cancellationToken);
@@ -37,6 +39,7 @@ public sealed class PerfilController(
     }
 
     [HttpPost("password/verificacion")]
+    [PermiteConCambioPasswordPendiente]
     public async Task<ActionResult<VerificarPasswordActualRespuesta>> VerificarPasswordActual(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] VerificarPasswordActualRequest? solicitud)
     {
@@ -49,6 +52,7 @@ public sealed class PerfilController(
     }
 
     [HttpPut("password")]
+    [PermiteConCambioPasswordPendiente]
     public async Task<IActionResult> CambiarPassword(
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] CambiarPasswordRequest? solicitud,
         CancellationToken cancellationToken)

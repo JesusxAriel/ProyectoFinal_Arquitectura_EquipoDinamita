@@ -4,9 +4,4 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="Pages/Account/**" />
-    <Content Remove="Pages/Account/**" />
-    <None Include="Pages/Account/**" />
-  </ItemGroup>
 </Project>

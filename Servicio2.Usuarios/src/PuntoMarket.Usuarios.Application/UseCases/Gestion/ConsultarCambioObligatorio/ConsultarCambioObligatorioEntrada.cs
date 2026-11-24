@@ -1,0 +1,3 @@
+namespace PuntoMarket.Usuarios.Application.UseCases.Gestion.ConsultarCambioObligatorio;
+
+public sealed record ConsultarCambioObligatorioEntrada;

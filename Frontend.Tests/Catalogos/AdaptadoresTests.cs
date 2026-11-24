@@ -34,6 +34,9 @@ public class AdaptadoresTests
         services.AddSingleton<IHttpContextAccessor>(new HttpContextAccessor { HttpContext=context });
         services.AddSingleton<ITokenProvider>(TokenProvider.Instance);
         services.AddTransient<BearerTokenHandler>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddScoped<ISesionUsuario,SesionUsuario>();
+        services.AddTransient<SesionExpiradaHandler>();
         services.Configure<GatewayApiOptions>(o=>o.BaseUrl="http://gateway.test/");
         services.AddGatewayAdapter<IClientesApiClient,ClientesApiClient>().ConfigurePrimaryHttpMessageHandler(()=>gateway);
         services.AddGatewayAdapter<IProveedoresApiClient,ProveedoresApiClient>().ConfigurePrimaryHttpMessageHandler(()=>gateway);
@@ -66,7 +69,8 @@ public class AdaptadoresTests
         Assert.False(c.Ok); Assert.False(p.Ok); Assert.Equal(status,c.Status); Assert.Equal(status,p.Status);
         if(status<500) {Assert.Equal("Validacion.Prueba",c.Codigo);Assert.Equal("Error de campo",c.ErroresCampos!["razonSocial"][0]);}
         else {Assert.Equal("Validacion.Prueba",c.Codigo);Assert.Null(c.ErroresCampos);Assert.DoesNotContain("Revise el campo",c.Mensaje);}
-        Assert.Equal("jwt-sesion-prueba",gateway.Token);
+        // Un 401 cierra la sesión: la segunda llamada ya no lleva token.
+        Assert.Equal(status==401 ? null : "jwt-sesion-prueba",gateway.Token);
     }
     [Fact]
     public async Task Clientes_MetodosCuerposYRutas_RespetanContrato()
