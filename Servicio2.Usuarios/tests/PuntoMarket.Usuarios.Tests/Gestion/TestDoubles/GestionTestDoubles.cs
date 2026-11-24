@@ -56,17 +56,76 @@ internal sealed class EnviadorCorreoSpy : IEnviadorCorreo
 {
     public Result Resultado { get; set; } = Result.Ok();
     public Exception? ExcepcionAlEnviar { get; set; }
-    public List<(string Correo, string Username, string PasswordTemporal)> Envios { get; } = [];
+    public List<(string Correo, string Username, string Token, TimeSpan Vigencia)> Envios { get; } = [];
 
-    public Task<Result> EnviarCredenciales(
-        string correo, string username, string passwordTemporal,
+    public Task<Result> EnviarActivacion(
+        string correo, string username, string token, TimeSpan vigencia,
         CancellationToken cancellationToken = default)
     {
-        Envios.Add((correo, username, passwordTemporal));
+        Envios.Add((correo, username, token, vigencia));
 
         return ExcepcionAlEnviar is null
             ? Task.FromResult(Resultado)
             : throw ExcepcionAlEnviar;
+    }
+}
+
+internal sealed class GeneradorTokenFalso : IGeneradorTokenActivacion
+{
+    private int contador;
+
+    public TokenActivacion Generar(DateTime ahoraUtc, TimeSpan vigencia)
+    {
+        contador++;
+        var valor = $"token-{contador}";
+        return new TokenActivacion(valor, CalcularHash(valor), ahoraUtc + vigencia);
+    }
+
+    public string CalcularHash(string token) => "hash:" + token;
+}
+
+internal sealed class ActivacionRepositorioFalso : IActivacionRepositorio
+{
+    public Dictionary<int, (string Hash, DateTime ExpiraUtc)> Tokens { get; } = [];
+    public Dictionary<int, Usuario> Usuarios { get; } = [];
+    public Result ResultadoGuardar { get; set; } = Result.Ok();
+    public List<(int UsuarioId, string Hash, DateTime ExpiraUtc)> Guardados { get; } = [];
+    public List<(int UsuarioId, string Hash, DateTime ExpiraUtc)> Restaurados { get; } = [];
+
+    public Task<Result> GuardarToken(
+        int usuarioId, string hash, DateTime expiraUtc, CancellationToken cancellationToken = default)
+    {
+        Guardados.Add((usuarioId, hash, expiraUtc));
+        if (ResultadoGuardar.IsOk)
+            Tokens[usuarioId] = (hash, expiraUtc);
+
+        return Task.FromResult(ResultadoGuardar);
+    }
+
+    public Task<TokenConsumido?> ConsumirToken(
+        string hash, DateTime ahoraUtc, CancellationToken cancellationToken = default)
+    {
+        foreach (var (usuarioId, token) in Tokens)
+        {
+            if (token.Hash != hash || token.ExpiraUtc <= ahoraUtc)
+                continue;
+
+            if (!Usuarios.TryGetValue(usuarioId, out var usuario) || !usuario.Activo)
+                continue;
+
+            Tokens.Remove(usuarioId);
+            return Task.FromResult<TokenConsumido?>(new TokenConsumido(usuario, token.ExpiraUtc));
+        }
+
+        return Task.FromResult<TokenConsumido?>(null);
+    }
+
+    public Task RestaurarToken(
+        int usuarioId, string hash, DateTime expiraUtc, CancellationToken cancellationToken = default)
+    {
+        Restaurados.Add((usuarioId, hash, expiraUtc));
+        Tokens.TryAdd(usuarioId, (hash, expiraUtc));
+        return Task.CompletedTask;
     }
 }
 
