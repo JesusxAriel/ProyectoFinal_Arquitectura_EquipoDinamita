@@ -11,22 +11,32 @@ namespace PuntoMarket.Frontend.Pages.Users;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
 {
+    private const string MensajeSinPermisos = "No tiene permisos para ver esta sección.";
+
     public IReadOnlyList<UsuarioResponse> Usuarios { get; private set; } = [];
     public IReadOnlyList<RolResponse> Roles { get; private set; } = [];
     public UsuarioResponse? UsuarioEditando { get; private set; }
     public string? ErrorGestion { get; private set; }
     public bool EsAdministrador => User.IsInRole("Administrador");
 
-    [BindProperty, Required, StringLength(150)]
+    [BindProperty]
+    [Required(ErrorMessage = "El campo Nombres es obligatorio.")]
+    [StringLength(150, ErrorMessage = "El campo Nombres no puede superar los 150 caracteres.")]
     public string Nombres { get; set; } = "";
 
-    [BindProperty, Required, StringLength(150)]
+    [BindProperty]
+    [Required(ErrorMessage = "El campo Apellidos es obligatorio.")]
+    [StringLength(150, ErrorMessage = "El campo Apellidos no puede superar los 150 caracteres.")]
     public string Apellidos { get; set; } = "";
 
-    [BindProperty, Required, EmailAddress, StringLength(150)]
+    [BindProperty]
+    [Required(ErrorMessage = "El campo Correo es obligatorio.")]
+    [EmailAddress(ErrorMessage = "El campo Correo no es una dirección de correo válida.")]
+    [StringLength(150, ErrorMessage = "El campo Correo no puede superar los 150 caracteres.")]
     public string Correo { get; set; } = "";
 
-    [BindProperty, Range(1, int.MaxValue)]
+    [BindProperty]
+    [Range(1, int.MaxValue, ErrorMessage = "Seleccione un rol válido.")]
     public int RolId { get; set; }
 
     [BindProperty]
@@ -35,10 +45,16 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     [TempData]
     public string? MensajeGestion { get; set; }
 
+    private IActionResult RedirigirSinPermisos()
+    {
+        TempData["MensajePermisos"] = MensajeSinPermisos;
+        return RedirectToPage("/Index");
+    }
+
     public async Task<IActionResult> OnGetAsync()
     {
         if (!EsAdministrador)
-            return StatusCode(StatusCodes.Status403Forbidden);
+            return RedirigirSinPermisos();
 
         await CargarAsync();
         return Page();
@@ -47,7 +63,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public async Task<IActionResult> OnPostCrearAsync()
     {
         if (!EsAdministrador)
-            return StatusCode(StatusCodes.Status403Forbidden);
+            return RedirigirSinPermisos();
 
         await CargarAsync();
         ValidarRol();
@@ -68,7 +84,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public async Task<IActionResult> OnPostEditarAsync(int id)
     {
         if (!EsAdministrador)
-            return StatusCode(StatusCodes.Status403Forbidden);
+            return RedirigirSinPermisos();
         if (id <= 0)
             return BadRequest();
 
@@ -91,7 +107,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public async Task<IActionResult> OnPostGuardarAsync()
     {
         if (!EsAdministrador)
-            return StatusCode(StatusCodes.Status403Forbidden);
+            return RedirigirSinPermisos();
         if (EditarId is not > 0)
             return BadRequest();
 
@@ -124,7 +140,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public IActionResult OnPostCancelarEdicion()
     {
         if (!EsAdministrador)
-            return StatusCode(StatusCodes.Status403Forbidden);
+            return RedirigirSinPermisos();
 
         return RedirectToPage();
     }
@@ -132,7 +148,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
     public async Task<IActionResult> OnPostCambiarEstadoAsync(int id, bool activo)
     {
         if (!EsAdministrador)
-            return StatusCode(StatusCodes.Status403Forbidden);
+            return RedirigirSinPermisos();
         if (id <= 0)
             return BadRequest();
 

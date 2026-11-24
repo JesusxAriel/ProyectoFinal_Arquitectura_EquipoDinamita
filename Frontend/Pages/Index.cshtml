@@ -3,6 +3,10 @@
 @{
     ViewData["Title"] = "Inicio";
 }
+@if (TempData["MensajePermisos"] is string mensajePermisos)
+{
+    <div class="alert alert-warning shadow-sm" role="alert">@mensajePermisos</div>
+}
 <section class="inicio-hero mb-4" aria-labelledby="inicio-titulo">
     <span class="sale-label d-block mb-2">PuntoMarket · Caja y Ventas</span>
     <h1 id="inicio-titulo" class="display-6 fw-bold mb-3">Tu punto de venta,<br />en un solo lugar.</h1>
