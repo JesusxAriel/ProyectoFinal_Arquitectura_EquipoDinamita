@@ -174,6 +174,17 @@ public sealed class CambiarPasswordPaginaTests : IAsyncLifetime
         Assert.Equal("Abcd#123", Assert.Single(cambios).GetProperty("nueva").GetString());
     }
 
+    [Fact]
+    public async Task El_login_carga_el_modulo_del_ojito_y_su_hoja_de_estilos()
+    {
+        using var cliente = new HttpClient { BaseAddress = baseFrontend };
+
+        var html = await cliente.GetStringAsync("/Auth/Login");
+
+        Assert.Contains("/js/mostrar-password.mjs", html);
+        Assert.Contains("/css/password.css", html);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -184,6 +195,8 @@ public sealed class CambiarPasswordPaginaTests : IAsyncLifetime
         var html = await cliente.GetStringAsync(Ruta(obligatorio));
 
         Assert.Contains("/js/limpiar-validacion.mjs", html);
+        Assert.Contains("/js/mostrar-password.mjs", html);
+        Assert.Contains("/css/password.css", html);
         Assert.Contains("data-valmsg-for=\"PasswordActual\"", html);
         Assert.Contains("data-valmsg-for=\"PasswordNueva\"", html);
         Assert.Contains("data-valmsg-for=\"RepetirPasswordNueva\"", html);
