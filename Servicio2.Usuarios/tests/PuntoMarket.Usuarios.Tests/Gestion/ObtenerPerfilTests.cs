@@ -12,7 +12,7 @@ public class ObtenerPerfilTests
 
     private static Usuario UsuarioDePrueba(bool activo = true, bool debeCambiarPassword = true) =>
         Usuario.Reconstruir(
-            5, "aperez", "ana@correo.com", "Ana Pérez", RolCajero,
+            5, "aperez", "ana@correo.com", "Ana", "Pérez", null, RolCajero,
             activo, debeCambiarPassword, "admin", Creacion, null, null);
 
     [Fact]

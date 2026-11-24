@@ -17,7 +17,7 @@ public class UsuariosControllerReenviarAccesoTests
     private static readonly DateTime Creacion = new(2026, 11, 1, 8, 0, 0, DateTimeKind.Utc);
 
     private static Usuario UsuarioDePrueba(bool activo = true) =>
-        Usuario.Reconstruir(7, "aperez", "ana@correo.com", "Ana Pérez", 2, activo, false, "admin", Creacion, null, null);
+        Usuario.Reconstruir(7, "aperez", "ana@correo.com", "Ana", "Pérez", null, 2, activo, false, "admin", Creacion, null, null);
 
     private static (UsuariosController Controlador, EnviadorCorreoSpy Correo) Preparar(Usuario? usuario)
     {

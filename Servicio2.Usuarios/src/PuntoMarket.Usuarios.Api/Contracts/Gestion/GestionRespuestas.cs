@@ -3,6 +3,9 @@ namespace PuntoMarket.Usuarios.Api.Contracts.Gestion;
 public sealed record UsuarioResponse(
     int Id,
     string Username,
+    string Nombres,
+    string ApellidoPaterno,
+    string? ApellidoMaterno,
     string NombreCompleto,
     string Correo,
     string Rol,

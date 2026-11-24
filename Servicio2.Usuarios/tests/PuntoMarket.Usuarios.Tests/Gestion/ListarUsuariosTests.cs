@@ -12,7 +12,7 @@ public class ListarUsuariosTests
 
     private static Usuario UsuarioDePrueba(int id, string username, int rolId, bool activo = true) =>
         Usuario.Reconstruir(
-            id, username, $"{username}@correo.com", "Ana Pérez", rolId,
+            id, username, $"{username}@correo.com", "Ana", "Pérez", null, rolId,
             activo, debeCambiarPassword: false, "admin", Creacion, null, null);
 
     [Fact]

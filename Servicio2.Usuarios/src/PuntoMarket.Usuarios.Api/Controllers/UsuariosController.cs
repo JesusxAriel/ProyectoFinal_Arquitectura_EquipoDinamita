@@ -71,7 +71,7 @@ public sealed class UsuariosController(
 
         var resultado = await crearUsuario.EjecutarAsync(
             new CrearUsuarioEntrada(
-                solicitud.Nombres, solicitud.Apellidos, solicitud.Correo, solicitud.RolId),
+                solicitud.Nombres, solicitud.ApellidoPaterno, solicitud.ApellidoMaterno, solicitud.Correo, solicitud.RolId),
             cancellationToken);
 
         if (resultado.IsFail)
@@ -95,7 +95,7 @@ public sealed class UsuariosController(
 
         var resultado = await actualizarUsuario.EjecutarAsync(
             new ActualizarUsuarioEntrada(
-                id, solicitud.Nombres, solicitud.Apellidos, solicitud.Correo, solicitud.RolId),
+                id, solicitud.Nombres, solicitud.ApellidoPaterno, solicitud.ApellidoMaterno, solicitud.Correo, solicitud.RolId),
             cancellationToken);
 
         return resultado.IsFail
@@ -138,6 +138,9 @@ public sealed class UsuariosController(
     private static UsuarioResponse Mapear(UsuarioSalida usuario) =>
         new(usuario.Id,
             usuario.Username,
+            usuario.Nombres,
+            usuario.ApellidoPaterno,
+            usuario.ApellidoMaterno,
             usuario.NombreCompleto,
             usuario.Correo,
             usuario.Rol,

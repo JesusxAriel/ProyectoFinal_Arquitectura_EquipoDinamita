@@ -16,7 +16,7 @@ public class CambiarEstadoUsuarioTests
 
     private static Usuario UsuarioDePrueba(string username = "aperez", bool activo = true) =>
         Usuario.Reconstruir(
-            7, username, "ana@correo.com", "Ana Pérez", RolCajero,
+            7, username, "ana@correo.com", "Ana", "Pérez", null, RolCajero,
             activo, debeCambiarPassword: false, Administrador, Creacion, null, null);
 
     private sealed record Escenario(

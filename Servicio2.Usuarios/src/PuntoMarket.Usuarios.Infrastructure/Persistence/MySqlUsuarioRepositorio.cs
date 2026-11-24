@@ -20,7 +20,7 @@ public sealed class MySqlUsuarioRepositorio(ConexionMySql conexionMySql) : IUsua
     private const string IndiceCorreo = "uq_usuario_correo";
 
     private const string ColumnasUsuario =
-        "id, username, correo, nombreCompleto, idRol, activo, debeCambiarPassword, " +
+        "id, username, correo, nombres, apellidoPaterno, apellidoMaterno, idRol, activo, debeCambiarPassword, " +
         "usuarioCreacion, fechaCreacion, usuarioModificacion, fechaModificacion";
 
     private const string ColumnasRol = "id, nombre, estaActivo";
@@ -33,11 +33,11 @@ public sealed class MySqlUsuarioRepositorio(ConexionMySql conexionMySql) : IUsua
 
         const string sql = """
             INSERT INTO USUARIO
-                (username, correo, nombreCompleto, idRol, activo, debeCambiarPassword,
-                 usuarioCreacion, fechaCreacion)
+                (username, correo, nombres, apellidoPaterno, apellidoMaterno, idRol, activo,
+                 debeCambiarPassword, usuarioCreacion, fechaCreacion)
             VALUES
-                (@username, @correo, @nombreCompleto, @idRol, @activo, @debeCambiarPassword,
-                 @usuarioCreacion, @fechaCreacion);
+                (@username, @correo, @nombres, @apellidoPaterno, @apellidoMaterno, @idRol, @activo,
+                 @debeCambiarPassword, @usuarioCreacion, @fechaCreacion);
             SELECT LAST_INSERT_ID();
             """;
 
@@ -45,7 +45,9 @@ public sealed class MySqlUsuarioRepositorio(ConexionMySql conexionMySql) : IUsua
         await using var comando = new MySqlCommand(sql, conexion);
         comando.Parameters.AddWithValue("@username", usuario.Username);
         comando.Parameters.AddWithValue("@correo", usuario.Correo);
-        comando.Parameters.AddWithValue("@nombreCompleto", usuario.NombreCompleto);
+        comando.Parameters.AddWithValue("@nombres", usuario.Nombres);
+        comando.Parameters.AddWithValue("@apellidoPaterno", usuario.ApellidoPaterno);
+        comando.Parameters.AddWithValue("@apellidoMaterno", Valor(usuario.ApellidoMaterno));
         comando.Parameters.AddWithValue("@idRol", usuario.RolId);
         comando.Parameters.AddWithValue("@activo", usuario.Activo);
         comando.Parameters.AddWithValue("@debeCambiarPassword", usuario.DebeCambiarPassword);
@@ -72,7 +74,9 @@ public sealed class MySqlUsuarioRepositorio(ConexionMySql conexionMySql) : IUsua
         const string sql = """
             UPDATE USUARIO
             SET correo = @correo,
-                nombreCompleto = @nombreCompleto,
+                nombres = @nombres,
+                apellidoPaterno = @apellidoPaterno,
+                apellidoMaterno = @apellidoMaterno,
                 idRol = @idRol,
                 activo = @activo,
                 debeCambiarPassword = @debeCambiarPassword,
@@ -84,7 +88,9 @@ public sealed class MySqlUsuarioRepositorio(ConexionMySql conexionMySql) : IUsua
         await using var conexion = await AbrirConexion(cancellationToken);
         await using var comando = new MySqlCommand(sql, conexion);
         comando.Parameters.AddWithValue("@correo", usuario.Correo);
-        comando.Parameters.AddWithValue("@nombreCompleto", usuario.NombreCompleto);
+        comando.Parameters.AddWithValue("@nombres", usuario.Nombres);
+        comando.Parameters.AddWithValue("@apellidoPaterno", usuario.ApellidoPaterno);
+        comando.Parameters.AddWithValue("@apellidoMaterno", Valor(usuario.ApellidoMaterno));
         comando.Parameters.AddWithValue("@idRol", usuario.RolId);
         comando.Parameters.AddWithValue("@activo", usuario.Activo);
         comando.Parameters.AddWithValue("@debeCambiarPassword", usuario.DebeCambiarPassword);
@@ -193,13 +199,15 @@ public sealed class MySqlUsuarioRepositorio(ConexionMySql conexionMySql) : IUsua
             lector.GetString(1),
             lector.GetString(2),
             lector.GetString(3),
-            lector.GetInt32(4),
-            lector.GetBoolean(5),
-            lector.GetBoolean(6),
-            lector.GetString(7),
-            EnUtc(lector.GetDateTime(8)),
-            lector.IsDBNull(9) ? null : lector.GetString(9),
-            lector.IsDBNull(10) ? null : EnUtc(lector.GetDateTime(10)));
+            lector.GetString(4),
+            lector.IsDBNull(5) ? null : lector.GetString(5),
+            lector.GetInt32(6),
+            lector.GetBoolean(7),
+            lector.GetBoolean(8),
+            lector.GetString(9),
+            EnUtc(lector.GetDateTime(10)),
+            lector.IsDBNull(11) ? null : lector.GetString(11),
+            lector.IsDBNull(12) ? null : EnUtc(lector.GetDateTime(12)));
 
     private static Rol LeerRol(DbDataReader lector) =>
         Rol.Reconstruir(lector.GetInt32(0), lector.GetString(1), lector.GetBoolean(2));

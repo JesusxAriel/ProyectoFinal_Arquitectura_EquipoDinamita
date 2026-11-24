@@ -25,7 +25,8 @@ public sealed class ActualizarUsuarioCasoDeUso(
 
         var cambio = usuario.Actualizar(
             entrada.Nombres,
-            entrada.Apellidos,
+            entrada.ApellidoPaterno,
+            entrada.ApellidoMaterno,
             entrada.Correo,
             entrada.RolId,
             usuarioActual.Username,

@@ -3,12 +3,14 @@ namespace PuntoMarket.Usuarios.Domain.Entities;
 public sealed class Usuario
 {
     public const int LongitudMaximaUsername = 50;
-    public const int LongitudMaximaNombreCompleto = 150;
+    public const int LongitudMaximaNombres = 100;
+    public const int LongitudMaximaApellido = 60;
     public const int LongitudMaximaCorreo = 150;
 
     private const int SinAsignar = 0;
     private const string CampoNombres = "El nombre";
-    private const string CampoApellidos = "Los apellidos";
+    private const string CampoApellidoPaterno = "El apellido paterno";
+    private const string CampoApellidoMaterno = "El apellido materno";
     private const string CampoCorreo = "El correo";
     private const string CampoRol = "El rol";
     private const string CampoUsername = "El nombre de usuario";
@@ -18,7 +20,9 @@ public sealed class Usuario
         int id,
         string username,
         string correo,
-        string nombreCompleto,
+        string nombres,
+        string apellidoPaterno,
+        string? apellidoMaterno,
         int rolId,
         bool activo,
         bool debeCambiarPassword,
@@ -30,7 +34,9 @@ public sealed class Usuario
         Id = id;
         Username = username;
         Correo = correo;
-        NombreCompleto = nombreCompleto;
+        Nombres = nombres;
+        ApellidoPaterno = apellidoPaterno;
+        ApellidoMaterno = apellidoMaterno;
         RolId = rolId;
         Activo = activo;
         DebeCambiarPassword = debeCambiarPassword;
@@ -46,7 +52,15 @@ public sealed class Usuario
 
     public string Correo { get; private set; }
 
-    public string NombreCompleto { get; private set; }
+    public string Nombres { get; private set; }
+
+    public string ApellidoPaterno { get; private set; }
+
+    public string? ApellidoMaterno { get; private set; }
+
+    public string Apellidos => Texto.NormalizarEspacios($"{ApellidoPaterno} {ApellidoMaterno}");
+
+    public string NombreCompleto => Texto.NormalizarEspacios($"{Nombres} {ApellidoPaterno} {ApellidoMaterno}");
 
     public int RolId { get; private set; }
 
@@ -64,7 +78,8 @@ public sealed class Usuario
 
     public static Result<Usuario> Crear(
         string? nombres,
-        string? apellidos,
+        string? apellidoPaterno,
+        string? apellidoMaterno,
         string? correo,
         int rolId,
         string? username,
@@ -74,7 +89,7 @@ public sealed class Usuario
         var validacion = Validaciones.PrimerError(
             ValidarUsername(username),
             Validaciones.NoVacio(usuarioCreacion, CampoResponsable),
-            ValidarDatos(nombres, apellidos, correo, rolId));
+            ValidarDatos(nombres, apellidoPaterno, apellidoMaterno, correo, rolId));
 
         if (validacion.IsFail)
             return Result<Usuario>.Fail(validacion.Error);
@@ -83,7 +98,9 @@ public sealed class Usuario
             SinAsignar,
             Texto.NormalizarEspacios(username),
             NormalizarCorreo(correo),
-            ComponerNombreCompleto(nombres, apellidos),
+            Texto.NormalizarEspacios(nombres),
+            Texto.NormalizarEspacios(apellidoPaterno),
+            NormalizarOpcional(apellidoMaterno),
             rolId,
             activo: true,
             debeCambiarPassword: true,
@@ -97,7 +114,9 @@ public sealed class Usuario
         int id,
         string username,
         string correo,
-        string nombreCompleto,
+        string nombres,
+        string apellidoPaterno,
+        string? apellidoMaterno,
         int rolId,
         bool activo,
         bool debeCambiarPassword,
@@ -105,16 +124,17 @@ public sealed class Usuario
         DateTime fechaCreacion,
         string? usuarioModificacion,
         DateTime? fechaModificacion) =>
-        new(id, username, correo, nombreCompleto, rolId, activo, debeCambiarPassword,
+        new(id, username, correo, nombres, apellidoPaterno, apellidoMaterno, rolId, activo, debeCambiarPassword,
             usuarioCreacion, fechaCreacion, usuarioModificacion, fechaModificacion);
 
     public Usuario ConIdAsignado(int id) =>
-        new(id, Username, Correo, NombreCompleto, RolId, Activo, DebeCambiarPassword,
+        new(id, Username, Correo, Nombres, ApellidoPaterno, ApellidoMaterno, RolId, Activo, DebeCambiarPassword,
             UsuarioCreacion, FechaCreacion, UsuarioModificacion, FechaModificacion);
 
     public Result Actualizar(
         string? nombres,
-        string? apellidos,
+        string? apellidoPaterno,
+        string? apellidoMaterno,
         string? correo,
         int rolId,
         string? usuarioModificacion,
@@ -122,12 +142,14 @@ public sealed class Usuario
     {
         var validacion = Validaciones.PrimerError(
             Validaciones.NoVacio(usuarioModificacion, CampoResponsable),
-            ValidarDatos(nombres, apellidos, correo, rolId));
+            ValidarDatos(nombres, apellidoPaterno, apellidoMaterno, correo, rolId));
 
         if (validacion.IsFail)
             return validacion;
 
-        NombreCompleto = ComponerNombreCompleto(nombres, apellidos);
+        Nombres = Texto.NormalizarEspacios(nombres);
+        ApellidoPaterno = Texto.NormalizarEspacios(apellidoPaterno);
+        ApellidoMaterno = NormalizarOpcional(apellidoMaterno);
         Correo = NormalizarCorreo(correo);
         RolId = rolId;
         RegistrarModificacion(usuarioModificacion, ahora);
@@ -180,16 +202,21 @@ public sealed class Usuario
         FechaModificacion = ahora;
     }
 
-    private static Result ValidarDatos(string? nombres, string? apellidos, string? correo, int rolId) =>
+    private static Result ValidarDatos(
+        string? nombres,
+        string? apellidoPaterno,
+        string? apellidoMaterno,
+        string? correo,
+        int rolId) =>
         Validaciones.PrimerError(
             Validaciones.NoVacio(nombres, CampoNombres),
             Validaciones.SinCaracteresDeControl(nombres, CampoNombres),
-            Validaciones.NoVacio(apellidos, CampoApellidos),
-            Validaciones.SinCaracteresDeControl(apellidos, CampoApellidos),
-            Validaciones.LongitudMaxima(
-                ComponerNombreCompleto(nombres, apellidos),
-                LongitudMaximaNombreCompleto,
-                CampoNombres),
+            Validaciones.LongitudMaxima(nombres, LongitudMaximaNombres, CampoNombres),
+            Validaciones.NoVacio(apellidoPaterno, CampoApellidoPaterno),
+            Validaciones.SinCaracteresDeControl(apellidoPaterno, CampoApellidoPaterno),
+            Validaciones.LongitudMaxima(apellidoPaterno, LongitudMaximaApellido, CampoApellidoPaterno),
+            Validaciones.SinCaracteresDeControl(apellidoMaterno, CampoApellidoMaterno),
+            Validaciones.LongitudMaxima(apellidoMaterno, LongitudMaximaApellido, CampoApellidoMaterno),
             Validaciones.NoVacio(correo, CampoCorreo),
             Validaciones.LongitudMaxima(correo, LongitudMaximaCorreo, CampoCorreo),
             Validaciones.Correo(correo, CampoCorreo),
@@ -200,8 +227,11 @@ public sealed class Usuario
             Validaciones.NoVacio(username, CampoUsername),
             Validaciones.LongitudMaxima(username, LongitudMaximaUsername, CampoUsername));
 
-    private static string ComponerNombreCompleto(string? nombres, string? apellidos) =>
-        Texto.NormalizarEspacios($"{nombres} {apellidos}");
+    private static string? NormalizarOpcional(string? valor)
+    {
+        var normalizado = Texto.NormalizarEspacios(valor);
+        return normalizado.Length == 0 ? null : normalizado;
+    }
 
     private static string NormalizarCorreo(string? correo) =>
         Texto.NormalizarEspacios(correo).ToLowerInvariant();

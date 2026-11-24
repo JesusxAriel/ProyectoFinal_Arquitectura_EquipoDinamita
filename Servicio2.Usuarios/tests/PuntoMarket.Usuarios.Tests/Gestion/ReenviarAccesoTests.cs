@@ -15,7 +15,7 @@ public class ReenviarAccesoTests
 
     private static Usuario UsuarioDePrueba(bool activo = true, bool debeCambiar = false) =>
         Usuario.Reconstruir(
-            7, "aperez", "ana@correo.com", "Ana Pérez", RolCajero,
+            7, "aperez", "ana@correo.com", "Ana", "Pérez", null, RolCajero,
             activo, debeCambiar, Administrador, Creacion, null, null);
 
     private sealed record Escenario(

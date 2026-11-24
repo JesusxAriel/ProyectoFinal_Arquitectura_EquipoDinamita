@@ -15,7 +15,7 @@ public class ActualizarUsuarioTests
 
     private static Usuario UsuarioDePrueba() =>
         Usuario.Reconstruir(
-            7, "aperez", "ana@correo.com", "Ana Pérez", RolCajero,
+            7, "aperez", "ana@correo.com", "Ana", "Pérez", null, RolCajero,
             activo: true, debeCambiarPassword: false, Administrador, Creacion, null, null);
 
     private sealed record Escenario(
@@ -44,7 +44,7 @@ public class ActualizarUsuarioTests
         var escenario = Preparar();
 
         var resultado = await escenario.Caso.EjecutarAsync(
-            new(7, "Ana María", "Pérez Soto", "Ana.Maria@Correo.com", RolCajero));
+            new(7, "Ana María", "Pérez", "Soto", "Ana.Maria@Correo.com", RolCajero));
 
         Assert.True(resultado.IsOk);
         Assert.Equal("Ana María Pérez Soto", resultado.Value.Usuario.NombreCompleto);
@@ -62,7 +62,7 @@ public class ActualizarUsuarioTests
         var escenario = Preparar();
 
         var resultado = await escenario.Caso.EjecutarAsync(
-            new(7, "Ana", "Pérez", "otra@correo.com", RolCajero));
+            new(7, "Ana", "Pérez", null, "otra@correo.com", RolCajero));
 
         Assert.Equal("aperez", resultado.Value.Usuario.Username);
         Assert.False(resultado.Value.Usuario.DebeCambiarPassword);
@@ -73,7 +73,7 @@ public class ActualizarUsuarioTests
     {
         var escenario = Preparar(rolActivo: false);
 
-        var resultado = await escenario.Caso.EjecutarAsync(new(7, "Ana", "Pérez", "ana@correo.com", RolCajero));
+        var resultado = await escenario.Caso.EjecutarAsync(new(7, "Ana", "Pérez", null, "ana@correo.com", RolCajero));
 
         Assert.True(resultado.IsFail);
         Assert.Equal(MensajesDeGestion.RolNoDisponible, resultado.Error);
@@ -87,7 +87,7 @@ public class ActualizarUsuarioTests
         var escenario = Preparar();
         escenario.Repositorio.UsuarioEncontrado = null;
 
-        var resultado = await escenario.Caso.EjecutarAsync(new(99, "Ana", "Pérez", "ana@correo.com", RolCajero));
+        var resultado = await escenario.Caso.EjecutarAsync(new(99, "Ana", "Pérez", null, "ana@correo.com", RolCajero));
 
         Assert.True(resultado.IsFail);
         Assert.Equal(MensajesDeGestion.UsuarioNoEncontrado, resultado.Error);
@@ -95,15 +95,16 @@ public class ActualizarUsuarioTests
     }
 
     [Theory]
-    [InlineData("Ana", "Pérez", "sin-arroba")]
-    [InlineData("", "Pérez", "ana@correo.com")]
-    [InlineData("Ana", null, "ana@correo.com")]
+    [InlineData("Ana", "Pérez", null, "sin-arroba")]
+    [InlineData("", "Pérez", null, "ana@correo.com")]
+    [InlineData("Ana", null, "Soto", "ana@correo.com")]
+    [InlineData("Ana", "  ", null, "ana@correo.com")]
     public async Task No_guarda_nada_si_el_dominio_rechaza_los_datos(
-        string? nombres, string? apellidos, string? correo)
+        string? nombres, string? paterno, string? materno, string? correo)
     {
         var escenario = Preparar();
 
-        var resultado = await escenario.Caso.EjecutarAsync(new(7, nombres, apellidos, correo, RolCajero));
+        var resultado = await escenario.Caso.EjecutarAsync(new(7, nombres, paterno, materno, correo, RolCajero));
 
         Assert.True(resultado.IsFail);
         Assert.NotEmpty(resultado.Error);
@@ -118,7 +119,7 @@ public class ActualizarUsuarioTests
             Result<Usuario>.Fail("Ya existe un usuario con ese correo.");
 
         var resultado = await escenario.Caso.EjecutarAsync(
-            new(7, "Ana", "Pérez", "repetido@correo.com", RolCajero));
+            new(7, "Ana", "Pérez", null, "repetido@correo.com", RolCajero));
 
         Assert.True(resultado.IsFail);
         Assert.Equal("Ya existe un usuario con ese correo.", resultado.Error);
