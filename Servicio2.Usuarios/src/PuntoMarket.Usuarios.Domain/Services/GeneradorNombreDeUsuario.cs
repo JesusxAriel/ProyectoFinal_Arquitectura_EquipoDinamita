@@ -7,18 +7,18 @@ public static class GeneradorNombreDeUsuario
 {
     public const int PrimerIntento = 1;
 
-    public static Result<string> GenerarBase(string? nombres, string? apellidos)
+    public static Result<string> GenerarBase(string? nombres, string? apellidoPaterno)
     {
         var letrasDelNombre = Texto.SoloLetrasSinTildes(Texto.NormalizarEspacios(nombres));
-        var primerApellido = PrimerApellido(apellidos);
+        var letrasDelApellido = Texto.SoloLetrasSinTildes(apellidoPaterno);
 
-        if (letrasDelNombre.Length == 0 || primerApellido.Length == 0)
+        if (letrasDelNombre.Length == 0 || letrasDelApellido.Length == 0)
         {
             return Result<string>.Fail(
-                "El nombre y el primer apellido deben tener letras para generar el nombre de usuario.");
+                "El nombre y el apellido paterno deben tener letras para generar el nombre de usuario.");
         }
 
-        return Result<string>.Ok(letrasDelNombre[..1] + primerApellido);
+        return Result<string>.Ok(letrasDelNombre[..1] + letrasDelApellido);
     }
 
     public static string Siguiente(string nombreBase, int intento)
@@ -31,14 +31,5 @@ public static class GeneradorNombreDeUsuario
             Usuario.LongitudMaximaUsername - sufijo.Length);
 
         return nombreBase[..espacioDisponible] + sufijo;
-    }
-
-    private static string PrimerApellido(string? apellidos)
-    {
-        var normalizados = Texto.NormalizarEspacios(apellidos);
-
-        return normalizados.Length == 0
-            ? ""
-            : Texto.SoloLetrasSinTildes(normalizados.Split(' ')[0]);
     }
 }

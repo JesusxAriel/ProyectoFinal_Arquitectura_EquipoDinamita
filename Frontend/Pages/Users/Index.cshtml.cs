@@ -25,13 +25,17 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
 
     [BindProperty]
     [Required(ErrorMessage = "El campo Nombres es obligatorio.")]
-    [StringLength(150, ErrorMessage = "El campo Nombres no puede superar los 150 caracteres.")]
+    [StringLength(100, ErrorMessage = "El campo Nombres no puede superar los 100 caracteres.")]
     public string Nombres { get; set; } = "";
 
     [BindProperty]
-    [Required(ErrorMessage = "El campo Apellidos es obligatorio.")]
-    [StringLength(150, ErrorMessage = "El campo Apellidos no puede superar los 150 caracteres.")]
-    public string Apellidos { get; set; } = "";
+    [Required(ErrorMessage = "El campo Apellido paterno es obligatorio.")]
+    [StringLength(60, ErrorMessage = "El campo Apellido paterno no puede superar los 60 caracteres.")]
+    public string ApellidoPaterno { get; set; } = "";
+
+    [BindProperty]
+    [StringLength(60, ErrorMessage = "El campo Apellido materno no puede superar los 60 caracteres.")]
+    public string? ApellidoMaterno { get; set; }
 
     [BindProperty]
     [Required(ErrorMessage = "El campo Correo es obligatorio.")]
@@ -96,7 +100,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
             return Page();
         }
 
-        var resultado = await api.Crear(new CreateUsuarioRequest(Nombres, Apellidos, Correo, RolId));
+        var resultado = await api.Crear(new CreateUsuarioRequest(Nombres, ApellidoPaterno, ApellidoMaterno, Correo, RolId));
         if (resultado.IsFail)
         {
             ErrorGestion = resultado.Error;
@@ -130,6 +134,9 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
 
         EditarId = id;
         UsuarioEditando = resultado.Value;
+        Nombres = resultado.Value.Nombres;
+        ApellidoPaterno = resultado.Value.ApellidoPaterno;
+        ApellidoMaterno = resultado.Value.ApellidoMaterno;
         Correo = resultado.Value.Correo;
         RolId = Roles.FirstOrDefault(rol => rol.Nombre == resultado.Value.Rol)?.Id ?? 0;
         ModelState.Clear();
@@ -162,7 +169,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
 
         var resultado = await api.Actualizar(
             EditarId.Value,
-            new UpdateUsuarioRequest(Nombres, Apellidos, Correo, RolId));
+            new UpdateUsuarioRequest(Nombres, ApellidoPaterno, ApellidoMaterno, Correo, RolId));
         if (resultado.IsFail)
         {
             ErrorGestion = resultado.Error;

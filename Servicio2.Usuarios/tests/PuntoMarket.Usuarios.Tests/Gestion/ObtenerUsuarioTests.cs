@@ -13,7 +13,7 @@ public class ObtenerUsuarioTests
 
     private static Usuario UsuarioDePrueba() =>
         Usuario.Reconstruir(
-            7, "aperez", "ana@correo.com", "Ana Pérez", RolCajero,
+            7, "aperez", "ana@correo.com", "Ana", "Pérez", null, RolCajero,
             activo: true, debeCambiarPassword: true, "admin", Creacion, null, null);
 
     [Fact]

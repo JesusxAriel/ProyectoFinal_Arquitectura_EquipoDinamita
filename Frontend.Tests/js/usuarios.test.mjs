@@ -38,7 +38,7 @@ function formulario(mensajes) {
 test('al escribir se quita el estilo de error y el mensaje solo de ese campo', () => {
   const nombres = campo('Nombres', 'form-control', 'is-invalid');
   const propio = mensaje('Nombres', 'El campo Nombres es obligatorio.');
-  const ajeno = mensaje('Apellidos', 'El campo Apellidos es obligatorio.');
+  const ajeno = mensaje('ApellidoPaterno', 'El campo Apellido paterno es obligatorio.');
 
   limpiarCampo(formulario([propio, ajeno]), nombres);
 
@@ -48,7 +48,7 @@ test('al escribir se quita el estilo de error y el mensaje solo de ese campo', (
   assert.equal(propio.textContent, '');
   assert.equal(propio.classList.contains('field-validation-error'), false);
   assert.equal(propio.classList.contains('field-validation-valid'), true);
-  assert.equal(ajeno.textContent, 'El campo Apellidos es obligatorio.');
+  assert.equal(ajeno.textContent, 'El campo Apellido paterno es obligatorio.');
   assert.equal(ajeno.classList.contains('field-validation-error'), true);
 });
 

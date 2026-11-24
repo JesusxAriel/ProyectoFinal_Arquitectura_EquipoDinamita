@@ -31,7 +31,7 @@ public sealed class CrearUsuarioCasoDeUso(
         if (rol is null || !rol.Activo)
             return Result<CrearUsuarioSalida>.Fail(MensajesDeGestion.RolNoDisponible);
 
-        var nombreBase = GeneradorNombreDeUsuario.GenerarBase(entrada.Nombres, entrada.Apellidos);
+        var nombreBase = GeneradorNombreDeUsuario.GenerarBase(entrada.Nombres, entrada.ApellidoPaterno);
         if (nombreBase.IsFail)
             return Result<CrearUsuarioSalida>.Fail(nombreBase.Error);
 
@@ -41,7 +41,8 @@ public sealed class CrearUsuarioCasoDeUso(
 
         var creacion = Usuario.Crear(
             entrada.Nombres,
-            entrada.Apellidos,
+            entrada.ApellidoPaterno,
+            entrada.ApellidoMaterno,
             entrada.Correo,
             entrada.RolId,
             username,
@@ -65,7 +66,8 @@ public sealed class CrearUsuarioCasoDeUso(
         var identidad = await gestorDeIdentidad.CrearUsuario(
             guardadoConId.Username,
             guardadoConId.Correo,
-            guardadoConId.NombreCompleto,
+            guardadoConId.Nombres,
+            guardadoConId.Apellidos,
             rol.Nombre,
             passwordTemporal);
 

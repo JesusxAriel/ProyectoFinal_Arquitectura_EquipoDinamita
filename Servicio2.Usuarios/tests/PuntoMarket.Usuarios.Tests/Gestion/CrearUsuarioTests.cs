@@ -15,10 +15,11 @@ public class CrearUsuarioTests
 
     private static CrearUsuarioEntrada Entrada(
         string? nombres = "Juan Carlos",
-        string? apellidos = "Pérez Rojas",
+        string? paterno = "Pérez",
+        string? materno = "Rojas",
         string? correo = "Juan@Correo.com",
         int rolId = RolCajero) =>
-        new(nombres, apellidos, correo, rolId);
+        new(nombres, paterno, materno, correo, rolId);
 
     private sealed record Escenario(
         CrearUsuarioCasoDeUso Caso,
@@ -61,12 +62,15 @@ public class CrearUsuarioTests
         Assert.Equal("jperez", guardado.Username);
         Assert.Equal("juan@correo.com", guardado.Correo);
         Assert.Equal("Juan Carlos Pérez Rojas", guardado.NombreCompleto);
+        Assert.Equal("Pérez", guardado.ApellidoPaterno);
+        Assert.Equal("Rojas", guardado.ApellidoMaterno);
         Assert.True(guardado.DebeCambiarPassword);
         Assert.True(guardado.Activo);
         Assert.Equal(Administrador, guardado.UsuarioCreacion);
         Assert.Equal(escenario.Reloj.Ahora, guardado.FechaCreacion);
 
         Assert.Equal([nameof(GestorDeIdentidadFalso.CrearUsuario)], escenario.Identidad.Llamadas);
+        Assert.Equal(("jperez", "Juan Carlos", "Pérez Rojas"), Assert.Single(escenario.Identidad.Creaciones));
         Assert.Equal(
             ("juan@correo.com", "jperez", escenario.Password.Password),
             Assert.Single(escenario.Correo.Envios));
@@ -137,16 +141,18 @@ public class CrearUsuarioTests
     }
 
     [Theory]
-    [InlineData("Juan", "Pérez", "sin-arroba")]
-    [InlineData("Juan", "Pérez", null)]
-    [InlineData("", "Pérez", "juan@correo.com")]
-    [InlineData("123", "456", "juan@correo.com")]
+    [InlineData("Juan", "Pérez", "Rojas", "sin-arroba")]
+    [InlineData("Juan", "Pérez", "Rojas", null)]
+    [InlineData("", "Pérez", "Rojas", "juan@correo.com")]
+    [InlineData("Juan", "", "Rojas", "juan@correo.com")]
+    [InlineData("Juan", null, null, "juan@correo.com")]
+    [InlineData("123", "456", null, "juan@correo.com")]
     public async Task No_guarda_nada_si_el_dominio_rechaza_los_datos(
-        string? nombres, string? apellidos, string? correo)
+        string? nombres, string? paterno, string? materno, string? correo)
     {
         var escenario = Preparar();
 
-        var resultado = await escenario.Caso.EjecutarAsync(Entrada(nombres, apellidos, correo));
+        var resultado = await escenario.Caso.EjecutarAsync(Entrada(nombres, paterno, materno, correo));
 
         Assert.True(resultado.IsFail);
         Assert.NotEmpty(resultado.Error);

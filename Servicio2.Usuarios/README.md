@@ -33,9 +33,27 @@ La contraseña no se guarda en la tabla `USUARIO`: vive solo en Keycloak. El cam
 
 ## Actualización de un usuario
 
-`PUT /api/usuarios/{id}` cambia el nombre completo, el correo y el rol **solo en nuestra tabla**: esos datos no se propagan a Keycloak, porque el puerto `IGestorDeIdentidad` del contrato no tiene una operación para editarlos. Si la entrega necesita que el correo también cambie en Keycloak, hay que acordar con Ari agregar esa operación al puerto y a su adaptador.
+`PUT /api/usuarios/{id}` cambia los nombres, los apellidos, el correo y el rol **solo en nuestra tabla**: esos datos no se propagan a Keycloak, porque el puerto `IGestorDeIdentidad` del contrato no tiene una operación para editarlos. Si la entrega necesita que el correo también cambie en Keycloak, hay que acordar con Ari agregar esa operación al puerto y a su adaptador.
 
-El `username` **no cambia nunca**. Se genera una sola vez al crear el usuario, con el protocolo del dominio (inicial del primer nombre más el primer apellido, en minúsculas y sin tildes, numerado si ya existe), y es la clave con la que Keycloak, el login del Gateway y las columnas de auditoría identifican a la persona.
+El `username` **no cambia nunca**. Se genera una sola vez al crear el usuario, con el protocolo del dominio (inicial del primer nombre más el apellido paterno completo, en minúsculas y sin tildes, numerado si ya existe), y es la clave con la que Keycloak, el login del Gateway y las columnas de auditoría identifican a la persona.
+
+## Nombres y apellidos
+
+La tabla `USUARIO` guarda `nombres`, `apellidoPaterno` (obligatorio, hasta 60 caracteres) y `apellidoMaterno` (opcional, hasta 60 caracteres, `NULL` si la persona no tiene segundo apellido). La columna `nombreCompleto` ya no existe: el nombre completo se compone al responder (`nombres apellidoPaterno apellidoMaterno`, sin espacios sobrantes cuando falta el materno).
+
+`POST /api/usuarios` y `PUT /api/usuarios/{id}` reciben `nombres`, `apellidoPaterno`, `apellidoMaterno` (opcional), `correo` y `rolId`; el campo `apellidos` ya no se acepta. Las respuestas de usuario devuelven `nombres`, `apellidoPaterno`, `apellidoMaterno` y `nombreCompleto`. Al crear el usuario en Keycloak, `firstName` es `nombres` y `lastName` es `apellidoPaterno apellidoMaterno` (solo el paterno si no hay materno).
+
+El administrador inicial se siembra con `PUNTOMARKET_ADMIN_NOMBRE` como nombres (por defecto `Administrador`) y `PuntoMarket` como apellido paterno.
+
+### Migración de una base existente
+
+`db/init/` solo corre con el volumen vacío. Para una base ya creada, aplique a mano `db/migraciones/001-apellidos-paterno-materno.sql`, que es idempotente (si ya está aplicada, no hace nada) y no se ejecuta sola:
+
+```powershell
+Get-Content Servicio2.Usuarios/db/migraciones/001-apellidos-paterno-materno.sql -Raw | docker exec -i <contenedor-mysql-usuarios> mysql -u<usuario> -p<contraseña> <base>
+```
+
+Los nombres existentes se separan por heurística: una palabra pasa a ser nombres con paterno `PuntoMarket`; dos, nombres y paterno; tres, nombres, paterno y materno; cuatro o más, los nombres son todo salvo las dos últimas palabras. Los apellidos compuestos (por ejemplo «De la Cruz») no se pueden distinguir y hay que corregirlos desde la pantalla de Usuarios.
 
 ## Pendiente
 

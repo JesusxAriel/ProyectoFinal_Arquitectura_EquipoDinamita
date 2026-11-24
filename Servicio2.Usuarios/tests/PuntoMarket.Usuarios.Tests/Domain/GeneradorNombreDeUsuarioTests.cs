@@ -7,11 +7,12 @@ namespace PuntoMarket.Usuarios.Tests.Domain;
 public class GeneradorNombreDeUsuarioTests
 {
     [Theory]
-    [InlineData("Juan Carlos", "Pérez Rojas", "jperez")]
+    [InlineData("Juan Carlos", "Pérez", "jperez")]
     [InlineData("  juan  ", "  perez  ", "jperez")]
-    [InlineData("Ángel", "Íñiguez Soto", "ainiguez")]
+    [InlineData("Ángel", "Íñiguez", "ainiguez")]
     [InlineData("María José", "Núñez", "mnunez")]
-    public void GenerarBase_toma_la_inicial_del_nombre_y_el_primer_apellido(
+    [InlineData("Juan", "De la Cruz", "jdelacruz")]
+    public void GenerarBase_toma_la_inicial_del_nombre_y_el_apellido_paterno(
         string nombres, string apellidos, string esperado)
     {
         var resultado = GeneradorNombreDeUsuario.GenerarBase(nombres, apellidos);

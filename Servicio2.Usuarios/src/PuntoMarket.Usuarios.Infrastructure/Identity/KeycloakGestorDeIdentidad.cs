@@ -11,12 +11,10 @@ namespace PuntoMarket.Usuarios.Infrastructure.Identity;
 public sealed class KeycloakGestorDeIdentidad(HttpClient httpClient, Lazy<KeycloakOpciones> opcionesPerezosas)
     : IGestorDeIdentidad
 {
-    private const char SeparadorDeNombre = ' ';
-
     private KeycloakOpciones Opciones => opcionesPerezosas.Value;
 
     public Task<Result> CrearUsuario(
-        string username, string correo, string nombreCompleto, string rol, string passwordTemporal) =>
+        string username, string correo, string nombres, string apellidos, string rol, string passwordTemporal) =>
         Ejecutar(async () =>
         {
             var token = await ObtenerTokenAdministrador();
@@ -31,7 +29,7 @@ public sealed class KeycloakGestorDeIdentidad(HttpClient httpClient, Lazy<Keyclo
                 return Result.Fail(KeycloakMensajes.RolNoEncontrado);
             }
 
-            var creacion = await CrearEnKeycloak(username, correo, nombreCompleto, passwordTemporal, token);
+            var creacion = await CrearEnKeycloak(username, correo, nombres, apellidos, passwordTemporal, token);
             if (creacion.IsFail)
             {
                 return Result.Fail(creacion.Error);
@@ -140,11 +138,10 @@ public sealed class KeycloakGestorDeIdentidad(HttpClient httpClient, Lazy<Keyclo
     }
 
     private async Task<Result<string>> CrearEnKeycloak(
-        string username, string correo, string nombreCompleto, string passwordTemporal, string token)
+        string username, string correo, string nombres, string apellidos, string passwordTemporal, string token)
     {
-        var (nombre, apellido) = SepararNombre(nombreCompleto);
         var cuerpo = new UsuarioNuevo(
-            username, correo, nombre, apellido, true, true,
+            username, correo, nombres, apellidos, true, true,
             [new CredencialRepresentacion("password", passwordTemporal, false)]);
 
         using var respuesta = await Enviar(HttpMethod.Post, Opciones.UrlAdmin("users"), token, cuerpo);
@@ -204,13 +201,6 @@ public sealed class KeycloakGestorDeIdentidad(HttpClient httpClient, Lazy<Keyclo
         return respuesta.StatusCode is HttpStatusCode.BadRequest
             ? Result.Fail(mensajeSiRechaza)
             : Result.Fail(KeycloakMensajes.ServicioNoDisponible);
-    }
-
-    private static (string Nombre, string Apellido) SepararNombre(string nombreCompleto)
-    {
-        var partes = nombreCompleto.Trim().Split(SeparadorDeNombre, 2, StringSplitOptions.RemoveEmptyEntries);
-        var nombre = partes.Length > 0 ? partes[0] : nombreCompleto;
-        return (nombre, partes.Length > 1 ? partes[1] : nombre);
     }
 
     private sealed record TokenRespuesta([property: JsonPropertyName("access_token")] string AccessToken);

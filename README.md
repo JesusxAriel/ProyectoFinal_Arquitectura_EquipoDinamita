@@ -121,7 +121,7 @@ Al iniciar por primera vez se crea el administrador definido en `PUNTOMARKET_ADM
 
 Funcionamiento de las cuentas:
 
-- El nombre de usuario se genera a partir del nombre y apellido (`jperez`, `jperez2`, ...).
+- El nombre de usuario se genera a partir del nombre y el apellido paterno (`jperez`, `jperez2`, ...).
 - La contraseña temporal se genera automáticamente, se fija en Keycloak y se envía por correo. La contraseña no se guarda en la base de Usuarios.
 - En el primer inicio de sesión el usuario debe cambiar su contraseña.
 - El administrador puede desactivar y reactivar usuarios, y reenviar el acceso de un usuario activo con `POST /api/usuarios/{id}/reenviar-acceso`.

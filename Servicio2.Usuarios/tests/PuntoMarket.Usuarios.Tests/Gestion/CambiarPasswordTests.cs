@@ -16,7 +16,7 @@ public class CambiarPasswordTests
 
     private static Usuario UsuarioDePrueba(bool activo = true) =>
         Usuario.Reconstruir(
-            5, Username, "ana@correo.com", "Ana Pérez", 2,
+            5, Username, "ana@correo.com", "Ana", "Pérez", null, 2,
             activo, debeCambiarPassword: true, "admin", Creacion, null, null);
 
     private sealed record Escenario(

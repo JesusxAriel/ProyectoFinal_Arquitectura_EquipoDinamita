@@ -4,7 +4,13 @@ namespace PuntoMarket.Usuarios.Application.Ports.Gestion;
 
 public interface IGestorDeIdentidad
 {
-    Task<Result> CrearUsuario(string username, string correo, string nombreCompleto, string rol, string passwordTemporal);
+    Task<Result> CrearUsuario(
+        string username,
+        string correo,
+        string nombres,
+        string apellidos,
+        string rol,
+        string passwordTemporal);
 
     Task<Result> CambiarPassword(string username, string passwordNueva);
 

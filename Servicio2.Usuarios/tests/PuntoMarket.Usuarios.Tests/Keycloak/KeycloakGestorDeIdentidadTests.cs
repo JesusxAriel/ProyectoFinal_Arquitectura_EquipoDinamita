@@ -63,13 +63,13 @@ public sealed class KeycloakGestorDeIdentidadTests
     {
         var manejador = new ManejadorGuionado(RutasHabituales);
 
-        var resultado = await Crear(manejador).CrearUsuario("jperez", "j@correo.com", "Juan Pérez Rojas", "Cajero", "Temporal#1");
+        var resultado = await Crear(manejador).CrearUsuario("jperez", "j@correo.com", "Juan", "Perez Rojas", "Cajero", "Temporal#1");
 
         Assert.True(resultado.IsOk, resultado.Error);
         var creacion = Assert.Single(manejador.Llamadas, l => l.Metodo == HttpMethod.Post && l.Ruta.EndsWith("/users"));
         Assert.Contains("\"username\":\"jperez\"", creacion.Cuerpo);
         Assert.Contains("\"firstName\":\"Juan\"", creacion.Cuerpo);
-        Assert.Contains("rez Rojas\"", creacion.Cuerpo);
+        Assert.Contains("\"lastName\":\"Perez Rojas\"", creacion.Cuerpo);
         Assert.Contains("\"temporary\":false", creacion.Cuerpo);
         var asignacion = Assert.Single(manejador.Llamadas, l => l.Ruta.EndsWith("/users/usuario-1/role-mappings/realm"));
         Assert.Contains("\"name\":\"Cajero\"", asignacion.Cuerpo);
@@ -80,7 +80,7 @@ public sealed class KeycloakGestorDeIdentidadTests
     {
         var manejador = new ManejadorGuionado(RutasHabituales);
 
-        await Crear(manejador).CrearUsuario("jperez", "j@correo.com", "Juan Pérez", "Cajero", "Temporal#1");
+        await Crear(manejador).CrearUsuario("jperez", "j@correo.com", "Juan", "Perez", "Cajero", "Temporal#1");
 
         var tokenAdmin = manejador.Llamadas.First();
         Assert.Equal("/realms/master/protocol/openid-connect/token", tokenAdmin.Ruta);
@@ -89,14 +89,15 @@ public sealed class KeycloakGestorDeIdentidadTests
     }
 
     [Fact]
-    public async Task CrearUsuario_NombreDeUnaSolaPalabra_UsaLaMismaPalabraComoApellido()
+    public async Task CrearUsuario_SoloApellidoPaterno_EnviaElApellidoSinEspaciosSobrantes()
     {
         var manejador = new ManejadorGuionado(RutasHabituales);
 
-        await Crear(manejador).CrearUsuario("madonna", "m@correo.com", "Madonna", "Cajero", "Temporal#1");
+        await Crear(manejador).CrearUsuario("jperez", "j@correo.com", "Juan", "Perez", "Cajero", "Temporal#1");
 
         var creacion = manejador.Llamadas.Single(l => l.Metodo == HttpMethod.Post && l.Ruta.EndsWith("/users"));
-        Assert.Contains("\"lastName\":\"Madonna\"", creacion.Cuerpo);
+        Assert.Contains("\"firstName\":\"Juan\"", creacion.Cuerpo);
+        Assert.Contains("\"lastName\":\"Perez\"", creacion.Cuerpo);
     }
 
     [Fact]
@@ -107,7 +108,7 @@ public sealed class KeycloakGestorDeIdentidadTests
                 ? Json(HttpStatusCode.Conflict)
                 : RutasHabituales(llamada));
 
-        var resultado = await Crear(manejador).CrearUsuario("jperez", "j@correo.com", "Juan Pérez", "Cajero", "Temporal#1");
+        var resultado = await Crear(manejador).CrearUsuario("jperez", "j@correo.com", "Juan", "Perez", "Cajero", "Temporal#1");
 
         Assert.True(resultado.IsFail);
         Assert.Equal(KeycloakMensajes.UsuarioExistente, resultado.Error);
@@ -120,7 +121,7 @@ public sealed class KeycloakGestorDeIdentidadTests
         var manejador = new ManejadorGuionado(llamada =>
             llamada.Ruta.Contains("/roles/") ? Json(HttpStatusCode.NotFound) : RutasHabituales(llamada));
 
-        var resultado = await Crear(manejador).CrearUsuario("jperez", "j@correo.com", "Juan Pérez", "Inexistente", "Temporal#1");
+        var resultado = await Crear(manejador).CrearUsuario("jperez", "j@correo.com", "Juan", "Perez", "Inexistente", "Temporal#1");
 
         Assert.Equal(KeycloakMensajes.RolNoEncontrado, resultado.Error);
         Assert.DoesNotContain(manejador.Llamadas, l => l.Metodo == HttpMethod.Post && l.Ruta.EndsWith("/users"));
@@ -132,7 +133,7 @@ public sealed class KeycloakGestorDeIdentidadTests
         var manejador = new ManejadorGuionado(llamada =>
             llamada.Ruta.Contains("role-mappings") ? Json(HttpStatusCode.InternalServerError) : RutasHabituales(llamada));
 
-        var resultado = await Crear(manejador).CrearUsuario("jperez", "j@correo.com", "Juan Pérez", "Cajero", "Temporal#1");
+        var resultado = await Crear(manejador).CrearUsuario("jperez", "j@correo.com", "Juan", "Perez", "Cajero", "Temporal#1");
 
         Assert.True(resultado.IsFail);
         Assert.Contains(manejador.Llamadas, l => l.Metodo == HttpMethod.Delete && l.Ruta.EndsWith("/users/usuario-1"));
@@ -146,7 +147,7 @@ public sealed class KeycloakGestorDeIdentidadTests
                 ? Json(HttpStatusCode.BadRequest, """{"error":"invalidPasswordMinLengthMessage"}""")
                 : RutasHabituales(llamada));
 
-        var resultado = await Crear(manejador).CrearUsuario("jperez", "j@correo.com", "Juan Pérez", "Cajero", "corta");
+        var resultado = await Crear(manejador).CrearUsuario("jperez", "j@correo.com", "Juan", "Perez", "Cajero", "corta");
 
         Assert.Equal(KeycloakMensajes.PasswordNoCumplePolitica, resultado.Error);
     }

@@ -23,10 +23,13 @@ internal sealed class GestorDeIdentidadFalso : IGestorDeIdentidad
     public List<(string Username, string Password)> Cambios { get; } = [];
     public List<(string Username, bool Activo)> Estados { get; } = [];
 
+    public List<(string Username, string Nombres, string Apellidos)> Creaciones { get; } = [];
+
     public Task<Result> CrearUsuario(
-        string username, string correo, string nombreCompleto, string rol, string passwordTemporal)
+        string username, string correo, string nombres, string apellidos, string rol, string passwordTemporal)
     {
         Llamadas.Add(nameof(CrearUsuario));
+        Creaciones.Add((username, nombres, apellidos));
         return Task.FromResult(ResultadoCrearUsuario);
     }
 
