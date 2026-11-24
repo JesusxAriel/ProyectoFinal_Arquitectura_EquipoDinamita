@@ -21,7 +21,8 @@ public sealed class UsersPaginaTests : IAsyncLifetime
     private bool reenviarDebeFallar;
     private int llamadasReenviar;
     private readonly List<(int Id, bool Activo)> cambiosDeEstado = [];
-    private readonly List<(int Id, string Nombres, string Apellidos, string Correo, int RolId)> actualizaciones = [];
+    private readonly List<(int Id, string Nombres, string Paterno, string? Materno, string Correo, int RolId)> actualizaciones = [];
+    private readonly List<JsonElement> creaciones = [];
     private bool crearDebeFallar;
 
     public async Task InitializeAsync()
@@ -46,9 +47,9 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         });
         var usuarios = new[]
         {
-            new { id = 1, username = "admin", nombreCompleto = "Usuario de prueba", correo = "admin@correo.test", rol = "Administrador", activo = true, debeCambiarPassword = false },
-            new { id = 2, username = "cajero1", nombreCompleto = "Cajero Uno", correo = "cajero1@correo.test", rol = "Cajero", activo = true, debeCambiarPassword = false },
-            new { id = 4, username = "inactivo1", nombreCompleto = "Inactivo Uno", correo = "inactivo1@correo.test", rol = "Cajero", activo = false, debeCambiarPassword = false }
+            new { id = 1, username = "admin", nombres = "Usuario", apellidoPaterno = "de prueba", apellidoMaterno = (string?)null, nombreCompleto = "Usuario de prueba", correo = "admin@correo.test", rol = "Administrador", activo = true, debeCambiarPassword = false },
+            new { id = 2, username = "cajero1", nombres = "Cajero", apellidoPaterno = "Uno", apellidoMaterno = (string?)"Rojas", nombreCompleto = "Cajero Uno Rojas", correo = "cajero1@correo.test", rol = "Cajero", activo = true, debeCambiarPassword = false },
+            new { id = 4, username = "inactivo1", nombres = "Inactivo", apellidoPaterno = "Uno", apellidoMaterno = (string?)null, nombreCompleto = "Inactivo Uno", correo = "inactivo1@correo.test", rol = "Cajero", activo = false, debeCambiarPassword = false }
         };
         gateway.MapGet("/api/usuarios", () => Results.Json(usuarios));
         gateway.MapGet("/api/usuarios/{id:int}", (int id) =>
@@ -67,18 +68,25 @@ public sealed class UsersPaginaTests : IAsyncLifetime
             new { id = 1, nombre = "Administrador" },
             new { id = 2, nombre = "Cajero" }
         }));
-        gateway.MapPost("/api/usuarios", () => crearDebeFallar
-            ? Results.Json(new { error = "Ya existe un usuario con ese correo." }, statusCode: StatusCodes.Status400BadRequest)
-            : Results.Json(new
-            {
-                id = 3,
-                username = "nuevo.usuario",
-                nombreCompleto = "Nuevo Usuario",
-                correo = "nuevo@correo.test",
-                rol = "Cajero",
-                activo = true,
-                correoEnviado = correoEnviadoRespuesta
-            }));
+        gateway.MapPost("/api/usuarios", async (HttpContext contexto) =>
+        {
+            var cuerpo = await contexto.Request.ReadFromJsonAsync<JsonElement>();
+            lock (creaciones)
+                creaciones.Add(cuerpo.Clone());
+
+            return crearDebeFallar
+                ? Results.Json(new { error = "Ya existe un usuario con ese correo." }, statusCode: StatusCodes.Status400BadRequest)
+                : Results.Json(new
+                {
+                    id = 3,
+                    username = "nuevo.usuario",
+                    nombreCompleto = "Nuevo Usuario",
+                    correo = "nuevo@correo.test",
+                    rol = "Cajero",
+                    activo = true,
+                    correoEnviado = correoEnviadoRespuesta
+                });
+        });
         gateway.MapPut("/api/usuarios/{id:int}", async (int id, HttpContext contexto) =>
         {
             var cuerpo = await contexto.Request.ReadFromJsonAsync<JsonElement>();
@@ -86,7 +94,8 @@ public sealed class UsersPaginaTests : IAsyncLifetime
                 actualizaciones.Add((
                     id,
                     cuerpo.GetProperty("nombres").GetString()!,
-                    cuerpo.GetProperty("apellidos").GetString()!,
+                    cuerpo.GetProperty("apellidoPaterno").GetString()!,
+                    cuerpo.GetProperty("apellidoMaterno").GetString(),
                     cuerpo.GetProperty("correo").GetString()!,
                     cuerpo.GetProperty("rolId").GetInt32()));
             return Results.Json(usuarios.First(u => u.id == id));
@@ -265,7 +274,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         var post = await cliente.PostAsync("/Users?handler=Crear", new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["Nombres"] = "Nuevo",
-            ["Apellidos"] = "Usuario",
+            ["ApellidoPaterno"] = "Usuario",
             ["Correo"] = "nuevo@correo.test",
             ["RolId"] = "2",
             ["__RequestVerificationToken"] = token
@@ -288,7 +297,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         var post = await cliente.PostAsync("/Users?handler=Crear", new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["Nombres"] = "Nuevo",
-            ["Apellidos"] = "Usuario",
+            ["ApellidoPaterno"] = "Usuario",
             ["Correo"] = "nuevo@correo.test",
             ["RolId"] = "2",
             ["__RequestVerificationToken"] = token
@@ -398,7 +407,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         using var cliente = await IniciarSesion("admin");
         await Publicar(cliente, "/Users?handler=Crear", new()
         {
-            ["Nombres"] = "Nuevo", ["Apellidos"] = "Usuario", ["Correo"] = "nuevo@correo.test", ["RolId"] = "2"
+            ["Nombres"] = "Nuevo", ["ApellidoPaterno"] = "Usuario", ["Correo"] = "nuevo@correo.test", ["RolId"] = "2"
         });
 
         var html = await cliente.GetStringAsync("/Users");
@@ -414,7 +423,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         using var cliente = await IniciarSesion("admin");
         await Publicar(cliente, "/Users?handler=Crear", new()
         {
-            ["Nombres"] = "Nuevo", ["Apellidos"] = "Usuario", ["Correo"] = "nuevo@correo.test", ["RolId"] = "2"
+            ["Nombres"] = "Nuevo", ["ApellidoPaterno"] = "Usuario", ["Correo"] = "nuevo@correo.test", ["RolId"] = "2"
         });
         var advertencia = await cliente.GetStringAsync("/Users");
         var error = await (await Publicar(cliente, "/Users?handler=ReenviarAcceso", new() { ["id"] = "1" })).Content.ReadAsStringAsync();
@@ -443,17 +452,17 @@ public sealed class UsersPaginaTests : IAsyncLifetime
 
         var respuesta = await Publicar(cliente, "/Users?handler=Crear", new()
         {
-            ["Nombres"] = "", ["Apellidos"] = "", ["Correo"] = "no-es-un-correo", ["RolId"] = "0"
+            ["Nombres"] = "", ["ApellidoPaterno"] = "", ["Correo"] = "no-es-un-correo", ["RolId"] = "0"
         });
         var html = WebUtility.HtmlDecode(await respuesta.Content.ReadAsStringAsync());
 
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         Assert.Matches(CampoInvalido("input", "Nombres"), html);
-        Assert.Matches(CampoInvalido("input", "Apellidos"), html);
+        Assert.Matches(CampoInvalido("input", "ApellidoPaterno"), html);
         Assert.Matches(CampoInvalido("input", "Correo"), html);
         Assert.Matches(CampoInvalido("select", "RolId"), html);
         Assert.Matches(MensajeDelCampo("Nombres", @"El campo Nombres es obligatorio\."), html);
-        Assert.Contains("data-valmsg-for=\"Apellidos\"", html);
+        Assert.Contains("data-valmsg-for=\"ApellidoPaterno\"", html);
         Assert.Contains("data-valmsg-for=\"Correo\"", html);
         Assert.Contains("data-valmsg-for=\"RolId\"", html);
         Assert.Contains("El campo Correo no es una dirección de correo válida.", html);
@@ -514,13 +523,16 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         AfirmarModalAbierto(html, "Crear usuario", "Crear");
         Assert.Contains("name=\"Nombres\"", html);
-        Assert.Contains("name=\"Apellidos\"", html);
+        Assert.Contains("name=\"ApellidoPaterno\"", html);
+        Assert.Contains("name=\"ApellidoMaterno\"", html);
+        Assert.Contains("placeholder=\"Ej.: Pérez\"", html);
+        Assert.Contains("placeholder=\"Ej.: Rojas (opcional)\"", html);
         Assert.Contains("name=\"Correo\"", html);
         Assert.Matches(OpcionElegida("0", "Seleccione un rol"), html);
         Assert.Contains(">Cajero</option>", html);
         Assert.DoesNotMatch(OpcionElegida("2", "Cajero"), html);
         Assert.DoesNotContain("is-invalid", html);
-        Assert.DoesNotContain("Nombre actual", html);
+        Assert.DoesNotContain("Editando a", html);
     }
 
     [Fact]
@@ -530,7 +542,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
 
         var respuesta = await Publicar(cliente, "/Users?handler=Crear", new()
         {
-            ["Nombres"] = "Ana María", ["Apellidos"] = "", ["Correo"] = "ana@correo.test", ["RolId"] = "2"
+            ["Nombres"] = "Ana María", ["ApellidoPaterno"] = "", ["Correo"] = "ana@correo.test", ["RolId"] = "2"
         });
         var html = WebUtility.HtmlDecode(await respuesta.Content.ReadAsStringAsync());
 
@@ -539,9 +551,9 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         Assert.Matches(ValorDelCampo("Nombres", "Ana María"), html);
         Assert.Matches(ValorDelCampo("Correo", "ana@correo.test"), html);
         Assert.Matches(OpcionElegida("2", "Cajero"), html);
-        Assert.Matches(CampoInvalido("input", "Apellidos"), html);
+        Assert.Matches(CampoInvalido("input", "ApellidoPaterno"), html);
         Assert.DoesNotMatch(CampoInvalido("input", "Nombres"), html);
-        Assert.Matches(MensajeDelCampo("Apellidos", @"El campo Apellidos es obligatorio\."), html);
+        Assert.Matches(MensajeDelCampo("ApellidoPaterno", @"El campo Apellido paterno es obligatorio\."), html);
         Assert.Empty(cambiosDeEstado);
     }
 
@@ -553,7 +565,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
 
         var respuesta = await Publicar(cliente, "/Users?handler=Crear", new()
         {
-            ["Nombres"] = "Luis", ["Apellidos"] = "Mamani", ["Correo"] = "luis@correo.test", ["RolId"] = "1"
+            ["Nombres"] = "Luis", ["ApellidoPaterno"] = "Mamani", ["Correo"] = "luis@correo.test", ["RolId"] = "1"
         });
         var html = WebUtility.HtmlDecode(await respuesta.Content.ReadAsStringAsync());
 
@@ -561,12 +573,12 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         Assert.Matches(@"id=""usuarioModal""[\s\S]*<div class=""alert alert-danger"" role=""alert"">Ya existe un usuario con ese correo\.</div>", html);
         Assert.DoesNotContain("data-aviso-ms=\"10000\"", html);
         Assert.Matches(ValorDelCampo("Nombres", "Luis"), html);
-        Assert.Matches(ValorDelCampo("Apellidos", "Mamani"), html);
+        Assert.Matches(ValorDelCampo("ApellidoPaterno", "Mamani"), html);
         Assert.Matches(OpcionElegida("1", "Administrador"), html);
     }
 
     [Fact]
-    public async Task Editar_abre_el_modal_con_correo_rol_y_nombre_actual_precargados()
+    public async Task Editar_abre_el_modal_con_nombres_apellidos_correo_y_rol_precargados()
     {
         using var cliente = await IniciarSesion("admin");
 
@@ -575,12 +587,79 @@ public sealed class UsersPaginaTests : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         AfirmarModalAbierto(html, "Editar usuario", "Guardar");
+        Assert.Matches(ValorDelCampo("Nombres", "Cajero"), html);
+        Assert.Matches(ValorDelCampo("ApellidoPaterno", "Uno"), html);
+        Assert.Matches(ValorDelCampo("ApellidoMaterno", "Rojas"), html);
         Assert.Matches(ValorDelCampo("Correo", "cajero1@correo.test"), html);
         Assert.Matches(OpcionElegida("2", "Cajero"), html);
         Assert.Matches(ValorDelCampo("EditarId", "2"), html);
-        Assert.Contains("Nombre actual: <strong>Cajero Uno</strong>", html);
+        Assert.Contains("Editando a <strong>Cajero Uno Rojas</strong>", html);
         Assert.Contains("Guardar cambios", html);
         Assert.DoesNotContain("is-invalid", html);
+    }
+
+    [Fact]
+    public async Task Editar_un_usuario_sin_apellido_materno_deja_ese_campo_vacio()
+    {
+        using var cliente = await IniciarSesion("admin");
+
+        var respuesta = await Publicar(cliente, "/Users?handler=Editar", new() { ["id"] = "4" });
+        var html = WebUtility.HtmlDecode(await respuesta.Content.ReadAsStringAsync());
+
+        Assert.Matches(ValorDelCampo("Nombres", "Inactivo"), html);
+        Assert.Matches(ValorDelCampo("ApellidoPaterno", "Uno"), html);
+        Assert.DoesNotMatch(@"name=""ApellidoMaterno""[^>]*value=""[^""]", html);
+    }
+
+    [Fact]
+    public async Task Crear_sin_apellido_materno_es_valido_y_envia_el_apellido_paterno()
+    {
+        using var cliente = await IniciarSesion("admin");
+
+        var respuesta = await Publicar(cliente, "/Users?handler=Crear", new()
+        {
+            ["Nombres"] = "Nuevo", ["ApellidoPaterno"] = "Usuario", ["ApellidoMaterno"] = "", ["Correo"] = "nuevo@correo.test", ["RolId"] = "2"
+        });
+
+        Assert.Equal(HttpStatusCode.Redirect, respuesta.StatusCode);
+        var enviado = Assert.Single(creaciones);
+        Assert.Equal("Nuevo", enviado.GetProperty("nombres").GetString());
+        Assert.Equal("Usuario", enviado.GetProperty("apellidoPaterno").GetString());
+        Assert.True(string.IsNullOrEmpty(enviado.GetProperty("apellidoMaterno").GetString()));
+    }
+
+    [Fact]
+    public async Task Crear_con_ambos_apellidos_los_envia_por_separado()
+    {
+        using var cliente = await IniciarSesion("admin");
+
+        await Publicar(cliente, "/Users?handler=Crear", new()
+        {
+            ["Nombres"] = "Juan Carlos", ["ApellidoPaterno"] = "Pérez", ["ApellidoMaterno"] = "Rojas", ["Correo"] = "juan@correo.test", ["RolId"] = "2"
+        });
+
+        var enviado = Assert.Single(creaciones);
+        Assert.Equal("Pérez", enviado.GetProperty("apellidoPaterno").GetString());
+        Assert.Equal("Rojas", enviado.GetProperty("apellidoMaterno").GetString());
+        Assert.False(enviado.TryGetProperty("apellidos", out _));
+    }
+
+    [Fact]
+    public async Task Los_apellidos_demasiado_largos_se_rechazan_con_mensajes_en_espanol()
+    {
+        using var cliente = await IniciarSesion("admin");
+
+        var respuesta = await Publicar(cliente, "/Users?handler=Crear", new()
+        {
+            ["Nombres"] = "Ana", ["ApellidoPaterno"] = new string('a', 61), ["ApellidoMaterno"] = new string('b', 61),
+            ["Correo"] = "ana@correo.test", ["RolId"] = "2"
+        });
+        var html = WebUtility.HtmlDecode(await respuesta.Content.ReadAsStringAsync());
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.Contains("El campo Apellido paterno no puede superar los 60 caracteres.", html);
+        Assert.Contains("El campo Apellido materno no puede superar los 60 caracteres.", html);
+        Assert.Empty(creaciones);
     }
 
     [Fact]
@@ -590,14 +669,14 @@ public sealed class UsersPaginaTests : IAsyncLifetime
 
         var respuesta = await Publicar(cliente, "/Users?handler=Guardar", new()
         {
-            ["EditarId"] = "2", ["Nombres"] = "", ["Apellidos"] = "Uno", ["Correo"] = "no-es-correo", ["RolId"] = "2"
+            ["EditarId"] = "2", ["Nombres"] = "", ["ApellidoPaterno"] = "Uno", ["Correo"] = "no-es-correo", ["RolId"] = "2"
         });
         var html = WebUtility.HtmlDecode(await respuesta.Content.ReadAsStringAsync());
 
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         AfirmarModalAbierto(html, "Editar usuario", "Guardar");
         Assert.Matches(ValorDelCampo("EditarId", "2"), html);
-        Assert.Matches(ValorDelCampo("Apellidos", "Uno"), html);
+        Assert.Matches(ValorDelCampo("ApellidoPaterno", "Uno"), html);
         Assert.Matches(ValorDelCampo("Correo", "no-es-correo"), html);
         Assert.Matches(MensajeDelCampo("Nombres", @"El campo Nombres es obligatorio\."), html);
         Assert.Matches(MensajeDelCampo("Correo", @"El campo Correo no es una dirección de correo válida\."), html);
@@ -611,11 +690,11 @@ public sealed class UsersPaginaTests : IAsyncLifetime
 
         var respuesta = await Publicar(cliente, "/Users?handler=Guardar", new()
         {
-            ["EditarId"] = "2", ["Nombres"] = "Cajero", ["Apellidos"] = "Dos", ["Correo"] = "cajero2@correo.test", ["RolId"] = "1"
+            ["EditarId"] = "2", ["Nombres"] = "Cajero", ["ApellidoPaterno"] = "Dos", ["ApellidoMaterno"] = "Soto", ["Correo"] = "cajero2@correo.test", ["RolId"] = "1"
         });
 
         Assert.Equal(HttpStatusCode.Redirect, respuesta.StatusCode);
-        Assert.Equal([(2, "Cajero", "Dos", "cajero2@correo.test", 1)], actualizaciones);
+        Assert.Equal([(2, "Cajero", "Dos", (string?)"Soto", "cajero2@correo.test", 1)], actualizaciones);
         var html = WebUtility.HtmlDecode(await cliente.GetStringAsync("/Users"));
         Assert.Contains("Cambios guardados correctamente.", html);
         Assert.DoesNotContain("id=\"usuarioModal\"", html);
@@ -665,7 +744,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         var post = await cliente.PostAsync("/Users?handler=Crear", new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["Nombres"] = "",
-            ["Apellidos"] = "",
+            ["ApellidoPaterno"] = "",
             ["Correo"] = "",
             ["RolId"] = "0",
             ["__RequestVerificationToken"] = token

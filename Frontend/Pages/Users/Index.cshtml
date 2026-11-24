@@ -146,22 +146,27 @@
                             <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
                             @if (Model.EsEdicion && Model.UsuarioEditando is { } actual)
                             {
-                                <p class="form-intro">Nombre actual: <strong>@actual.NombreCompleto</strong>. Vuelva a ingresar los nombres y apellidos por separado para guardar el nombre completo.</p>
+                                <p class="form-intro">Editando a <strong>@actual.NombreCompleto</strong>. El apellido materno es opcional.</p>
                             }
                             else
                             {
-                                <p class="form-intro">Todos los campos son obligatorios. Se enviará un correo con las credenciales de acceso.</p>
+                                <p class="form-intro">Todos los campos son obligatorios, salvo el apellido materno. Se enviará un correo con las credenciales de acceso.</p>
                             }
                             <div class="row g-3">
-                                <div class="col-md-6">
+                                <div class="col-12">
                                     <label asp-for="Nombres" class="form-label">Nombres</label>
-                                    <input asp-for="Nombres" class="@Model.ClaseCampo(nameof(Model.Nombres))" maxlength="150" autocomplete="given-name" required />
+                                    <input asp-for="Nombres" class="@Model.ClaseCampo(nameof(Model.Nombres))" maxlength="100" autocomplete="given-name" required />
                                     <span asp-validation-for="Nombres" class="invalid-feedback"></span>
                                 </div>
                                 <div class="col-md-6">
-                                    <label asp-for="Apellidos" class="form-label">Apellidos</label>
-                                    <input asp-for="Apellidos" class="@Model.ClaseCampo(nameof(Model.Apellidos))" maxlength="150" autocomplete="family-name" required />
-                                    <span asp-validation-for="Apellidos" class="invalid-feedback"></span>
+                                    <label asp-for="ApellidoPaterno" class="form-label">Apellido paterno</label>
+                                    <input asp-for="ApellidoPaterno" class="@Model.ClaseCampo(nameof(Model.ApellidoPaterno))" maxlength="60" autocomplete="family-name" placeholder="Ej.: Pérez" required />
+                                    <span asp-validation-for="ApellidoPaterno" class="invalid-feedback"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="ApellidoMaterno" class="form-label">Apellido materno</label>
+                                    <input asp-for="ApellidoMaterno" class="@Model.ClaseCampo(nameof(Model.ApellidoMaterno))" maxlength="60" placeholder="Ej.: Rojas (opcional)" />
+                                    <span asp-validation-for="ApellidoMaterno" class="invalid-feedback"></span>
                                 </div>
                                 <div class="col-12">
                                     <label asp-for="Correo" class="form-label">Correo</label>
