@@ -18,6 +18,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
     private Uri baseFrontend = null!;
     private bool correoEnviadoRespuesta = true;
     private bool reenviarDebeFallar;
+    private int llamadasReenviar;
 
     public async Task InitializeAsync()
     {
@@ -39,11 +40,16 @@ public sealed class UsersPaginaTests : IAsyncLifetime
                 debeCambiarPassword = false
             });
         });
-        gateway.MapGet("/api/usuarios", () => Results.Json(new[]
+        var usuarios = new[]
         {
             new { id = 1, username = "admin", nombreCompleto = "Usuario de prueba", correo = "admin@correo.test", rol = "Administrador", activo = true, debeCambiarPassword = false },
             new { id = 2, username = "cajero1", nombreCompleto = "Cajero Uno", correo = "cajero1@correo.test", rol = "Cajero", activo = true, debeCambiarPassword = false }
-        }));
+        };
+        gateway.MapGet("/api/usuarios", () => Results.Json(usuarios));
+        gateway.MapGet("/api/usuarios/{id:int}", (int id) =>
+            usuarios.FirstOrDefault(u => u.id == id) is { } usuario
+                ? Results.Json(usuario)
+                : Results.NotFound(new { error = "El usuario indicado no existe." }));
         gateway.MapGet("/api/usuarios/roles", () => Results.Json(new[]
         {
             new { id = 1, nombre = "Administrador" },
@@ -61,6 +67,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         }));
         gateway.MapPost("/api/usuarios/{id:int}/reenviar-acceso", (int id) =>
         {
+            Interlocked.Increment(ref llamadasReenviar);
             if (reenviarDebeFallar)
                 return Results.Problem(statusCode: StatusCodes.Status502BadGateway, title: "Error de correo");
 
@@ -180,7 +187,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Crear_usuario_sin_correo_enviado_muestra_aviso_de_reenviar_acceso()
+    public async Task Crear_usuario_sin_correo_enviado_muestra_username_y_advertencia_amarilla()
     {
         correoEnviadoRespuesta = false;
         using var cliente = await IniciarSesion("admin");
@@ -198,7 +205,53 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
 
         var html = await cliente.GetStringAsync("/Users");
-        Assert.Contains("No se pudo enviar el correo. Use Reenviar acceso.", html);
+        const string mensaje = "Usuario nuevo.usuario creado, pero no se pudo enviar el correo. Use Reenviar acceso.";
+        Assert.Contains(mensaje, html);
+        Assert.Matches("class=\"alert alert-warning[^\"]*\"[^>]*>" + Regex.Escape(mensaje) + "<", html);
+        Assert.DoesNotMatch("alert-success[^>]*>[^<]*creado", html);
+        Assert.DoesNotContain("Se envió un enlace de activación", WebUtility.HtmlDecode(html));
+    }
+
+    [Fact]
+    public async Task Reenviar_acceso_con_correo_no_enviado_muestra_advertencia_amarilla()
+    {
+        correoEnviadoRespuesta = false;
+        reenviarDebeFallar = false;
+        using var cliente = await IniciarSesion("admin");
+        var token = ExtraerToken(await cliente.GetStringAsync("/Users"));
+
+        var post = await cliente.PostAsync("/Users?handler=ReenviarAcceso", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["id"] = "2",
+            ["__RequestVerificationToken"] = token
+        }));
+        Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
+
+        var html = await cliente.GetStringAsync("/Users");
+        const string mensaje = "No se pudo enviar el correo. Use Reenviar acceso.";
+        Assert.Matches("class=\"alert alert-warning[^\"]*\"[^>]*>" + Regex.Escape(mensaje) + "<", html);
+        Assert.DoesNotMatch("alert-success[^>]*>[^<]*correo", html);
+        Assert.DoesNotContain("Se envió un nuevo enlace de activación.", WebUtility.HtmlDecode(html));
+        Assert.Equal(1, llamadasReenviar);
+    }
+
+    [Fact]
+    public async Task Reenviar_acceso_a_la_propia_cuenta_se_rechaza_sin_llamar_a_reenviar()
+    {
+        using var cliente = await IniciarSesion("admin");
+        var token = ExtraerToken(await cliente.GetStringAsync("/Users"));
+
+        var post = await cliente.PostAsync("/Users?handler=ReenviarAcceso", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["id"] = "1",
+            ["__RequestVerificationToken"] = token
+        }));
+
+        var html = await post.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, post.StatusCode);
+        Assert.Matches("class=\"alert alert-danger[^\"]*\"[^>]*>No puede reenviar el acceso a su propia cuenta\\.<", html);
+        Assert.Equal(0, llamadasReenviar);
+        Assert.DoesNotContain("Se envió un nuevo enlace de activación.", WebUtility.HtmlDecode(await cliente.GetStringAsync("/Users")));
     }
 
     [Fact]
@@ -228,6 +281,10 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         }));
         Assert.Equal(HttpStatusCode.OK, failPost.StatusCode);
         Assert.Contains("Error de correo", await failPost.Content.ReadAsStringAsync());
+
+        var despues = await cliente.GetAsync("/Users");
+        Assert.Equal(HttpStatusCode.OK, despues.StatusCode);
+        Assert.DoesNotContain("Error de correo", await despues.Content.ReadAsStringAsync());
     }
 
     [Fact]
