@@ -9,9 +9,7 @@ public static class UsuariosBootstrap
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args, ApplicationName = typeof(UsuariosBootstrap).Assembly.FullName });
         configurar?.Invoke(builder);
-        var localDemo = builder.Environment.IsEnvironment("LocalDemo");
-        if (localDemo) builder.WebHost.UseUrls("http://127.0.0.1:5003");
-        var documentar = builder.Environment.IsDevelopment() || localDemo;
+        var documentar = builder.Environment.IsDevelopment();
         builder.Services.AddControllers();
         builder.Services.AgregarGestionDeUsuarios();
         builder.Services.AgregarInfraestructuraGestion(builder.Configuration);
@@ -19,7 +17,7 @@ public static class UsuariosBootstrap
         builder.Services.AddAuthorization();
         if (documentar) builder.Services.AgregarDocumentacionUsuarios();
         var app = builder.Build();
-        if (!localDemo) app.UseHttpsRedirection();
+        app.UseHttpsRedirection();
         if (documentar)
         {
             app.UseSwagger();

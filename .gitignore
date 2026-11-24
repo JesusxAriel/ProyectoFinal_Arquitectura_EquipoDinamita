@@ -45,9 +45,6 @@ appsettings.Secrets.json
 # Dockerfiles y Compose forman parte de la fase de dockerización; los datos siguen excluidos.
 
 # Herramientas e informes de operaciones puntuales sobre la base personal.
-/scripts/aplicar-proveedores.cs
-/scripts/previsualizar-proveedores.cs
-/scripts/comprobar-datos-validaciones.cs
 /ADAPTACION_PROVEEDORES_SQL.md
 /VALIDACIONES_Y_SEGURIDAD.md
 /AJUSTES_USABILIDAD.md

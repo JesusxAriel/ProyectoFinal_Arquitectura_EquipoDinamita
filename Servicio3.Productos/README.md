@@ -87,7 +87,7 @@ Rutas relativas a Servicio3.Productos:
 
 ## Integración y configuración
 
-Compose raíz: `productos-ms`, `productos-db`, volumen original conservado y `ConnectionStrings__PostgresConnection`. Gateway YARP ya tenía rutas de Productos, salud y cluster; no se duplicaron. Frontend común añade `/Productos`, cliente tipado con AddGatewayAdapter/BearerTokenHandler, filtros/recarga/páginas, alta/edición, baja con confirmación y antiforgery. Se valida el permiso también en cada handler. El selector obtiene los proveedores activos paginando el contrato real del Gateway, nunca una lista fija. Los errores preservan formulario y se muestran en español. Tests de páginas comunes se alojan en Tests/Demo.Tests por su infraestructura TestServer existente; no se cambia el frontend Demo.
+Compose raíz: `productos-ms`, `productos-db`, volumen original conservado y `ConnectionStrings__PostgresConnection`. Gateway YARP ya tenía rutas de Productos, salud y cluster; no se duplicaron. Frontend común añade `/Productos`, cliente tipado con AddGatewayAdapter/BearerTokenHandler, filtros/recarga/páginas, alta/edición, baja con confirmación y antiforgery. Se valida el permiso también en cada handler. El selector obtiene los proveedores activos paginando el contrato real del Gateway, nunca una lista fija. Los errores preservan formulario y se muestran en español.
 
 Variables:
 
@@ -120,11 +120,6 @@ dotnet test Servicio3.Productos/PuntoMarket.Productos.slnx --no-restore
 dotnet build Proyecto_Microservicios.slnx --no-restore
 dotnet test Proyecto_Microservicios.slnx --no-restore
 dotnet test Servicio4.Proveedores/Proveedores.slnx --no-restore
-node scripts/probar-catalogos-comunes.mjs
-node scripts/probar-clientes-demo.mjs
-node scripts/probar-interfaz-clientes.mjs
-node scripts/probar-validaciones-frontend.cjs
-node scripts/probar-busqueda-dinamica.mjs
 ```
 
 La prueba PostgreSQL se omite sin `PRODUCTOS_TEST_POSTGRES`. Configurar esa variable con la cadena de una base **exclusiva de pruebas**, nunca producción: crea un esquema `productos_test_<GUID>`, aplica migración dos veces y prueba catálogo, CRUD, duplicados/FK, auditoría, historial y rollback forzado. En finally elimina únicamente su esquema generado. No crea ni elimina bases o volúmenes existentes.
@@ -132,10 +127,9 @@ La prueba PostgreSQL se omite sin `PRODUCTOS_TEST_POSTGRES`. Configurar esa vari
 ```powershell
 # Definir PRODUCTOS_TEST_POSTGRES de forma privada con el destino aislado.
 dotnet test Servicio3.Productos/PuntoMarket.Productos.slnx --filter FullyQualifiedName~PostgresPersistenceTests
-dotnet test Tests/Demo.Tests/Demo.Tests.csproj --filter FullyQualifiedName~ProductosComunesTests
 ```
 
-Las pruebas de autorización firman JWT de prueba y recorren JwtBearer real (sin identity de producción simulada); comprueban 401 sin token, issuer/audience incorrectos y lectura/escritura Administrador/Cajero. Las pruebas HTTP de proveedores usan handler controlado y no acreditan un servicio real. Las pruebas Razor usan sesión, antiforgery y BearerTokenHandler reales con Gateway controlado.
+Las pruebas de autorización firman JWT de prueba y recorren JwtBearer real (sin identity de producción simulada); comprueban 401 sin token, issuer/audience incorrectos y lectura/escritura Administrador/Cajero. Las pruebas HTTP de proveedores usan handler controlado y no acreditan un servicio real.
 
 Para disponer de un PostgreSQL de pruebas desechable con Docker, en una terminal separada:
 
@@ -161,16 +155,14 @@ Punto de partida confirmado: origin JesusxAriel/ProyectoFinal_Arquitectura_Equip
 | dotnet restore Proyecto_Microservicios.slnx; restore solución Productos tras añadir Tests | Correctos. El primer build no pudo descargar paquetes por restricción de red; la restauración autorizada resolvió ese bloqueo. |
 | dotnet build Servicio3.Productos/PuntoMarket.Productos.slnx --no-restore | Correcto, 0 advertencias y 0 errores |
 | dotnet build Proyecto_Microservicios.slnx --no-restore | Correcto, 0 advertencias y 0 errores |
-| dotnet test Servicio3.Productos/PuntoMarket.Productos.slnx --no-build --no-restore | 34 aprobadas, 0 omitidas, PostgreSQL real aislado |
-| dotnet test Proyecto_Microservicios.slnx --no-restore | 545 aprobadas, 0 fallidas, 14 omitidas de MongoDB |
-| dotnet test Servicio4.Proveedores/Proveedores.slnx --no-restore | 201 aprobadas, 0 fallidas, 14 omitidas de MongoDB |
-| dotnet test Tests/Demo.Tests/Demo.Tests.csproj --filter FullyQualifiedName~ProductosComunesTests --no-restore | 3 aprobadas; también incluidas en las 86 de Demo.Tests de la suite raíz |
-| Los cinco comandos Node de la sección anterior | Correctos |
+| dotnet test Servicio3.Productos/PuntoMarket.Productos.slnx --no-build --no-restore | 33 aprobadas, 1 omitida (PostgreSQL real aislado) |
+| dotnet test Proyecto_Microservicios.slnx --no-restore | 562 aprobadas, 0 fallidas, 15 omitidas (14 de MongoDB y 1 de PostgreSQL) |
+| dotnet test Servicio4.Proveedores/Proveedores.slnx --no-restore | 167 aprobadas, 0 fallidas, 14 omitidas de MongoDB |
 | docker compose config --quiet | Bloqueado por ausencia de variables privadas del entorno común |
 | docker --config artifacts/docker-config-test compose --env-file artifacts/productos-compose.env.tmp config --quiet | Correcto con valores sintéticos temporales; solo sintaxis/configuración, sin arrancar servicios |
 | git diff --check | Correcto |
 
-Desglose raíz: Clientes 54, Usuarios 111, Gateway 16, Frontend 43, Productos 34, Proveedores 201 aprobadas/14 omitidas y Demo.Tests 86. Las 37 pruebas agregadas corresponden a 34 de Productos y 3 de las páginas comunes.
+Desglose raíz: Clientes 54, Usuarios 186, Gateway 16, Frontend 106, Productos 33 aprobadas/1 omitida, Proveedores 167 aprobadas/14 omitidas.
 
 Persistencia: se inicializó un cluster PostgreSQL 18.6 nuevo en artifacts/productos-pg-<GUID>, publicado exclusivamente en 127.0.0.1:55439, usando binarios locales, sin tocar instancias existentes. La prueba creó y retiró su propio esquema. Se comprobó migración repetible, catálogos, CRUD, restricciones, historial, rollback y auditoría. El proceso temporal se detuvo al finalizar; los archivos locales de prueba quedan excluidos de Git. Compose utiliza PostgreSQL 17; su ejecución en contenedor no se verificó aquí.
 

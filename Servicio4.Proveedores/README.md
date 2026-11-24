@@ -1,5 +1,3 @@
-> Integración actual: el entorno común utiliza el Compose raíz, Gateway/, Frontend/ y Keycloak. Los comandos y componentes demo descritos aquí pertenecen exclusivamente a `docker-compose.demo.yml`. Los resultados de auditorías anteriores son históricos; véase el README y los acuerdos Grupo 2 para el estado integrado.
-
 # Microservicio Proveedores
 
 Servicio independiente .NET 10 con Clean Architecture y MongoDB. Arranque y requisitos completos en el [README principal](../README.md).
@@ -39,7 +37,7 @@ Validación definitiva en Domain: nombre obligatorio de hasta 150 caracteres, te
 
 ## Integración y pruebas
 
-[Guía común](../GUIA_INTEGRACION_GRUPO1.md) y [acuerdos Grupo 2](../INTEGRACION_GRUPO2.md). La API valida JWT configurado en Authentication:Jwt; no gestiona identidades ni consulta la base de Usuarios. Productos continúa pendiente de integración HTTP; no se bloquean todavía las bajas por productos activos.
+La API valida JWT configurado en Authentication:Jwt; no gestiona identidades ni consulta la base de Usuarios. Productos continúa pendiente de integración HTTP; no se bloquean todavía las bajas por productos activos.
 
 ```powershell
 $env:PROVEEDORES_TEST_MONGO = 'mongodb://localhost:27017'
