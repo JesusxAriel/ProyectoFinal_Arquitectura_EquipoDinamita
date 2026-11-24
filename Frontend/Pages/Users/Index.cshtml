@@ -8,6 +8,10 @@
 {
     <div class="alert alert-success shadow-sm" role="status">@Model.AvisoGestion</div>
 }
+@if (Model.AdvertenciaGestion is not null)
+{
+    <div class="alert alert-warning shadow-sm" role="status">@Model.AdvertenciaGestion</div>
+}
 @if (Model.ErrorGestion is not null)
 {
     <div class="alert alert-danger shadow-sm" role="alert">@Model.ErrorGestion</div>

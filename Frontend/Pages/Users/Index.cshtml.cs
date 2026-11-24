@@ -13,6 +13,7 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
 {
     private const string MensajeSinPermisos = "No tiene permisos para ver esta sección.";
     private const string MensajeCorreoFallido = "No se pudo enviar el correo. Use Reenviar acceso.";
+    private const string MensajeReenviarPropio = "No puede reenviar el acceso a su propia cuenta.";
 
     public IReadOnlyList<UsuarioResponse> Usuarios { get; private set; } = [];
     public IReadOnlyList<RolResponse> Roles { get; private set; } = [];
@@ -45,6 +46,9 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
 
     [TempData]
     public string? AvisoGestion { get; set; }
+
+    [TempData]
+    public string? AdvertenciaGestion { get; set; }
 
     private IActionResult RedirigirSinPermisos()
     {
@@ -79,9 +83,10 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
         }
 
         var creado = resultado.Value;
-        AvisoGestion = creado.CorreoEnviado
-            ? $"Usuario {creado.Username} creado. Se envió un enlace de activación a {Correo}."
-            : MensajeCorreoFallido;
+        if (creado.CorreoEnviado)
+            AvisoGestion = $"Usuario {creado.Username} creado. Se envió un enlace de activación a {Correo}.";
+        else
+            AdvertenciaGestion = $"Usuario {creado.Username} creado, pero no se pudo enviar el correo. Use Reenviar acceso.";
 
         return RedirectToPage();
     }
@@ -192,6 +197,22 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
         if (id <= 0)
             return BadRequest();
 
+        var usuario = await api.Obtener(id);
+        if (usuario.IsFail)
+        {
+            ErrorGestion = usuario.Error;
+            await CargarAsync();
+            return Page();
+        }
+
+        var usernameActual = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.Equals(usernameActual, usuario.Value.Username, StringComparison.OrdinalIgnoreCase))
+        {
+            ErrorGestion = MensajeReenviarPropio;
+            await CargarAsync();
+            return Page();
+        }
+
         var resultado = await api.Reenviar(id);
         if (resultado.IsFail)
         {
@@ -200,9 +221,10 @@ public sealed class IndexModel(IUsuariosApiAdapter api) : PageModel
             return Page();
         }
 
-        AvisoGestion = resultado.Value.CorreoEnviado
-            ? "Se envió un nuevo enlace de activación."
-            : MensajeCorreoFallido;
+        if (resultado.Value.CorreoEnviado)
+            AvisoGestion = "Se envió un nuevo enlace de activación.";
+        else
+            AdvertenciaGestion = MensajeCorreoFallido;
 
         return RedirectToPage();
     }
