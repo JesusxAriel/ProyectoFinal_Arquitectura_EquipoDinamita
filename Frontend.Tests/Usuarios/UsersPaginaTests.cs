@@ -475,7 +475,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
 
         var html = await cliente.GetStringAsync("/Users");
 
-        Assert.Contains("/js/limpiar-validacion.mjs", html);
+        Assert.Contains("/js/validacion-cliente.mjs", html);
         Assert.Contains("/js/avisos-temporales.mjs", html);
         Assert.Contains("/css/usuarios.css", html);
     }
@@ -596,6 +596,26 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         Assert.Contains("Editando a <strong>Cajero Uno Rojas</strong>", html);
         Assert.Contains("Guardar cambios", html);
         Assert.DoesNotContain("is-invalid", html);
+    }
+
+    [Fact]
+    public async Task Los_campos_de_los_modales_llevan_las_reglas_y_los_mensajes_del_servidor_para_el_navegador()
+    {
+        using var cliente = await IniciarSesion("admin");
+
+        var html = WebUtility.HtmlDecode(await (await Publicar(cliente, "/Users?handler=Nuevo", [])).Content.ReadAsStringAsync());
+
+        Assert.Contains("data-val-required=\"El campo Nombres es obligatorio.\"", html);
+        Assert.Contains("data-val-length=\"El campo Nombres no puede superar los 100 caracteres.\"", html);
+        Assert.Contains("data-val-length-max=\"100\"", html);
+        Assert.Contains("data-val-required=\"El campo Apellido paterno es obligatorio.\"", html);
+        Assert.Contains("data-val-length=\"El campo Apellido paterno no puede superar los 60 caracteres.\"", html);
+        Assert.Contains("data-val-length=\"El campo Apellido materno no puede superar los 60 caracteres.\"", html);
+        Assert.Contains("data-val-required=\"El campo Correo es obligatorio.\"", html);
+        Assert.Contains("data-val-regex=\"Ingrese un correo válido, por ejemplo nombre@dominio.com.\"", html);
+        Assert.Contains("data-val-length=\"El campo Correo no puede superar los 150 caracteres.\"", html);
+        Assert.Contains("data-val-range=\"Seleccione un rol válido.\"", html);
+        Assert.Contains("data-val-range-min=\"1\"", html);
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PuntoMarket.Frontend.Auth;
@@ -10,12 +11,17 @@ public abstract class CambiarPasswordPageModel(ISesionUsuario sesion, IPerfilApi
     protected ISesionUsuario Sesion { get; } = sesion;
 
     [BindProperty]
+    [Required(ErrorMessage = MensajesPassword.ActualObligatoria)]
     public string PasswordActual { get; set; } = "";
 
     [BindProperty]
+    [Required(ErrorMessage = MensajesPassword.NuevaObligatoria)]
+    [PoliticaPassword]
     public string PasswordNueva { get; set; } = "";
 
     [BindProperty]
+    [Required(ErrorMessage = MensajesPassword.RepeticionObligatoria)]
+    [Compare(nameof(PasswordNueva), ErrorMessage = MensajesPassword.RepeticionDistinta)]
     public string RepetirPasswordNueva { get; set; } = "";
 
     public string ClaseCampo(string campo) =>

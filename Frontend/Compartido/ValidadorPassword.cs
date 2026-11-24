@@ -13,16 +13,16 @@ public static class ValidadorPassword
         var errores = new List<ErrorDeCampo>();
 
         if (string.IsNullOrWhiteSpace(actual))
-            errores.Add(new(CampoActual, "Ingrese su contraseña actual."));
+            errores.Add(new(CampoActual, MensajesPassword.ActualObligatoria));
 
         var errorNueva = ValidarNueva(nueva);
         if (errorNueva is not null)
             errores.Add(new(CampoNueva, errorNueva));
 
         if (string.IsNullOrWhiteSpace(confirmacion))
-            errores.Add(new(CampoConfirmacion, "Repita la nueva contraseña."));
+            errores.Add(new(CampoConfirmacion, MensajesPassword.RepeticionObligatoria));
         else if (errorNueva is null && !string.Equals(nueva, confirmacion, StringComparison.Ordinal))
-            errores.Add(new(CampoConfirmacion, "La repetición no coincide con la nueva contraseña."));
+            errores.Add(new(CampoConfirmacion, MensajesPassword.RepeticionDistinta));
 
         return errores;
     }
@@ -33,20 +33,20 @@ public static class ValidadorPassword
         return errores.Count == 0 ? Result.Ok() : Result.Fail(errores[0].Mensaje);
     }
 
-    private static string? ValidarNueva(string? nueva)
+    public static string? ValidarNueva(string? nueva)
     {
         if (string.IsNullOrWhiteSpace(nueva))
-            return "Ingrese la nueva contraseña.";
-        if (nueva.Length < 8)
-            return "La nueva contraseña debe tener al menos 8 caracteres.";
+            return MensajesPassword.NuevaObligatoria;
+        if (nueva.Length < MensajesPassword.LongitudMinima)
+            return MensajesPassword.NuevaCorta;
         if (!nueva.Any(char.IsUpper))
-            return "La nueva contraseña debe incluir al menos una letra mayúscula.";
+            return MensajesPassword.NuevaSinMayuscula;
         if (!nueva.Any(char.IsLower))
-            return "La nueva contraseña debe incluir al menos una letra minúscula.";
+            return MensajesPassword.NuevaSinMinuscula;
         if (!nueva.Any(char.IsDigit))
-            return "La nueva contraseña debe incluir al menos un número.";
+            return MensajesPassword.NuevaSinNumero;
         if (!nueva.Any(caracter => !char.IsLetterOrDigit(caracter)))
-            return "La nueva contraseña debe incluir al menos un carácter especial.";
+            return MensajesPassword.NuevaSinEspecial;
 
         return null;
     }

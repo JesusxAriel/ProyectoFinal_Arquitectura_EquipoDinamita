@@ -188,13 +188,35 @@ public sealed class CambiarPasswordPaginaTests : IAsyncLifetime
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public async Task Los_campos_llevan_las_reglas_y_los_mensajes_del_servidor_para_el_navegador(bool obligatorio)
+    {
+        using var cliente = await IniciarSesion(obligatorio);
+
+        var html = WebUtility.HtmlDecode(await cliente.GetStringAsync(Ruta(obligatorio)));
+
+        Assert.Contains("data-val-required=\"Ingrese su contraseña actual.\"", html);
+        Assert.Contains("data-val-required=\"Ingrese la nueva contraseña.\"", html);
+        Assert.Contains("data-val-longitudminima=\"La nueva contraseña debe tener al menos 8 caracteres.\"", html);
+        Assert.Contains("data-val-longitudminima-min=\"8\"", html);
+        Assert.Contains("data-val-mayuscula=\"La nueva contraseña debe incluir al menos una letra mayúscula.\"", html);
+        Assert.Contains("data-val-minuscula=\"La nueva contraseña debe incluir al menos una letra minúscula.\"", html);
+        Assert.Contains("data-val-numero=\"La nueva contraseña debe incluir al menos un número.\"", html);
+        Assert.Contains("data-val-especial=\"La nueva contraseña debe incluir al menos un carácter especial.\"", html);
+        Assert.Contains("data-val-required=\"Repita la nueva contraseña.\"", html);
+        Assert.Contains("data-val-equalto=\"La repetición no coincide con la nueva contraseña.\"", html);
+        Assert.Contains("data-val-equalto-other=\"*.PasswordNueva\"", html);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public async Task La_pagina_carga_el_modulo_que_limpia_el_error_al_escribir(bool obligatorio)
     {
         using var cliente = await IniciarSesion(obligatorio);
 
         var html = await cliente.GetStringAsync(Ruta(obligatorio));
 
-        Assert.Contains("/js/limpiar-validacion.mjs", html);
+        Assert.Contains("/js/validacion-cliente.mjs", html);
         Assert.Contains("/js/mostrar-password.mjs", html);
         Assert.Contains("/css/password.css", html);
         Assert.Contains("data-valmsg-for=\"PasswordActual\"", html);
