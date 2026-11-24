@@ -150,7 +150,7 @@ else
                             {
                                 <form method="post" asp-page-handler="CambiarEstado" class="d-inline">
                                     <input type="hidden" name="id" value="@usuario.Id" />
-                                    <input type="hidden" name="activo" value="@(!usuario.Activo)" />
+                                    <input type="hidden" name="activo" value="@(usuario.Activo ? "false" : "true")" />
                                     <button type="submit" class="btn btn-sm btn-outline-secondary">
                                         @(usuario.Activo ? "Desactivar" : "Activar")
                                     </button>

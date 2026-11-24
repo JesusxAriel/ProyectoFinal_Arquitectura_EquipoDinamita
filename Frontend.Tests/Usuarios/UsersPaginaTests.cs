@@ -19,6 +19,7 @@ public sealed class UsersPaginaTests : IAsyncLifetime
     private bool correoEnviadoRespuesta = true;
     private bool reenviarDebeFallar;
     private int llamadasReenviar;
+    private readonly List<(int Id, bool Activo)> cambiosDeEstado = [];
 
     public async Task InitializeAsync()
     {
@@ -43,13 +44,21 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         var usuarios = new[]
         {
             new { id = 1, username = "admin", nombreCompleto = "Usuario de prueba", correo = "admin@correo.test", rol = "Administrador", activo = true, debeCambiarPassword = false },
-            new { id = 2, username = "cajero1", nombreCompleto = "Cajero Uno", correo = "cajero1@correo.test", rol = "Cajero", activo = true, debeCambiarPassword = false }
+            new { id = 2, username = "cajero1", nombreCompleto = "Cajero Uno", correo = "cajero1@correo.test", rol = "Cajero", activo = true, debeCambiarPassword = false },
+            new { id = 4, username = "inactivo1", nombreCompleto = "Inactivo Uno", correo = "inactivo1@correo.test", rol = "Cajero", activo = false, debeCambiarPassword = false }
         };
         gateway.MapGet("/api/usuarios", () => Results.Json(usuarios));
         gateway.MapGet("/api/usuarios/{id:int}", (int id) =>
             usuarios.FirstOrDefault(u => u.id == id) is { } usuario
                 ? Results.Json(usuario)
                 : Results.NotFound(new { error = "El usuario indicado no existe." }));
+        gateway.MapMethods("/api/usuarios/{id:int}/estado", ["PATCH"], async (int id, HttpContext contexto) =>
+        {
+            var cuerpo = await contexto.Request.ReadFromJsonAsync<Dictionary<string, bool>>();
+            lock (cambiosDeEstado)
+                cambiosDeEstado.Add((id, cuerpo!["activo"]));
+            return Results.NoContent();
+        });
         gateway.MapGet("/api/usuarios/roles", () => Results.Json(new[]
         {
             new { id = 1, nombre = "Administrador" },
@@ -136,6 +145,71 @@ public sealed class UsersPaginaTests : IAsyncLifetime
         Assert.NotNull(filaCajero);
         Assert.DoesNotContain("Reenviar acceso", filaAdmin);
         Assert.Contains("Reenviar acceso", filaCajero);
+    }
+
+    private static string FilaDe(string html, string correo) =>
+        Regex.Matches(html, "<tr[^>]*>.*?</tr>", RegexOptions.Singleline)
+            .Select(m => m.Value)
+            .Single(f => f.Contains(correo));
+
+    private static string FormularioDeEstado(string fila) =>
+        Regex.Match(fila, "<form[^>]*handler=CambiarEstado[^>]*>.*?</form>", RegexOptions.Singleline).Value;
+
+    private static string ValorQueEnviaElNavegador(string formulario, string campo)
+    {
+        var entrada = Regex.Matches(formulario, "<input type=\"hidden\" name=\"" + campo + "\"[^>]*>")
+            .Select(m => m.Value)
+            .Single();
+        var valor = Regex.Match(entrada, "value=\"([^\"]*)\"");
+        return valor.Success ? valor.Groups[1].Value : "";
+    }
+
+    [Fact]
+    public async Task El_boton_Activar_de_un_usuario_inactivo_envia_activo_true_y_el_adaptador_recibe_true()
+    {
+        using var cliente = await IniciarSesion("admin");
+        var pagina = await cliente.GetStringAsync("/Users");
+        var fila = FilaDe(pagina, "inactivo1@correo.test");
+        Assert.Matches(@">\s*Activar\s*<", fila);
+
+        var formulario = FormularioDeEstado(fila);
+        var activo = ValorQueEnviaElNavegador(formulario, "activo");
+        Assert.Equal("true", activo);
+
+        var post = await cliente.PostAsync("/Users?handler=CambiarEstado", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["id"] = ValorQueEnviaElNavegador(formulario, "id"),
+            ["activo"] = activo,
+            ["__RequestVerificationToken"] = ExtraerToken(pagina)
+        }));
+
+        Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
+        Assert.Equal([(4, true)], cambiosDeEstado);
+        Assert.Contains("Usuario activado correctamente.", WebUtility.HtmlDecode(await cliente.GetStringAsync("/Users")));
+    }
+
+    [Fact]
+    public async Task El_boton_Desactivar_de_un_usuario_activo_envia_activo_false_y_el_adaptador_recibe_false()
+    {
+        using var cliente = await IniciarSesion("admin");
+        var pagina = await cliente.GetStringAsync("/Users");
+        var fila = FilaDe(pagina, "cajero1@correo.test");
+        Assert.Matches(@">\s*Desactivar\s*<", fila);
+
+        var formulario = FormularioDeEstado(fila);
+        var activo = ValorQueEnviaElNavegador(formulario, "activo");
+        Assert.Equal("false", activo);
+
+        var post = await cliente.PostAsync("/Users?handler=CambiarEstado", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["id"] = ValorQueEnviaElNavegador(formulario, "id"),
+            ["activo"] = activo,
+            ["__RequestVerificationToken"] = ExtraerToken(pagina)
+        }));
+
+        Assert.Equal(HttpStatusCode.Redirect, post.StatusCode);
+        Assert.Equal([(2, false)], cambiosDeEstado);
+        Assert.Contains("Usuario desactivado correctamente.", WebUtility.HtmlDecode(await cliente.GetStringAsync("/Users")));
     }
 
     [Fact]
