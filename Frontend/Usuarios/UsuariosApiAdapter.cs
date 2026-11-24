@@ -79,22 +79,28 @@ public sealed class UsuariosApiAdapter(HttpClient httpClient) : IUsuariosApiAdap
         }
     }
 
-    public async Task<Result> Crear(CreateUsuarioRequest request)
+    public async Task<Result<CreateUsuarioResponse>> Crear(CreateUsuarioRequest request)
     {
         try
         {
             using var response = await httpClient.PostAsJsonAsync("api/usuarios", request);
-            return response.IsSuccessStatusCode
-                ? Result.Ok()
-                : Result.Fail(await MapearErrorAsync(response));
+            if (!response.IsSuccessStatusCode)
+            {
+                return Result<CreateUsuarioResponse>.Fail(await MapearErrorAsync(response));
+            }
+
+            var creado = await response.Content.ReadFromJsonAsync<CreateUsuarioResponse>();
+            return creado is null
+                ? Result<CreateUsuarioResponse>.Fail("No se pudo leer la respuesta de creación del usuario.")
+                : Result<CreateUsuarioResponse>.Ok(creado);
         }
         catch (HttpRequestException)
         {
-            return Result.Fail(MensajesAuth.SinConexion);
+            return Result<CreateUsuarioResponse>.Fail(MensajesAuth.SinConexion);
         }
         catch (OperationCanceledException)
         {
-            return Result.Fail("El servidor tardó demasiado en responder. Intente nuevamente.");
+            return Result<CreateUsuarioResponse>.Fail("El servidor tardó demasiado en responder. Intente nuevamente.");
         }
     }
 
@@ -133,6 +139,31 @@ public sealed class UsuariosApiAdapter(HttpClient httpClient) : IUsuariosApiAdap
         catch (OperationCanceledException)
         {
             return Result.Fail("El servidor tardó demasiado en responder. Intente nuevamente.");
+        }
+    }
+
+    public async Task<Result<ReenviarAccesoResponse>> Reenviar(int id)
+    {
+        try
+        {
+            using var response = await httpClient.PostAsync($"api/usuarios/{id}/reenviar-acceso", content: null);
+            if (!response.IsSuccessStatusCode)
+            {
+                return Result<ReenviarAccesoResponse>.Fail(await MapearErrorAsync(response));
+            }
+
+            var resultado = await response.Content.ReadFromJsonAsync<ReenviarAccesoResponse>();
+            return resultado is null
+                ? Result<ReenviarAccesoResponse>.Fail("No se pudo leer la respuesta del reenvío de acceso.")
+                : Result<ReenviarAccesoResponse>.Ok(resultado);
+        }
+        catch (HttpRequestException)
+        {
+            return Result<ReenviarAccesoResponse>.Fail(MensajesAuth.SinConexion);
+        }
+        catch (OperationCanceledException)
+        {
+            return Result<ReenviarAccesoResponse>.Fail("El servidor tardó demasiado en responder. Intente nuevamente.");
         }
     }
 
